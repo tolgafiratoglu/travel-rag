@@ -50,13 +50,6 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 │  Vector Store  │   │ Knowledge Graph│   │  ├─ qwen-shared (gen)  │
 │  :6333         │   │  :7474/:7687   │   │  └─ nomic-embed-text   │
 └────────────────┘   └────────────────┘   └────────────────────────┘
-                                                     ▲
-                                                     │ llm_internal
-                                                     │ docker network
-                                          ┌──────────┴─────────┐
-                                          │  ../qwen/          │
-                                          │  (sibling project) │
-                                          └────────────────────┘
 ```
 
 ---
@@ -102,13 +95,14 @@ Qwen on Ollama processes one prompt at a time efficiently. Concurrent requests t
 - Zero external dependency (no Redis/RabbitMQ needed)
 - Observability (queue depth metric)
 
-### Why Go for the Scraper?
+### Why a Separate Ingestion Module?
 
-- Excellent concurrency (goroutines for parallel page fetching)
-- Fast startup, low memory footprint
-- Strong stdlib for HTTP/JSON/XML
-- Compiles to single binary (easy Docker image)
-- Good exercise for polyglot portfolio
+Data ingestion (fetching from Wikivoyage/Wikidata APIs, chunking, embedding, loading) is an offline batch process — separate from the online query pipeline. Keeping it in its own Python module (`ingestion/`) provides:
+
+- Clear separation of concerns (batch vs real-time)
+- Shared dependencies with the API (same Qdrant/Neo4j/Ollama clients)
+- Unified language — no context switching, single `pyproject.toml`
+- Can be run as a CLI script independently of the API server
 
 ---
 
@@ -118,9 +112,9 @@ Qwen on Ollama processes one prompt at a time efficiently. Concurrent requests t
 
 ```
 Wikivoyage API ──┐
-                 ├──▶ Go Scraper ──▶ Chunker ──┬──▶ Embed ──▶ Qdrant
-Wikidata SPARQL ─┘                             │
-                                               └──▶ Entity Extract ──▶ Neo4j
+                 ├──▶ Ingestion Pipeline (Python) ──┬──▶ Embed ──▶ Qdrant
+Wikidata SPARQL ─┘       (fetch → chunk)            │
+                                                    └──▶ Entity Extract ──▶ Neo4j
 ```
 
 ### Query (online, per-request)
@@ -193,7 +187,7 @@ This schema enables queries like:
 | Graph DB | Neo4j Community | 5.x | Industry standard, Cypher is expressive |
 | Orchestration | LangGraph | 0.2+ | State machines for LLM workflows |
 | API | FastAPI | 0.115+ | Async-native, WebSocket support, auto-docs |
-| Scraper | Go | 1.22+ | Fast concurrent fetching, single binary |
+| Ingestion | Python (httpx + asyncio) | — | Shared language, same Qdrant/Neo4j/Ollama clients as API |
 | Frontend | Jinja2 + jQuery + Tailwind (CDN) | — | Server-rendered by FastAPI, no separate build step |
 | Infra | Docker Compose | v2 | Multi-service local dev |
 
@@ -203,7 +197,7 @@ This schema enables queries like:
 
 ```
 tourism/
-├── docker-compose.yml          # All services except Ollama
+├── docker-compose.yml          # All services (Ollama, API, Qdrant, Neo4j)
 ├── .env.example                # Environment template
 ├── README.md                   # This file
 │
@@ -240,16 +234,13 @@ tourism/
 │   │       └── chat.js         # WebSocket + jQuery chat logic
 │   └── tests/
 │
-├── scraper/                    # Go - Data Ingestion Pipeline
-│   ├── Dockerfile
-│   ├── go.mod
-│   ├── cmd/
-│   │   └── scraper/main.go    # CLI entrypoint
-│   ├── internal/
-│   │   ├── wikivoyage/         # MediaWiki API client + parser
-│   │   ├── wikidata/           # SPARQL query builder + client
-│   │   ├── chunker/            # Section-based text chunking
-│   │   └── loader/             # Bulk insert to Qdrant + Neo4j
+├── ingestion/                  # Python - Data Ingestion Pipeline
+│   ├── __init__.py
+│   ├── wikivoyage.py           # MediaWiki API client + parser
+│   ├── wikidata.py             # SPARQL query builder + client
+│   ├── chunker.py              # Section-based text chunking
+│   ├── loader.py               # Bulk insert to Qdrant + Neo4j
+│   ├── run.py                  # CLI entrypoint (python -m ingestion.run)
 │   └── configs/
 │       └── sources.yaml        # Target cities/regions
 │
@@ -264,24 +255,18 @@ tourism/
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                 llm_internal (external network)          │
+│                 llm_internal (docker network)            │
 │                                                         │
 │  ┌──────────────┐  ┌───────┐  ┌───────┐  ┌─────────┐  │
-│  │shared-ollama │  │  api  │  │qdrant │  │  neo4j  │  │
-│  │(from ../qwen)│  │ :8000 │  │ :6333 │  │:7474/87 │  │
+│  │   ollama     │  │  api  │  │qdrant │  │  neo4j  │  │
+│  │  (internal)  │  │ :8000 │  │ :6333 │  │:7474/87 │  │
 │  │  dns: ollama │  │       │  │       │  │         │  │
 │  └──────────────┘  └───────┘  └───────┘  └─────────┘  │
-│         ▲                                               │
-│         │ shared across projects                        │
-└─────────┼───────────────────────────────────────────────┘
-          │
-          │  Also used by other projects in ../
-          ▼
-   ../qwen/docker-compose.llm.yml
+└─────────────────────────────────────────────────────────┘
 ```
 
-The `llm_internal` network is created once by the qwen setup script.  
-All projects join it as `external: true` in their own docker-compose.
+All services are defined in the project's `docker-compose.yml`.  
+Ollama has no exposed port — only reachable within `llm_internal` network.
 
 ---
 
@@ -304,13 +289,13 @@ All projects join it as `external: true` in their own docker-compose.
 - [ ] Hybrid merge + reranking logic
 - [ ] Extend seed data with entity relationships
 
-### Phase 3: Data Ingestion (Go)
-- [ ] Go project scaffold
+### Phase 3: Data Ingestion (Python)
+- [ ] Ingestion module scaffold
 - [ ] Wikivoyage MediaWiki API client
 - [ ] Wikidata SPARQL client
 - [ ] Section-based chunker
 - [ ] Bulk loader (Qdrant + Neo4j)
-- [ ] CLI with config-driven city list
+- [ ] CLI entrypoint with config-driven city list
 
 ### Phase 4: Frontend
 - [ ] Jinja2 base template + Tailwind CDN setup
@@ -319,7 +304,15 @@ All projects join it as `external: true` in their own docker-compose.
 - [ ] Thinking steps display (shows LangGraph progress)
 - [ ] Queue position indicator
 
-### Phase 5: Production Polish
+### Phase 5: Guardrails & Safety
+- [ ] GuardrailService interface (`check_input` → allow/deny)
+- [ ] Rule-based pre-filter (empty, too long, keyword blocklist)
+- [ ] Türkçe profanity keyword list
+- [ ] Llama Prompt Guard 2-86M (prompt injection / jailbreak detection)
+- [ ] Domain classifier (turizm sorusu mu? — Qwen mini-prompt veya mDeBERTa zero-shot)
+- [ ] Output safety check (hallucination / toxic response filtering)
+
+### Phase 6: Production Polish
 - [ ] Structured logging (structlog)
 - [ ] OpenTelemetry tracing (request → LLM → retrieval spans)
 - [ ] Error handling + graceful degradation
@@ -337,7 +330,7 @@ All projects join it as `external: true` in their own docker-compose.
 | Retrieval strategy | Hybrid (vector + graph) | Covers both semantic similarity and structured relationships |
 | Query decomposition | LangGraph state machine | Supports loops, branching, streaming; more than a simple chain |
 | Embedding location | Same Ollama instance | Operational simplicity; nomic-embed-text is lightweight |
-| Scraper language | Go | Fast concurrency, good stdlib, single binary deployment |
+| Ingestion language | Python | Shared deps with API, single language across project |
 | Frontend approach | Jinja2 + jQuery (server-rendered) | No separate build/container, FastAPI serves everything |
 | WebSocket | Yes | Enables streaming + step visualization; REST stays for simple clients |
 | Graph DB | Neo4j Community | Cypher is powerful; free community edition sufficient |
