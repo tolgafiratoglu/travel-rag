@@ -1,7 +1,7 @@
 """
 Seed script for Qdrant and Neo4j.
 
-Populates the vector store with tourism text chunks and
+Populates the vector store with travel text chunks and
 the knowledge graph with entities and relationships.
 Creates SourceChunk nodes in Neo4j to bridge both databases.
 
@@ -30,7 +30,7 @@ ALLOW_DB_RESET = os.getenv("ALLOW_DB_RESET", "false").lower() == "true"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "tourism_chunks")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "changeme")
@@ -447,7 +447,7 @@ async def main():
         print("ERROR: Set ALLOW_DB_RESET=true to run this script (destructive operation)")
         sys.exit(1)
 
-    print("Tourism GraphRAG — Seed Data\n")
+    print("Travel RAG — Seed Data\n")
     chunk_records = await seed_qdrant()
     seed_neo4j(chunk_records)
     print("\nDone!")

@@ -1,6 +1,6 @@
-# Tourism GraphRAG
+# Travel RAG
 
-A multi-step Retrieval-Augmented Generation system for tourism queries.  
+A multi-step Retrieval-Augmented Generation system for travel queries.  
 Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestrated by **LangGraph** and powered by **Qwen** on Ollama.
 
 ---
@@ -59,7 +59,7 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 ### Why LangGraph (not a simple chain)?
 
 A naive RAG does: embed query → retrieve → stuff into prompt → generate.  
-This fails for complex tourism questions like:
+This fails for complex travel questions like:
 
 > "Ailece, bütçe dostu, Akdeniz ikliminde, tarih ve deniz birlikte olan bir yer öner"
 
@@ -196,7 +196,7 @@ This schema enables queries like:
 ## Project Structure
 
 ```
-tourism/
+travel-rag/
 ├── docker-compose.yml          # All services (Ollama, API, Qdrant, Neo4j)
 ├── .env.example                # Environment template
 ├── README.md                   # This file
@@ -245,7 +245,7 @@ tourism/
 │       └── sources.yaml        # Target cities/regions
 │
 └── scripts/
-    ├── seed_data.py            # Insert test tourism chunks
+    ├── seed_data.py            # Insert test travel chunks
     └── reset_db.sh             # Wipe Qdrant + Neo4j data
 ```
 
@@ -280,7 +280,7 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 - [ ] Qdrant vector store service
 - [ ] Basic LangGraph pipeline (query → retrieve → synthesize)
 - [ ] POST /chat endpoint (testable via Postman)
-- [ ] Seed data script (manually insert a few tourism chunks for testing)
+- [ ] Seed data script (manually insert a few travel chunks for testing)
 
 ### Phase 2: Knowledge Graph
 - [ ] Neo4j schema + constraints
@@ -309,7 +309,7 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 - [ ] Rule-based pre-filter (empty, too long, keyword blocklist)
 - [ ] Türkçe profanity keyword list
 - [ ] Llama Prompt Guard 2-86M (prompt injection / jailbreak detection)
-- [ ] Domain classifier (turizm sorusu mu? — Qwen mini-prompt veya mDeBERTa zero-shot)
+- [ ] Domain classifier (seyahat sorusu mu? — Qwen mini-prompt veya mDeBERTa zero-shot)
 - [ ] Output safety check (hallucination / toxic response filtering)
 
 ### Phase 6: Production Polish
@@ -348,7 +348,7 @@ OLLAMA_EMBED_MODEL=nomic-embed-text
 
 # Qdrant
 QDRANT_URL=http://qdrant:6333
-QDRANT_COLLECTION=tourism_chunks
+QDRANT_COLLECTION=travel_chunks
 
 # Neo4j
 NEO4J_URI=bolt://neo4j:7687

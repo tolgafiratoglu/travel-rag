@@ -1,7 +1,7 @@
 [project]
-name = "tourism-graphrag-api"
+name = "travel-rag-api"
 version = "0.1.0"
-description = "Tourism GraphRAG — FastAPI backend"
+description = "Travel RAG — FastAPI backend"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

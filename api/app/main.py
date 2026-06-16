@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 import httpx
@@ -6,6 +7,10 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.routes.health import router as health_router
+from app.routes.chat import router as chat_router
+from app.services.llm import warmup
+
+logger = logging.getLogger(__name__)
 
 
 async def wait_for_qdrant(url: str, retries: int = 10, delay: float = 2.0):
@@ -24,12 +29,16 @@ async def wait_for_qdrant(url: str, retries: int = 10, delay: float = 2.0):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await wait_for_qdrant(settings.qdrant_url)
+    logger.info("Warming up LLM (this may take a few minutes on first start)...")
+    await warmup()
+    logger.info("LLM warm-up complete.")
     yield
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.include_router(health_router)
+    app.include_router(chat_router)
     return app
 
 
