@@ -15,6 +15,9 @@ Süre tahminleri günlük 2-3 saat yarı zamanlı çalışmaya göre verilmişti
 - [x] `POST /chat` — düz RAG akışı
 - [x] `seed.py` + `init-ollama.sh`
 - [x] Warmup, model rename (Travel RAG)
+- [x] `web/` — Next.js chat UI (TS + Tailwind), `POST /chat` entegrasyonu
+- [x] FastAPI CORS (`http://localhost:3000`)
+- [x] Tek sayfa RAG chat (`/` — `page.tsx` Server, `ChatWindow` client)
 
 ---
 
@@ -84,47 +87,41 @@ Neo4j'yi online sorguya dahil et — hibrit retrieval.
 
 ---
 
-## Phase 3 — Frontend (Next.js / React)  *(~8 gün)*
+## Phase 3 — Frontend (Next.js / React)  *(~6 gün kaldı)*
 
-Next.js 14+ App Router üzerinde React tabanlı chat UI. Şimdilik chat CSR olarak çalışacak; mimari uzun vadede destinasyon sayfaları için SSR/SSG'yi destekleyecek şekilde kurulacak (SEO için).
+Tek sayfa RAG chat: kullanıcı soru sorar, `POST /chat` ile cevap alır. Şehir sayfaları ve SEO bu fazda yok.
 
-### 3.A Scaffold & Docker  *(~1.5 gün)*
+### 3.A Scaffold  *(~0.5 gün — tamamlandı)*
 
-- [ ] **3.1** `web/` altında `create-next-app` (TS + Tailwind + ESLint + App Router) *(0.5 gün)*
-- [ ] **3.2** `next.config.mjs` — `output: "standalone"`, `images`, env'den `NEXT_PUBLIC_API_BASE_URL` *(0.25 gün)*
-- [ ] **3.3** `web/Dockerfile` (multi-stage: deps → build → runner) *(0.5 gün)*
-- [ ] **3.4** `docker-compose.yml` — `web` servisi (port 3000), `llm_internal` network'üne katıl *(0.25 gün)*
-- [ ] **3.5** FastAPI tarafında CORS middleware (`web` origin için) *(0.25 gün)*
+- [x] **3.1** `web/` — Next.js 14 (TS + Tailwind + App Router) *(0.5 gün)*
+- [x] **3.2** `next.config.mjs`, `.env.local.example` (`NEXT_PUBLIC_API_BASE_URL`) *(0.25 gün)*
+- [x] **3.5** FastAPI CORS middleware (`http://localhost:3000`) *(0.25 gün)*
 
-### 3.B Chat UI (CSR)  *(~3 gün)*
+### 3.B Chat UI  *(~1 gün — tamamlandı)*
 
-- [ ] **3.6** `src/app/layout.tsx` — Root layout, global metadata (title/description/OG) *(0.25 gün)*
-- [ ] **3.7** `src/app/page.tsx` — `"use client"` chat sayfası iskeleti *(0.25 gün)*
-- [ ] **3.8** `src/lib/api.ts` — FastAPI fetch wrapper (`POST /chat` fallback için) *(0.25 gün)*
-- [ ] **3.9** `components/ChatWindow.tsx` — mesaj listesi, input, gönder *(0.5 gün)*
-- [ ] **3.10** `components/MessageStream.tsx` — kullanıcı/asistan mesaj kartları *(0.5 gün)*
-- [ ] **3.11** `components/PlanCard.tsx` — plan-first reasoning'i ayrı göster *(0.5 gün)*
-- [ ] **3.12** `components/SourceList.tsx` — `[S1] [S2]` referansları, citation çipi *(0.5 gün)*
-- [ ] **3.13** Tailwind ile temel temalama (light/dark hazırlığı) *(0.25 gün)*
+- [x] **3.6** `src/app/layout.tsx` — Server Component, metadata *(0.25 gün)*
+- [x] **3.7** `src/app/page.tsx` — Server Component, sadece `<ChatWindow />` *(0.25 gün)*
+- [x] **3.8** `src/lib/api.ts` — `postChat()` → `POST /chat` *(0.25 gün)*
+- [x] **3.9** `ChatWindow.tsx` — mesaj listesi, input, loading, hata *(0.5 gün)*
+- [x] **3.10** `MessageBubble.tsx`, `ChatInput.tsx` *(0.25 gün)*
+- [x] **3.13** Tailwind ile temel temalama *(0.25 gün)*
 
-### 3.C WebSocket streaming  *(~2.5 gün)*
+### 3.C Kalan UI iyileştirmeleri  *(~1 gün)*
 
-- [ ] **3.14** `api/routes/chat.py` — `WS /ws/chat` endpoint *(0.5 gün)*
-- [ ] **3.15** `services/llm.py` — `stream=True` desteği *(0.5 gün)*
-- [ ] **3.16** LangGraph `astream_events()` — plan event'i + node event'leri + token stream *(0.75 gün)*
-- [ ] **3.17** `src/lib/ws.ts` + `hooks/useChatStream.ts` — WS bağlantı yönetimi, reconnect, event router *(0.5 gün)*
-- [ ] **3.18** Plan event → `PlanCard`, token event → streaming render, queue depth indicator *(0.25 gün)*
+- [ ] **3.11** `SourceList.tsx` — API'den gelen `sources` alanını göster *(0.5 gün)*
+- [ ] **3.12** Boş/hata/uzun bekleme durumları için daha iyi UX *(0.25 gün)*
+- [ ] **3.14** `web/Dockerfile` + `docker-compose.yml` web servisi *(0.5 gün)*
 
-### 3.D SEO baseline (chat sayfası için minimum, gelecekteki SSR/SSG'ye hazırlık)  *(~1 gün)*
+### 3.D WebSocket streaming  *(~2.5 gün)*
 
-- [ ] **3.19** `src/app/robots.ts` ve `src/app/sitemap.ts` (route tree'den üret) *(0.25 gün)*
-- [ ] **3.20** Open Graph / Twitter Card metadata helper *(0.25 gün)*
-- [ ] **3.21** `src/app/city/[slug]/page.tsx` placeholder + `generateMetadata()` örneği (boş içerik, sadece route şekli için) *(0.25 gün)*
-- [ ] **3.22** Lighthouse skoru ölçüm + dokümante (chat ana sayfası için bir baseline) *(0.25 gün)*
+- [ ] **3.15** `api/routes/chat.py` — `WS /ws/chat` endpoint *(0.5 gün)*
+- [ ] **3.16** `services/llm.py` — `stream=True` desteği *(0.5 gün)*
+- [ ] **3.17** LangGraph `astream_events()` — plan event'i + token stream *(0.75 gün)*
+- [ ] **3.18** `useChatStream` hook + `PlanCard` — plan-first streaming UI *(0.75 gün)*
 
-**Çıktı:** ChatGPT benzeri streaming chat deneyimi; ileride `/city/[slug]` gibi rotaları SSG/SSR olarak doldurmaya hazır mimari.
+**Çıktı:** Tarayıcıdan çalışan RAG chat (şu an sync REST); sonra streaming ve Docker.
 
-> **Not:** Bu fazda gerçek SSR/SSG sayfası **doldurulmuyor**, yalnızca route şekli ve metadata yapısı kuruluyor. İçerik dolu SEO sayfaları Phase 4 (Ingestion) tamamlandıktan sonra ayrı bir stretch task'ında (`S.7 Public city pages — SSG`) yapılacak.
+> **Ertelenen:** Şehir sayfaları (`/city/[slug]`), `robots.ts`, `sitemap.ts` — stretch goal **S.7** veya ingestion sonrası.
 
 ---
 
@@ -265,7 +262,7 @@ Zaman kalırsa ya da projeyi öne çıkarmak için:
 | Phase 0 — RAG Hardening | ~2 gün |
 | Phase 1 — LangGraph Migration + Plan Node | ~5 gün |
 | Phase 2 — Knowledge Graph Retrieval | ~5 gün |
-| Phase 3 — Frontend (Next.js) | ~8 gün |
+| Phase 3 — Frontend (Next.js) | ~6 gün kaldı (~2 gün tamamlandı) |
 | Phase 4 — Data Ingestion | ~7 gün |
 | Phase 5 — Guardrails & Safety | ~4 gün |
 | Phase 6 — Observability | ~3 gün |
@@ -289,10 +286,10 @@ Yarı zamanlı çalışmayla (~2-3 saat/gün) core ~7-9 hafta, stretch dahil ~11
 **Demo öncelikli (hızlı görsel sonuç):**
 
 ```
-0 → 1.A → 3.A → 3.B → 1.B → 2 → 3.C → 4 → 5 → 6 → 7 → 8
+0 → 1.A → 3 (chat UI ✓) → 1.B → 2 → 3.D (streaming) → 4 → 5 → 6 → 7 → 8
 ```
 
-(3.A = Next.js scaffold + Docker, 3.B = chat UI iskeleti, 3.C = WebSocket streaming — düz `POST /chat`'le bile demo edilebilir hale gelir; sonra streaming bağlanır.)
+(3.A + 3.B tamamlandı — tarayıcıdan `POST /chat` ile soru-cevap çalışıyor. Sırada: sources UI, Docker, WebSocket streaming.)
 
 ---
 

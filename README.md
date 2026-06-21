@@ -11,11 +11,11 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 ┌─────────────────────────────────────────────────────────────────────┐
 │                  Client Layer (Next.js — React)                      │
 │                                                                     │
-│   Browser (CSR chat)         Future: SSR/SSG city pages (SEO)       │
-│   /  → chat UI               /city/[slug] → server-rendered          │
-│   WS /ws/chat ──┐            fetch /api → ──┐                       │
-└─────────────────┼─────────────────────────────┼─────────────────────┘
-                  ▼                             ▼
+│   Browser — single-page RAG chat (`/`)                               │
+│   POST /chat ──────────────────────────────┐                        │
+│   (future: WS /ws/chat for streaming)      │                        │
+└────────────────────────────────────────────┼────────────────────────┘
+                                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      API Layer (FastAPI)                             │
 │                                                                     │
@@ -102,20 +102,14 @@ Trade-off: One extra LLM call (~1-2 sn added to total latency), in exchange for 
 
 ### Why Next.js (React) for the Frontend?
 
-The chat UI is interactive — token streaming, plan/thinking steps, source citations — so a pure server-rendered template (Jinja2) becomes awkward fast. React (via Next.js App Router) gives:
+The chat UI is interactive — message list, input, loading states, and later token streaming. React (via Next.js App Router) gives:
 
-- **Component model** that matches our streaming UX (PlanCard, MessageStream, SourceList as isolated pieces)
-- **Edge-rendering option for SEO** — the chat itself doesn't need SEO, but future destination pages (`/city/[slug]`, `/region/[slug]`) absolutely do. App Router lets a single project mix:
-  - **CSR / "use client"** for `/` (chat) — interactive, no SEO need
-  - **SSG / SSR** for content pages — pre-rendered HTML, `generateMetadata()`, JSON-LD structured data, sitemap
-- **No premature lock-in** — start with CSR only; switch any route to SSR/SSG later without rewriting
-- **Single deployable** — separate `web` container behind a reverse proxy, talks to FastAPI over the internal Docker network for queries and WebSocket streaming
+- **Component model** — `ChatWindow`, `MessageBubble`, `ChatInput` as isolated pieces; streaming/plan UI added later without a rewrite
+- **Server + client split** — `page.tsx` stays a Server Component; only `ChatWindow` is `"use client"` (state + API calls)
+- **Room to grow** — same project can later add SSR/SSG routes (e.g. public destination pages) when needed; chat does not require SEO today
+- **Local dev first** — `npm run dev` on `:3000` talks to FastAPI on `:8000`; Docker for `web` comes in a later step
 
-SEO considerations baked in from day one (even if SSR pages come later):
-- Semantic HTML + `metadata` exports on every route
-- `robots.txt` + `sitemap.xml` generated from the Next.js route tree
-- Open Graph / Twitter Card metadata
-- Reserved file paths for `/city/[slug]` so the URL shape stays stable
+Current scope: **one route (`/`), sync `POST /chat`**. WebSocket streaming, source citations in UI, and Docker deployment are planned next.
 
 ### Why Hybrid Retrieval (Vector + Knowledge Graph)?
 
@@ -235,7 +229,7 @@ This schema enables queries like:
 | Orchestration | LangGraph | 0.2+ | State machines for LLM workflows |
 | API | FastAPI | 0.115+ | Async-native, WebSocket support, auto-docs |
 | Ingestion | Python (httpx + asyncio) | — | Shared language, same Qdrant/Neo4j/Ollama clients as API |
-| Frontend | Next.js (App Router) + React + TypeScript + Tailwind | 14+ | Component model fits streaming UX; SSR/SSG ready for SEO on future content pages |
+| Frontend | Next.js (App Router) + React + TypeScript + Tailwind | 14+ | Single-page RAG chat; Server `page.tsx` + client `ChatWindow` |
 | Infra | Docker Compose | v2 | Multi-service local dev |
 
 ---
@@ -272,33 +266,24 @@ travel-rag/
 │   │       └── entities.py     # Domain models
 │   └── tests/
 │
-├── web/                        # Next.js 14+ App Router (React + TS + Tailwind)
-│   ├── Dockerfile
+├── web/                        # Next.js 14 App Router (React + TS + Tailwind)
 │   ├── package.json
-│   ├── next.config.mjs         # Standalone output for Docker
+│   ├── next.config.mjs
 │   ├── tsconfig.json
 │   ├── tailwind.config.ts
 │   ├── postcss.config.mjs
-│   ├── public/
-│   │   └── robots.txt
+│   ├── .env.local.example      # NEXT_PUBLIC_API_BASE_URL
 │   └── src/
 │       ├── app/
-│       │   ├── layout.tsx      # Root layout, global metadata
-│       │   ├── page.tsx        # "use client" — chat UI (CSR)
-│       │   ├── globals.css
-│       │   ├── sitemap.ts      # Generated from route tree
-│       │   └── (future)        # SSR/SSG content routes
-│       │       └── city/[slug]/page.tsx   # Pre-rendered, SEO-ready
-│       ├── components/
-│       │   ├── ChatWindow.tsx
-│       │   ├── MessageStream.tsx
-│       │   ├── PlanCard.tsx
-│       │   └── SourceList.tsx
-│       ├── lib/
-│       │   ├── api.ts          # FastAPI fetch client
-│       │   └── ws.ts           # WebSocket helpers
-│       └── hooks/
-│           └── useChatStream.ts
+│       │   ├── layout.tsx      # Server Component — metadata
+│       │   ├── page.tsx        # Server Component — renders ChatWindow
+│       │   └── globals.css
+│       ├── components/chat/
+│       │   ├── ChatWindow.tsx  # "use client" — state, POST /chat
+│       │   ├── ChatInput.tsx
+│       │   └── MessageBubble.tsx
+│       └── lib/
+│           └── api.ts          # postChat() → FastAPI
 │
 ├── ingestion/                  # Python - Data Ingestion Pipeline
 │   ├── __init__.py
@@ -320,11 +305,13 @@ travel-rag/
 ## Docker Network Topology
 
 ```
-┌──────────┐  (only port exposed to host)
-│  web     │  :3000  ── Next.js (React)
-└────┬─────┘
-     │ fetch / WebSocket
-     ▼
+Host
+  │
+  ├── :3000  web (local: npm run dev — not in docker-compose yet)
+  │              POST http://localhost:8000/chat
+  │
+  └── :8000  api ──┐
+                   ▼
 ┌─────────────────────────────────────────────────────────┐
 │                 llm_internal (docker network)            │
 │                                                         │
@@ -336,9 +323,34 @@ travel-rag/
 └─────────────────────────────────────────────────────────┘
 ```
 
-All services are defined in the project's `docker-compose.yml`.  
-Ollama has no exposed port — only reachable within `llm_internal` network.  
-`web` joins the same network so it can talk to `api` over `http://api:8000` and `ws://api:8000/ws/chat`.
+Backend services run via `docker compose`. The `web` frontend runs locally with `npm run dev` for now; a `web` Docker service will be added later.
+
+Ollama has no exposed port — only reachable within `llm_internal` network.
+
+---
+
+## Run Locally
+
+### Backend (Docker)
+
+```bash
+docker compose up -d
+# API: http://localhost:8000/health
+```
+
+### Frontend (local)
+
+```bash
+cd web
+npm install
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+npm run dev
+# UI: http://localhost:3000
+```
+
+Ask a travel question in the chat UI; answers come from `POST /chat` (vector retrieval + Qwen). First response may be slow while the LLM warms up.
+
+After changing CORS or API code, rebuild the API container: `docker compose up -d --build api`.
 
 ---
 
@@ -370,15 +382,14 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 - [ ] CLI entrypoint with config-driven city list
 
 ### Phase 4: Frontend (Next.js / React)
-- [ ] Next.js 14 App Router scaffold (TS + Tailwind + ESLint)
-- [ ] `web/Dockerfile` (multi-stage, `output: "standalone"`) + compose service
-- [ ] FastAPI CORS for `web` origin
-- [ ] Chat UI page (`app/page.tsx`, "use client") + components (`ChatWindow`, `MessageStream`, `PlanCard`, `SourceList`)
-- [ ] `useChatStream` hook — WebSocket connection, plan + token streaming
-- [ ] Thinking steps display (renders LangGraph events)
+- [x] Next.js 14 App Router scaffold (TS + Tailwind)
+- [x] FastAPI CORS for `http://localhost:3000`
+- [x] Chat UI — `page.tsx` (Server) + `ChatWindow` (client) + `POST /chat`
+- [ ] Source citations in UI (`sources` from API response)
+- [ ] `web/Dockerfile` + `docker-compose.yml` web service
+- [ ] `useChatStream` hook — WebSocket, plan + token streaming
+- [ ] Thinking steps display (LangGraph events)
 - [ ] Queue position indicator
-- [ ] SEO baseline: `metadata` exports, `robots.txt`, `sitemap.ts`
-- [ ] Reserve `/city/[slug]` route shape for future SSR/SSG pages
 
 ### Phase 5: Guardrails & Safety
 - [ ] GuardrailService interface (`check_input` → allow/deny)
@@ -407,7 +418,7 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 | Query decomposition | LangGraph state machine | Supports loops, branching, streaming; more than a simple chain |
 | Embedding location | Same Ollama instance | Operational simplicity; nomic-embed-text is lightweight |
 | Ingestion language | Python | Shared deps with API, single language across project |
-| Frontend approach | Next.js (App Router) + React | Component model fits streaming UX; same project can later add SSR/SSG city pages for SEO without a rewrite |
+| Frontend approach | Next.js (App Router) + React | Server `page.tsx` + client `ChatWindow`; sync chat now, streaming/Docker later |
 | WebSocket | Yes | Enables streaming + step visualization; REST stays for simple clients |
 | Graph DB | Neo4j Community | Cypher is powerful; free community edition sufficient |
 | Package manager | uv (Python) | Fast, modern replacement for pip/poetry |
@@ -435,6 +446,9 @@ NEO4J_PASSWORD=changeme
 API_HOST=0.0.0.0
 API_PORT=8000
 LOG_LEVEL=info
+
+# Web (local dev — copy to web/.env.local)
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
 
 ---
