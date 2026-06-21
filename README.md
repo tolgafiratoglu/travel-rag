@@ -9,11 +9,18 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
+│                  Client Layer (Next.js — React)                      │
+│                                                                     │
+│   Browser (CSR chat)         Future: SSR/SSG city pages (SEO)       │
+│   /  → chat UI               /city/[slug] → server-rendered          │
+│   WS /ws/chat ──┐            fetch /api → ──┐                       │
+└─────────────────┼─────────────────────────────┼─────────────────────┘
+                  ▼                             ▼
+┌─────────────────────────────────────────────────────────────────────┐
 │                      API Layer (FastAPI)                             │
 │                                                                     │
-│   Jinja2 Templates + jQuery    Postman / curl                       │
-│   GET / ──▶ HTML (chat UI)     POST /chat (JSON)                    │
-│   WS /ws/chat ──┐              POST /chat ──┐                      │
+│   WS /ws/chat (streaming)    POST /chat (JSON, sync)                 │
+│                 │                            │                      │
 │                 ▼                            ▼                      │
 │            ┌────────────────────────────────────┐                   │
 │            │    asyncio.Semaphore(1) Queue      │  ← max 1 LLM call│
@@ -23,25 +30,32 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 ┌─────────────────────────────────────────────────────────────────────┐
 │                  Orchestration (LangGraph)                           │
 │                                                                     │
-│   ┌──────────┐    ┌───────────────┐    ┌──────────────────┐        │
-│   │  Query   │───▶│ Sub-Question  │───▶│ Parallel         │        │
-│   │ Analysis │    │  Generation   │    │ Retrieval        │        │
-│   └──────────┘    └───────────────┘    └────────┬─────────┘        │
-│        │                                        │                   │
-│        │ (simple)                    ┌──────────┴──────────┐        │
-│        ▼                             ▼                     ▼        │
-│   ┌──────────┐              ┌──────────────┐     ┌─────────────┐   │
-│   │  Direct  │              │   Vector     │     │    Graph    │   │
-│   │ Retrieve │              │  Retrieval   │     │  Retrieval  │   │
-│   └────┬─────┘              └──────┬───────┘     └──────┬──────┘   │
-│        │                           └────────┬───────────┘           │
-│        ▼                                    ▼                       │
-│   ┌─────────────────────────────────────────────────┐               │
-│   │        Rerank → Synthesize → Validate           │               │
-│   │                    │                            │               │
-│   │                    ▼ (not satisfied?)            │               │
-│   │              loop back to Sub-Question Gen      │               │
-│   └─────────────────────────────────────────────────┘               │
+│   ┌──────────┐    ┌─────────────────┐                              │
+│   │   Plan   │───▶│ stream to user  │  (WebSocket: instant feedback)│
+│   │ (LLM #1) │    │  via WS event   │                              │
+│   └────┬─────┘    └─────────────────┘                              │
+│        │                                                            │
+│        ▼                                                            │
+│   ┌──────────────┐    ┌──────────────────┐                         │
+│   │  Classify /  │───▶│ Parallel         │                         │
+│   │    Route     │    │ Retrieval        │                         │
+│   └──────┬───────┘    └────────┬─────────┘                         │
+│          │                     │                                    │
+│   (chitchat) ┌──────────────┐  │  ┌──────────────┐                 │
+│          ▼   │              │  │  │              │                 │
+│   ┌──────────┴───┐  ┌───────▼──┴──┐  ┌─────────────┐               │
+│   │   Direct     │  │   Vector    │  │    Graph    │               │
+│   │  Synthesize  │  │  Retrieval  │  │  Retrieval  │               │
+│   └──────┬───────┘  └──────┬──────┘  └──────┬──────┘               │
+│          │                 └────────┬───────┘                       │
+│          │                          ▼                               │
+│          │           ┌───────────────────────────┐                  │
+│          │           │ Rerank → Synthesize       │                  │
+│          │           │ (LLM #2, token stream)    │                  │
+│          │           └─────────────┬─────────────┘                  │
+│          └───────────────────┬─────┘                                │
+│                              ▼                                      │
+│                       final answer                                  │
 └─────────────────────────────────────────────────────────────────────┘
            │                    │                    │
            ▼                    ▼                    ▼
@@ -65,10 +79,43 @@ This fails for complex travel questions like:
 
 This question has multiple constraints (family, budget, climate, history, sea). A single retrieval pass won't capture all dimensions. LangGraph lets us:
 
-1. **Decompose** the query into sub-questions
-2. **Route** each sub-question to the right retrieval source (vector vs graph)
-3. **Validate** the answer and loop back if insufficient
-4. **Stream** intermediate steps to the user in real-time
+1. **Plan first** — produce a quick "what I'll do" summary streamed instantly to the user
+2. **Decompose** the query into sub-questions
+3. **Route** each sub-question to the right retrieval source (vector vs graph)
+4. **Validate** the answer and loop back if insufficient
+5. **Stream** intermediate steps to the user in real-time
+
+### Why Two-Phase Reasoning (Plan → Execute)?
+
+A naive RAG makes the user stare at an empty screen for 5-30 seconds. Instead, we use a two-phase pattern:
+
+1. **Plan phase** (~1 sn) — Qwen produces a short "I'll look at X and Y" summary, streamed immediately via WebSocket. The user sees activity within ~1 second.
+2. **Execute phase** (5-30 sn) — Retrieval (vector / graph) and final synthesis, streamed token-by-token.
+
+Benefits:
+- Perceived latency drops dramatically — empty screen problem disappears
+- User sees what the AI understood and can correct early
+- Plan-then-execute pattern is more debuggable
+- Plan output also drives routing (`query_type` → which retrieval path to take)
+
+Trade-off: One extra LLM call (~1-2 sn added to total latency), in exchange for vastly better UX.
+
+### Why Next.js (React) for the Frontend?
+
+The chat UI is interactive — token streaming, plan/thinking steps, source citations — so a pure server-rendered template (Jinja2) becomes awkward fast. React (via Next.js App Router) gives:
+
+- **Component model** that matches our streaming UX (PlanCard, MessageStream, SourceList as isolated pieces)
+- **Edge-rendering option for SEO** — the chat itself doesn't need SEO, but future destination pages (`/city/[slug]`, `/region/[slug]`) absolutely do. App Router lets a single project mix:
+  - **CSR / "use client"** for `/` (chat) — interactive, no SEO need
+  - **SSG / SSR** for content pages — pre-rendered HTML, `generateMetadata()`, JSON-LD structured data, sitemap
+- **No premature lock-in** — start with CSR only; switch any route to SSR/SSG later without rewriting
+- **Single deployable** — separate `web` container behind a reverse proxy, talks to FastAPI over the internal Docker network for queries and WebSocket streaming
+
+SEO considerations baked in from day one (even if SSR pages come later):
+- Semantic HTML + `metadata` exports on every route
+- `robots.txt` + `sitemap.xml` generated from the Next.js route tree
+- Open Graph / Twitter Card metadata
+- Reserved file paths for `/city/[slug]` so the URL shape stays stable
 
 ### Why Hybrid Retrieval (Vector + Knowledge Graph)?
 
@@ -188,7 +235,7 @@ This schema enables queries like:
 | Orchestration | LangGraph | 0.2+ | State machines for LLM workflows |
 | API | FastAPI | 0.115+ | Async-native, WebSocket support, auto-docs |
 | Ingestion | Python (httpx + asyncio) | — | Shared language, same Qdrant/Neo4j/Ollama clients as API |
-| Frontend | Jinja2 + jQuery + Tailwind (CDN) | — | Server-rendered by FastAPI, no separate build step |
+| Frontend | Next.js (App Router) + React + TypeScript + Tailwind | 14+ | Component model fits streaming UX; SSR/SSG ready for SEO on future content pages |
 | Infra | Docker Compose | v2 | Multi-service local dev |
 
 ---
@@ -201,16 +248,15 @@ travel-rag/
 ├── .env.example                # Environment template
 ├── README.md                   # This file
 │
-├── api/                        # Python - FastAPI Backend + Frontend
+├── api/                        # Python - FastAPI Backend (JSON + WS only)
 │   ├── Dockerfile
 │   ├── pyproject.toml          # Dependencies (uv/pip)
 │   ├── app/
-│   │   ├── main.py             # App factory, lifespan, static/template mount
+│   │   ├── main.py             # App factory, lifespan, CORS
 │   │   ├── config.py           # Pydantic Settings (env-based)
 │   │   ├── routes/
 │   │   │   ├── chat.py         # POST /chat + WS /ws/chat
-│   │   │   ├── pages.py        # GET / (serves chat UI template)
-│   │   │   └── health.py       # GET /health (DB connectivity)
+│   │   │   └── health.py       # GET /health/live + /health/ready
 │   │   ├── services/
 │   │   │   ├── llm.py          # Ollama client + Semaphore(1)
 │   │   │   ├── embeddings.py   # nomic-embed-text wrapper
@@ -224,15 +270,35 @@ travel-rag/
 │   │   └── models/
 │   │       ├── schemas.py      # API request/response models
 │   │       └── entities.py     # Domain models
-│   ├── templates/              # Jinja2 HTML templates
-│   │   ├── base.html           # Layout (head, scripts, CDN imports)
-│   │   └── chat.html           # Chat UI page
-│   ├── static/                 # CSS, JS assets
-│   │   ├── css/
-│   │   │   └── app.css
-│   │   └── js/
-│   │       └── chat.js         # WebSocket + jQuery chat logic
 │   └── tests/
+│
+├── web/                        # Next.js 14+ App Router (React + TS + Tailwind)
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── next.config.mjs         # Standalone output for Docker
+│   ├── tsconfig.json
+│   ├── tailwind.config.ts
+│   ├── postcss.config.mjs
+│   ├── public/
+│   │   └── robots.txt
+│   └── src/
+│       ├── app/
+│       │   ├── layout.tsx      # Root layout, global metadata
+│       │   ├── page.tsx        # "use client" — chat UI (CSR)
+│       │   ├── globals.css
+│       │   ├── sitemap.ts      # Generated from route tree
+│       │   └── (future)        # SSR/SSG content routes
+│       │       └── city/[slug]/page.tsx   # Pre-rendered, SEO-ready
+│       ├── components/
+│       │   ├── ChatWindow.tsx
+│       │   ├── MessageStream.tsx
+│       │   ├── PlanCard.tsx
+│       │   └── SourceList.tsx
+│       ├── lib/
+│       │   ├── api.ts          # FastAPI fetch client
+│       │   └── ws.ts           # WebSocket helpers
+│       └── hooks/
+│           └── useChatStream.ts
 │
 ├── ingestion/                  # Python - Data Ingestion Pipeline
 │   ├── __init__.py
@@ -254,6 +320,11 @@ travel-rag/
 ## Docker Network Topology
 
 ```
+┌──────────┐  (only port exposed to host)
+│  web     │  :3000  ── Next.js (React)
+└────┬─────┘
+     │ fetch / WebSocket
+     ▼
 ┌─────────────────────────────────────────────────────────┐
 │                 llm_internal (docker network)            │
 │                                                         │
@@ -266,7 +337,8 @@ travel-rag/
 ```
 
 All services are defined in the project's `docker-compose.yml`.  
-Ollama has no exposed port — only reachable within `llm_internal` network.
+Ollama has no exposed port — only reachable within `llm_internal` network.  
+`web` joins the same network so it can talk to `api` over `http://api:8000` and `ws://api:8000/ws/chat`.
 
 ---
 
@@ -297,12 +369,16 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 - [ ] Bulk loader (Qdrant + Neo4j)
 - [ ] CLI entrypoint with config-driven city list
 
-### Phase 4: Frontend
-- [ ] Jinja2 base template + Tailwind CDN setup
-- [ ] Chat page template (chat.html)
-- [ ] jQuery + WebSocket chat logic (static/js/chat.js)
-- [ ] Thinking steps display (shows LangGraph progress)
+### Phase 4: Frontend (Next.js / React)
+- [ ] Next.js 14 App Router scaffold (TS + Tailwind + ESLint)
+- [ ] `web/Dockerfile` (multi-stage, `output: "standalone"`) + compose service
+- [ ] FastAPI CORS for `web` origin
+- [ ] Chat UI page (`app/page.tsx`, "use client") + components (`ChatWindow`, `MessageStream`, `PlanCard`, `SourceList`)
+- [ ] `useChatStream` hook — WebSocket connection, plan + token streaming
+- [ ] Thinking steps display (renders LangGraph events)
 - [ ] Queue position indicator
+- [ ] SEO baseline: `metadata` exports, `robots.txt`, `sitemap.ts`
+- [ ] Reserve `/city/[slug]` route shape for future SSR/SSG pages
 
 ### Phase 5: Guardrails & Safety
 - [ ] GuardrailService interface (`check_input` → allow/deny)
@@ -331,7 +407,7 @@ Ollama has no exposed port — only reachable within `llm_internal` network.
 | Query decomposition | LangGraph state machine | Supports loops, branching, streaming; more than a simple chain |
 | Embedding location | Same Ollama instance | Operational simplicity; nomic-embed-text is lightweight |
 | Ingestion language | Python | Shared deps with API, single language across project |
-| Frontend approach | Jinja2 + jQuery (server-rendered) | No separate build/container, FastAPI serves everything |
+| Frontend approach | Next.js (App Router) + React | Component model fits streaming UX; same project can later add SSR/SSG city pages for SEO without a rewrite |
 | WebSocket | Yes | Enables streaming + step visualization; REST stays for simple clients |
 | Graph DB | Neo4j Community | Cypher is powerful; free community edition sufficient |
 | Package manager | uv (Python) | Fast, modern replacement for pip/poetry |
