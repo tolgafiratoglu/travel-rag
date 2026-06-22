@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 
+import { useChatStream } from "@/hooks/useChatStream";
 import { ConversationScreen } from "./ConversationScreen";
 import { LandingScreen } from "./LandingScreen";
-import type { Message } from "./types";
 
 export function ChatApp() {
   const [started, setStarted] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { messages, loading, send } = useChatStream();
 
   function sendMessage(text: string) {
     const q = text.trim();
@@ -18,19 +17,7 @@ export function ChatApp() {
 
     setStarted(true);
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: q }]);
-    setLoading(true);
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Simüle cevap: "${q}" hakkında bilgi toplanacak.`,
-        },
-      ]);
-      setLoading(false);
-    }, 600);
+    send(q);
   }
 
   function handleSubmit() {

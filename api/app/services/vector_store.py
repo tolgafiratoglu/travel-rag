@@ -27,5 +27,5 @@ async def search(query: str, top_k: int = 5) -> list[dict]:
             "section": point.payload.get("section", ""),
             "score": point.score,
         }
-        for point in results.points
+        for point in (results.points or [])
     ]

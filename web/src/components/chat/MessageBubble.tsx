@@ -1,9 +1,8 @@
-type MessageBubbleProps = {
-  role: "user" | "assistant";
-  content: string;
-};
+import type { Message } from "./types";
 
-export function MessageBubble({ role, content }: MessageBubbleProps) {
+type MessageBubbleProps = Pick<Message, "role" | "content" | "status">;
+
+export function MessageBubble({ role, content, status }: MessageBubbleProps) {
   const isUser = role === "user";
 
   if (isUser) {
@@ -18,7 +17,12 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
 
   return (
     <div className="py-2">
-      <div className="text-sm whitespace-pre-wrap text-gray-900">{content}</div>
+      {status && (
+        <p className="text-sm text-gray-400 animate-pulse">{status}</p>
+      )}
+      {content && (
+        <div className="text-sm whitespace-pre-wrap text-gray-900">{content}</div>
+      )}
     </div>
   );
 }

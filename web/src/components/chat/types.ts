@@ -1,6 +1,20 @@
+export type PlanStep = {
+  id: string;
+  label: string;
+  kind: string;
+  status: "idle" | "running" | "done" | "error";
+};
+
+export type Plan = {
+  summary: string;
+  steps: PlanStep[];
+};
+
 export type Message = {
   role: "user" | "assistant";
   content: string;
+  plan?: Plan;
+  status?: string;
 };
 
 export const SUGGESTIONS = [
