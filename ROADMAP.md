@@ -15,9 +15,10 @@ Süre tahminleri günlük 2-3 saat yarı zamanlı çalışmaya göre verilmişti
 - [x] `POST /chat` — düz RAG akışı
 - [x] `seed.py` + `init-ollama.sh`
 - [x] Warmup, model rename (Travel RAG)
-- [x] `web/` — Next.js chat UI (TS + Tailwind), `POST /chat` entegrasyonu
+- [x] `web/` — Next.js chat UI (TS + Tailwind), iki state'li landing/conversation
 - [x] FastAPI CORS (`http://localhost:3000`)
-- [x] Tek sayfa RAG chat (`/` — `page.tsx` Server, `ChatWindow` client)
+
+> **Not — `/chat` endpoint'i:** Şu an düz LLM çağrısı yapan **test/Postman amaçlı** bir endpoint. Production transport **WebSocket** olacak (Phase 1 + 3.D). `/chat` Phase 1 sonunda `deprecated` işaretlenecek, Phase 5 sonunda kaldırılacak.
 
 ---
 
@@ -37,59 +38,74 @@ Mevcut `/chat` akışını gözlemlenebilir ve hata toleranslı hale getir.
 
 ---
 
-## Phase 1 — LangGraph Migration + Plan Node  *(~5 gün)*
+## Phase 1 — Çalışan demo (5 node + WebSocket)  *(~4 gün)*
 
-`chat.py`'deki düz pipeline'ı LangGraph state machine'e taşı ve **plan-first reasoning** pattern'ini uygula: model önce kısa bir plan üretsin (kullanıcıya hemen göster), sonra retrieval + cevap.
+İlk canlı sürüm: **5 node, 2 LLM çağrısı, Qdrant-only, WS primary transport.** Ayrı `intent`/`entity`/`plan`/`rewrite` node'ları yok — hepsi `planner_json_node` içinde.
 
-### 1.A Tek patika graph + Plan node  *(~3 gün)*
+> Detay: `LANGGRAPH.md` → "Phase 1 — Minimal graph".
 
-- [ ] **1.1** `graph/state.py` — TypedDict (`question`, `plan`, `chunks`, `answer`, `query_type`, `latency_ms`) *(0.5 gün)*
-- [ ] **1.2** `graph/nodes.py` — `plan_node` (LLM: "Bu soruyu nasıl yanıtlayacağımı 1-2 cümlede özetle") *(0.75 gün)*
-- [ ] **1.3** `graph/nodes.py` — `retrieve_node`, `synthesize_node` *(0.5 gün)*
-- [ ] **1.4** `graph/builder.py` — StateGraph compile (`plan → retrieve → synthesize`) *(0.5 gün)*
-- [ ] **1.5** `chat.py` — Düz pipeline yerine `graph.ainvoke(state)`; response'a `plan` field *(0.5 gün)*
-- [ ] **1.6** Postman ile davranışı doğrula (plan + final answer dönüyor mu) *(0.25 gün)*
+### 1.A Graph iskeleti  *(~2 gün)*
 
-### 1.B Router (plan-based)  *(~2 gün)*
+- [ ] **1.1** `graph/state.py` — TypedDict (Phase 1 alanları: `question`, `history`, `intent`, `entities`, `assumptions`, `plan`, `search_queries`, `vector_chunks`, `sources`, `answer`, `latency_ms`) *(0.5 gün)*
+- [ ] **1.2** `graph/nodes.py` — `intake_node` (normalize, history; LLM yok) *(0.25 gün)*
+- [ ] **1.3** `graph/nodes.py` — `planner_json_node` (tek LLM: intent + entities + assumptions + plan + search_queries JSON) *(0.75 gün)*
+- [ ] **1.4** `graph/nodes.py` — `vector_retrieval_node` (search_queries → Qdrant, dedup) *(0.5 gün)*
+- [ ] **1.5** `graph/nodes.py` — `synthesize_node` + `format_node` *(0.5 gün)*
+- [ ] **1.6** `graph/builder.py` — linear graph: `intake → planner_json → vector_retrieval → synthesize → format` *(0.25 gün)*
 
-- [ ] **1.7** `plan_node`'u genişlet — plan içine `query_type` da gömülsün (JSON output) *(0.75 gün)*
-- [ ] **1.8** `graph/edges.py` — Conditional edges (`plan.query_type`'a göre patika seçimi) *(0.5 gün)*
-- [ ] **1.9** `chitchat` patikası — retrieval atla, doğrudan synthesize *(0.5 gün)*
-- [ ] **1.10** `recommendation` patikası — `top_k=8`, daha geniş context *(0.25 gün)*
+### 1.B WebSocket + streaming  *(~1.5 gün)*
 
-**Çıktı:** Tek `/chat` endpoint'i, plan ile başlayan ve query_type'a göre farklı patikalardan geçen sorgular.
+- [ ] **1.7** `WS /ws/chat` — single-shot; events: `status`, `plan`, `step`, `token`, `done`, `error`; server `done`/`error` sonrası kapatır *(0.5 gün)*
+- [ ] **1.8** `status` event — WS açılır açılmaz ("Sorunu analiz ediyorum…"); `plan` planner bitince *(0.25 gün)*
+- [ ] **1.9** `services/llm.py` — `stream=True` (synthesize token'ları) *(0.5 gün)*
+- [ ] **1.10** LangGraph `astream_events()` adaptörü — node → WS event mapping *(0.25 gün)*
+
+### 1.C RAG kalite + test endpoint  *(~0.5 gün)*
+
+- [ ] **1.11** Prompt: `[S1]` citation, "uydurma yok"; boş retrieval handling *(0.25 gün)*
+- [ ] **1.12** `POST /chat` — graph üzerinden test; **`deprecated` notu** (Phase 5'te kaldırılacak) *(0.25 gün)*
+
+**Çıktı:** Tarayıcıdan veya WS client'tan soru → status → plan → step → token stream → done. Neo4j, rerank, router, self-reflection **yok**.
+
+> Ertelenen (Phase 4+): `intent_classifier`, `decomposition`, `query_rewrite`, `retrieval_router`, `chitchat` patikası, `clarify` hard ask.
 
 ---
 
-## Phase 2 — Knowledge Graph Retrieval  *(~5 gün)*
+## Phase 2 — Neo4j (template Cypher)  *(~4 gün)*
 
-Neo4j'yi online sorguya dahil et — hibrit retrieval.
+Neo4j online sorguya dahil — önce **hazır Cypher template'leri**, LLM Cypher generation sonra.
 
 ### 2.A Graph service  *(~1 gün)*
 
 - [ ] **2.1** `services/graph_store.py` — Neo4j async driver wrapper *(0.5 gün)*
-- [ ] **2.2** `find_chunks_about_city`, `cities_with_attractions` helper'ları + generic `run_cypher` *(0.5 gün)*
+- [ ] **2.2** Helper'lar: `cities_near`, `unesco_near_city`, `airport_access` + generic `run_cypher` *(0.5 gün)*
 
-### 2.B Cypher generation (NL → Cypher)  *(~2 gün)*
+### 2.B Template Cypher (LLM yok)  *(~1.5 gün)*
 
-- [ ] **2.3** `graph/nodes.py` — `generate_cypher_node` (Qwen + few-shot Cypher prompt) *(1 gün)*
-- [ ] **2.4** Cypher validation guard (sadece MATCH/RETURN, DELETE/CREATE yasak) *(0.5 gün)*
-- [ ] **2.5** Cypher execute → entity listesi *(0.5 gün)*
+- [ ] **2.3** `graph/nodes.py` — `graph_retrieval_node` intent'e göre hazır template seçer *(0.75 gün)*
+- [ ] **2.4** Cypher validation guard (sadece MATCH/RETURN) *(0.25 gün)*
+- [ ] **2.5** `retrieval_router` edge — simple → vector-only, structured → hybrid *(0.5 gün)*
 
-### 2.C Hybrid merge  *(~2 gün)*
+### 2.C Hybrid merge  *(~1.5 gün)*
 
-- [ ] **2.6** `graph/nodes.py` — `hybrid_retrieve_node` (vector + graph paralel) *(0.5 gün)*
-- [ ] **2.7** SourceChunk node köprüsünden vector chunk'ları getir *(0.5 gün)*
-- [ ] **2.8** Rerank / deduplicate logic *(0.5 gün)*
-- [ ] **2.9** Conditional edge: complex → hybrid, simple → vector-only *(0.5 gün)*
+- [ ] **2.6** `merge_dedupe_node` (vector + graph birleştir) *(0.5 gün)*
+- [ ] **2.7** SourceChunk köprüsünden vector chunk'ları getir *(0.5 gün)*
+- [ ] **2.8** `planner_json` plan steps'e `graph` kind ekle (UNESCO/mesafe soruları) *(0.5 gün)*
 
-**Çıktı:** "İstanbul'a yakın UNESCO yerleri" gibi yapılandırılmış sorular cevaplanır.
+**Çıktı:** "İstanbul'a yakın UNESCO yerleri", "Kaş Fethiye'ye mi yakın" gibi yapılandırılmış sorular.
+
+> Ertelenen: LLM Cypher generation (`generate_cypher_node`) → Phase 4; `rerank_node` → Phase 4.
+
+### 2.D LLM Cypher (ileri)  *(~2 gün — Phase 4'e taşınabilir)*
+
+- [ ] **2.9** `generate_cypher_node` (Qwen + few-shot) *(1 gün)*
+- [ ] **2.10** Template fallback: LLM Cypher başarısızsa hazır template'e düş *(0.5 gün)*
 
 ---
 
-## Phase 3 — Frontend (Next.js / React)  *(~6 gün kaldı)*
+## Phase 3 — Frontend (Next.js / React)  *(~7 gün kaldı)*
 
-Tek sayfa RAG chat: kullanıcı soru sorar, `POST /chat` ile cevap alır. Şehir sayfaları ve SEO bu fazda yok.
+Tek sayfa RAG chat: kullanıcı soru sorar, WebSocket üstünden plan + adım adım ilerleme + token stream alır. Şehir sayfaları ve SEO bu fazda yok.
 
 ### 3.A Scaffold  *(~0.5 gün — tamamlandı)*
 
@@ -97,29 +113,39 @@ Tek sayfa RAG chat: kullanıcı soru sorar, `POST /chat` ile cevap alır. Şehir
 - [x] **3.2** `next.config.mjs`, `.env.local.example` (`NEXT_PUBLIC_API_BASE_URL`) *(0.25 gün)*
 - [x] **3.5** FastAPI CORS middleware (`http://localhost:3000`) *(0.25 gün)*
 
-### 3.B Chat UI  *(~1 gün — tamamlandı)*
+### 3.B Chat UI  *(~2 gün — tamamlandı)*
 
-- [x] **3.6** `src/app/layout.tsx` — Server Component, metadata *(0.25 gün)*
-- [x] **3.7** `src/app/page.tsx` — Server Component, sadece `<ChatWindow />` *(0.25 gün)*
-- [x] **3.8** `src/lib/api.ts` — `postChat()` → `POST /chat` *(0.25 gün)*
-- [x] **3.9** `ChatWindow.tsx` — mesaj listesi, input, loading, hata *(0.5 gün)*
-- [x] **3.10** `MessageBubble.tsx`, `ChatInput.tsx` *(0.25 gün)*
-- [x] **3.13** Tailwind ile temel temalama *(0.25 gün)*
+- [x] **3.6** `src/app/layout.tsx` — Server Component, metadata, `h-dvh` *(0.25 gün)*
+- [x] **3.7** `src/app/page.tsx` — Server Component, `<ChatApp />` *(0.25 gün)*
+- [x] **3.8** `src/lib/api.ts` — `postChat()` (test/fallback için) *(0.25 gün)*
+- [x] **3.9** `ChatApp.tsx` — iki state'li (landing / conversation) *(0.5 gün)*
+- [x] **3.10** `LandingScreen`, `ConversationScreen`, `MessageList`, `MessageBubble`, `ChatInput`, `SuggestionChips` *(0.5 gün)*
+- [x] **3.13** Tailwind ile temel temalama, ChatGPT tarzı input *(0.25 gün)*
 
 ### 3.C Kalan UI iyileştirmeleri  *(~1 gün)*
 
-- [ ] **3.11** `SourceList.tsx` — API'den gelen `sources` alanını göster *(0.5 gün)*
 - [ ] **3.12** Boş/hata/uzun bekleme durumları için daha iyi UX *(0.25 gün)*
 - [ ] **3.14** `web/Dockerfile` + `docker-compose.yml` web servisi *(0.5 gün)*
+- [ ] **3.15** (Multi-turn yapıldıktan sonra) chat history persist *(0.25 gün)*
 
-### 3.D WebSocket streaming  *(~2.5 gün)*
+### 3.D WebSocket streaming — primary transport  *(~3.5 gün)*
 
-- [ ] **3.15** `api/routes/chat.py` — `WS /ws/chat` endpoint *(0.5 gün)*
-- [ ] **3.16** `services/llm.py` — `stream=True` desteği *(0.5 gün)*
-- [ ] **3.17** LangGraph `astream_events()` — plan event'i + token stream *(0.75 gün)*
-- [ ] **3.18** `useChatStream` hook + `PlanCard` — plan-first streaming UI *(0.75 gün)*
+> Detaylı event tablosu ve UI davranışı için `LANGGRAPH.md` → "Chain-of-Thought UX".
 
-**Çıktı:** Tarayıcıdan çalışan RAG chat (şu an sync REST); sonra streaming ve Docker.
+#### 3.D.1 Sunucu  *(Phase 1.B ile örtüşür — FE bağlanınca tamamlanmış olmalı)*
+
+- [ ] **3.16** `status` event UI'da göster (Phase 1.B'de sunucu tarafı) *(0.25 gün)*
+- [ ] **3.17** LangGraph event adaptörü FE ile entegre test *(0.25 gün)*
+
+#### 3.D.2 İstemci  *(~2 gün)*
+
+- [ ] **3.19** `web/src/lib/ws.ts` + `hooks/useChatStream.ts` — single-shot WS; event router (`status` / `plan` / `step` / `token` / `done` / `error`) *(0.75 gün)*
+- [ ] **3.20** `PlanCard.tsx` — `status` satırı + verbal `summary` + `steps[]` checklist *(0.5 gün)*
+- [ ] **3.21** Thinking satırı davranışı — `step:running` ile gri "Thinking…" satırı; `step:done` payload'ı (`label`, `detail`) ile satır değişir *(0.25 gün)*
+- [ ] **3.22** Token streaming — `token` event'i asistan balonuna append; ilk token gelince Thinking satırı kaldırılır *(0.25 gün)*
+- [ ] **3.23** Hata durumu — son `step:running` satırı kırmızıya döner + asistan balonunda "Üzgünüm, … adımında hata oldu" *(0.25 gün)*
+
+**Çıktı:** Kullanıcı soru sorar; ChatGPT benzeri "Thinking → adım bulgusu → cevap streaming" akışı; WS soru bitince kapanır.
 
 > **Ertelenen:** Şehir sayfaları (`/city/[slug]`), `robots.ts`, `sitemap.ts` — stretch goal **S.7** veya ingestion sonrası.
 
@@ -170,7 +196,12 @@ Kötü niyetli / domain dışı sorgulardan koru.
 - [ ] **5.8** LLM cevabında hassas bilgi / halüsinasyon temel kontrolü *(0.5 gün)*
 - [ ] **5.9** Kaynaksız iddiaları işaretle ("kaynaklara dayanmıyor") *(0.5 gün)*
 
-**Çıktı:** "ignore previous instructions" gibi saldırılar tutulur, alakasız sorular nazikçe reddedilir.
+### 5.D Transport temizliği  *(~0.5 gün)*
+
+- [ ] **5.10** `POST /chat` endpoint'ini kaldır — istemci WebSocket tek transport *(0.25 gün)*
+- [ ] **5.11** `web/src/lib/api.ts` (`postChat`) sil; sadece `lib/ws.ts` kalsın *(0.25 gün)*
+
+**Çıktı:** "ignore previous instructions" gibi saldırılar tutulur, alakasız sorular nazikçe reddedilir; REST chat surface tamamen kalkar.
 
 ---
 
@@ -260,11 +291,11 @@ Zaman kalırsa ya da projeyi öne çıkarmak için:
 | Phase | Süre |
 |-------|------|
 | Phase 0 — RAG Hardening | ~2 gün |
-| Phase 1 — LangGraph Migration + Plan Node | ~5 gün |
-| Phase 2 — Knowledge Graph Retrieval | ~5 gün |
-| Phase 3 — Frontend (Next.js) | ~6 gün kaldı (~2 gün tamamlandı) |
+| Phase 1 — Demo (5 node + WS) | ~4 gün |
+| Phase 2 — Neo4j (template Cypher) | ~4 gün |
+| Phase 3 — Frontend (Next.js) | ~7 gün kaldı (~2.5 gün tamamlandı) |
 | Phase 4 — Data Ingestion | ~7 gün |
-| Phase 5 — Guardrails & Safety | ~4 gün |
+| Phase 5 — Guardrails & Safety | ~4.5 gün |
 | Phase 6 — Observability | ~3 gün |
 | Phase 7 — Quality & Evaluation | ~5 gün |
 | Phase 8 — Production Polish | ~6 gün |
@@ -286,10 +317,10 @@ Yarı zamanlı çalışmayla (~2-3 saat/gün) core ~7-9 hafta, stretch dahil ~11
 **Demo öncelikli (hızlı görsel sonuç):**
 
 ```
-0 → 1.A → 3 (chat UI ✓) → 1.B → 2 → 3.D (streaming) → 4 → 5 → 6 → 7 → 8
+0 → 1 (graph + WS) → 3.D (FE WS bağla) → 2 (Neo4j) → 4 (ingestion) → 5 → 6 → 7 → 8
 ```
 
-(3.A + 3.B tamamlandı — tarayıcıdan `POST /chat` ile soru-cevap çalışıyor. Sırada: sources UI, Docker, WebSocket streaming.)
+(3.B UI ✓. Sırada: Phase 1 — 5 node graph + WS backend, sonra 3.D FE'yi WS'e bağla.)
 
 ---
 

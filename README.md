@@ -12,14 +12,14 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
 │                  Client Layer (Next.js — React)                      │
 │                                                                     │
 │   Browser — single-page RAG chat (`/`)                               │
-│   POST /chat ──────────────────────────────┐                        │
-│   (future: WS /ws/chat for streaming)      │                        │
+│   WS /ws/chat ─────────────────────────────┐  (primary transport)   │
+│                                            │                        │
 └────────────────────────────────────────────┼────────────────────────┘
                                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      API Layer (FastAPI)                             │
 │                                                                     │
-│   WS /ws/chat (streaming)    POST /chat (JSON, sync)                 │
+│   WS /ws/chat (primary)     POST /chat (internal test only)          │
 │                 │                            │                      │
 │                 ▼                            ▼                      │
 │            ┌────────────────────────────────────┐                   │
@@ -100,6 +100,18 @@ Benefits:
 
 Trade-off: One extra LLM call (~1-2 sn added to total latency), in exchange for vastly better UX.
 
+### Chain-of-Thought Style Streaming (visible progress, not internal monologue)
+
+The UI does **not** expose the model's raw internal reasoning. Instead, the LangGraph pipeline emits human-readable progress over WebSocket so the user sees what the system is doing in real time:
+
+1. **`status` event** — immediately after WS opens: "Sorunu analiz ediyorum…" (no LLM wait)
+2. **`plan` event** — after `planner_json_node`: verbal summary + structured `steps[]` (see `LANGGRAPH.md`)
+3. **`step` events** — each meaningful node emits `running` (grey "Thinking…") and `done` (finding text)
+4. **`token` events** — final synthesis streams into assistant bubble; thinking line removed on first token
+5. **`done` event** — final answer + sources; **server closes WebSocket**
+
+Each user question opens a **new single-shot WebSocket** that closes on `done` or `error`. This keeps backpressure simple and matches the Semaphore(1) model.
+
 ### Why Next.js (React) for the Frontend?
 
 The chat UI is interactive — message list, input, loading states, and later token streaming. React (via Next.js App Router) gives:
@@ -109,7 +121,7 @@ The chat UI is interactive — message list, input, loading states, and later to
 - **Room to grow** — same project can later add SSR/SSG routes (e.g. public destination pages) when needed; chat does not require SEO today
 - **Local dev first** — `npm run dev` on `:3000` talks to FastAPI on `:8000`; Docker for `web` comes in a later step
 
-Current scope: **one route (`/`), sync `POST /chat`**. WebSocket streaming, source citations in UI, and Docker deployment are planned next.
+Current scope: **one route (`/`), sync `POST /chat`** — interim until WebSocket lands. Once `WS /ws/chat` is in place, `POST /chat` becomes a Postman-only test endpoint and is scheduled for removal in Phase 5.
 
 ### Why Hybrid Retrieval (Vector + Knowledge Graph)?
 
@@ -249,7 +261,7 @@ travel-rag/
 │   │   ├── main.py             # App factory, lifespan, CORS
 │   │   ├── config.py           # Pydantic Settings (env-based)
 │   │   ├── routes/
-│   │   │   ├── chat.py         # POST /chat + WS /ws/chat
+│   │   │   ├── chat.py         # WS /ws/chat (primary) + POST /chat (test only, deprecated)
 │   │   │   └── health.py       # GET /health/live + /health/ready
 │   │   ├── services/
 │   │   │   ├── llm.py          # Ollama client + Semaphore(1)
@@ -279,11 +291,18 @@ travel-rag/
 │       │   ├── page.tsx        # Server Component — renders ChatWindow
 │       │   └── globals.css
 │       ├── components/chat/
-│       │   ├── ChatWindow.tsx  # "use client" — state, POST /chat
+│       │   ├── ChatApp.tsx     # "use client" — state, started?
+│       │   ├── LandingScreen.tsx
+│       │   ├── ConversationScreen.tsx
 │       │   ├── ChatInput.tsx
-│       │   └── MessageBubble.tsx
+│       │   ├── MessageList.tsx
+│       │   ├── MessageBubble.tsx
+│       │   └── SuggestionChips.tsx
+│       ├── hooks/
+│       │   └── useChatStream.ts   # WS connection, plan + step + token events
 │       └── lib/
-│           └── api.ts          # postChat() → FastAPI
+│           ├── ws.ts            # WebSocket helper (primary)
+│           └── api.ts           # postChat() — test/fallback only
 │
 ├── ingestion/                  # Python - Data Ingestion Pipeline
 │   ├── __init__.py
@@ -308,7 +327,8 @@ travel-rag/
 Host
   │
   ├── :3000  web (local: npm run dev — not in docker-compose yet)
-  │              POST http://localhost:8000/chat
+  │              WS  ws://localhost:8000/ws/chat   (primary)
+  │              POST http://localhost:8000/chat   (test only)
   │
   └── :8000  api ──┐
                    ▼
@@ -356,22 +376,18 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 
 ## Implementation Phases
 
-### Phase 1: Core Pipeline
-- [ ] Docker Compose (api + qdrant + neo4j joining llm_internal)
-- [ ] FastAPI app skeleton with health checks
-- [ ] LLM service with Semaphore(1) concurrency control
-- [ ] Embedding service (nomic-embed-text via Ollama)
-- [ ] Qdrant vector store service
-- [ ] Basic LangGraph pipeline (query → retrieve → synthesize)
-- [ ] POST /chat endpoint (testable via Postman)
-- [ ] Seed data script (manually insert a few travel chunks for testing)
+### Phase 1: Working Demo (LangGraph + WebSocket)
+- [x] Docker Compose, FastAPI, LLM, embeddings, Qdrant, seed data
+- [ ] **5-node graph**: `intake → planner_json → vector_retrieval → synthesize → format` (see `LANGGRAPH.md`)
+- [ ] `planner_json_node` — single LLM call: intent + entities + assumptions + plan + search_queries
+- [ ] `WS /ws/chat` — events: `status`, `plan`, `step`, `token`, `done`, `error`; single-shot per question
+- [ ] `POST /chat` — test/Postman only (`deprecated`; removed Phase 5)
 
-### Phase 2: Knowledge Graph
-- [ ] Neo4j schema + constraints
-- [ ] Graph store service (Cypher execution)
-- [ ] GraphRetrieval LangGraph node (NL → Cypher via Qwen)
-- [ ] Hybrid merge + reranking logic
-- [ ] Extend seed data with entity relationships
+### Phase 2: Neo4j (template Cypher)
+- [ ] Graph store service
+- [ ] Template Cypher (distance, UNESCO, airport) — no LLM Cypher yet
+- [ ] Hybrid merge (vector + graph)
+- [ ] LLM Cypher generation (Phase 4, optional)
 
 ### Phase 3: Data Ingestion (Python)
 - [ ] Ingestion module scaffold
@@ -384,11 +400,14 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 ### Phase 4: Frontend (Next.js / React)
 - [x] Next.js 14 App Router scaffold (TS + Tailwind)
 - [x] FastAPI CORS for `http://localhost:3000`
-- [x] Chat UI — `page.tsx` (Server) + `ChatWindow` (client) + `POST /chat`
-- [ ] Source citations in UI (`sources` from API response)
+- [x] Two-state UI (landing + conversation), `ChatApp` client component
+- [ ] `useChatStream` hook — single-shot WebSocket (`status` / `plan` / `step` / `token` / `done`)
+- [ ] Plan card (verbal summary + steps[] rendered as checklist)
+- [ ] Thinking steps UI — grey "Thinking…" line on `step:running`, replaced by `detail` on `step:done`
+- [ ] Token streaming into assistant bubble; thinking line removed on first token
+- [ ] Error state — failed step turns red + assistant error message
+- [ ] Source citations (`sources` from `done` event)
 - [ ] `web/Dockerfile` + `docker-compose.yml` web service
-- [ ] `useChatStream` hook — WebSocket, plan + token streaming
-- [ ] Thinking steps display (LangGraph events)
 - [ ] Queue position indicator
 
 ### Phase 5: Guardrails & Safety
@@ -398,6 +417,7 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 - [ ] Llama Prompt Guard 2-86M (prompt injection / jailbreak detection)
 - [ ] Domain classifier (seyahat sorusu mu? — Qwen mini-prompt veya mDeBERTa zero-shot)
 - [ ] Output safety check (hallucination / toxic response filtering)
+- [ ] **Remove `POST /chat`** — WebSocket becomes the only client transport
 
 ### Phase 6: Production Polish
 - [ ] Structured logging (structlog)
@@ -415,11 +435,12 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 |----------|--------|-----------|
 | LLM concurrency | Semaphore(1), not message queue | Simple, no external deps, sufficient for single-GPU Ollama |
 | Retrieval strategy | Hybrid (vector + graph) | Covers both semantic similarity and structured relationships |
-| Query decomposition | LangGraph state machine | Supports loops, branching, streaming; more than a simple chain |
+| LangGraph (Phase 1) | 5-node linear graph, 2 LLM calls | MVP before expanding to full target architecture in `LANGGRAPH.md` |
 | Embedding location | Same Ollama instance | Operational simplicity; nomic-embed-text is lightweight |
 | Ingestion language | Python | Shared deps with API, single language across project |
-| Frontend approach | Next.js (App Router) + React | Server `page.tsx` + client `ChatWindow`; sync chat now, streaming/Docker later |
-| WebSocket | Yes | Enables streaming + step visualization; REST stays for simple clients |
+| Frontend approach | Next.js (App Router) + React | Server `page.tsx` + client `ChatApp`; landing/conversation two-state UI |
+| Client transport | WebSocket (primary), single-shot per question | Required for plan + step + token streaming; REST `/chat` kept only as a Postman test endpoint, removed in Phase 5 |
+| Chain-of-thought UX | Visible plan + per-node step events, not raw model thoughts | Safer, debuggable, and matches plan-first reasoning |
 | Graph DB | Neo4j Community | Cypher is powerful; free community edition sufficient |
 | Package manager | uv (Python) | Fast, modern replacement for pip/poetry |
 
