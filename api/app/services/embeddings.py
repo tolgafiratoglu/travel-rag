@@ -8,7 +8,11 @@ async def embed(text: str) -> list[float]:
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.ollama_base_url}/api/embed",
-            json={"model": settings.ollama_embed_model, "input": text},
+            json={
+                "model": settings.ollama_embed_model,
+                "input": text,
+                "keep_alive": -1,
+            },
         )
         resp.raise_for_status()
         return resp.json()["embeddings"][0]

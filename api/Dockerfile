@@ -3,7 +3,7 @@ FROM python:3.13-slim
 WORKDIR /app
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic-settings httpx qdrant-client neo4j langgraph
+RUN pip install --no-cache-dir fastapi "uvicorn[standard]" pydantic-settings httpx qdrant-client neo4j langgraph google-genai python-dotenv
 
 COPY app/ ./app/
 

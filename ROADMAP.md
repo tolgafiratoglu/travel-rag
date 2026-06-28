@@ -1,7 +1,7 @@
 # Travel RAG — Roadmap
 
 Türkçe ve çok dilli seyahat sorularını cevaplayan, lokal çalışan, hibrit (vector + knowledge graph) bir GraphRAG sistemi.
-Stack: **Qwen3:8b (Ollama)** + **LangGraph** + **FastAPI** + **Qdrant** + **Neo4j** + **Next.js (React, App Router)**.
+Stack: **Gemini 2.5 Flash-Lite (API, default)** + **Qwen3:8b (Ollama, optional)** + **LangGraph** + **FastAPI** + **Qdrant** + **Neo4j** + **Next.js (React, App Router)**.
 
 Süre tahminleri günlük 2-3 saat yarı zamanlı çalışmaya göre verilmiştir.
 
@@ -11,14 +11,17 @@ Süre tahminleri günlük 2-3 saat yarı zamanlı çalışmaya göre verilmişti
 
 - [x] Docker altyapısı (Ollama, API, Qdrant, Neo4j)
 - [x] FastAPI iskelet + `GET /health`
-- [x] `llm.py` (Semaphore + keep_alive + think=false), `embeddings.py`, `vector_store.py`
-- [x] `POST /chat` — düz RAG akışı
+- [x] `llm.py` (Ollama + Semaphore), `embeddings.py`, `vector_store.py`
+- [x] `POST /chat` — düz LLM test endpoint (deprecated)
+- [x] `WS /ws/chat` — planner graph + status/plan/step/done events
+- [x] LangGraph: `intake → planner_json → retrieval_router → vector/chitchat → synthesize → format`
 - [x] `seed.py` + `init-ollama.sh`
-- [x] Warmup, model rename (Travel RAG)
-- [x] `web/` — Next.js chat UI (TS + Tailwind), iki state'li landing/conversation
-- [x] FastAPI CORS (`http://localhost:3000`)
+- [x] Warmup (Ollama), `web/` Next.js chat UI, CORS
+- [ ] **LLM strategy** — Gemini (default) + Ollama/Qwen (fallback); secrets in `~/.config/rag/.env` *(aşağıda Phase 0.8)*
 
-> **Not — `/chat` endpoint'i:** Şu an düz LLM çağrısı yapan **test/Postman amaçlı** bir endpoint. Production transport **WebSocket** olacak (Phase 1 + 3.D). `/chat` Phase 1 sonunda `deprecated` işaretlenecek, Phase 5 sonunda kaldırılacak.
+> **Not — `/chat` endpoint'i:** Düz LLM çağrısı yapan **test/Postman amaçlı** endpoint. Production transport **WebSocket**. Phase 5'te kaldırılacak.
+
+> **Not — LLM:** Üretim (planner + synthesize) varsayılan **Gemini 2.5 Flash-Lite**. Embedding her zaman **Ollama / nomic-embed-text**. `LLM_PROVIDER=ollama` ile Qwen'e dönülebilir.
 
 ---
 
@@ -27,12 +30,14 @@ Süre tahminleri günlük 2-3 saat yarı zamanlı çalışmaya göre verilmişti
 Mevcut `/chat` akışını gözlemlenebilir ve hata toleranslı hale getir.
 
 - [ ] **0.1** `schemas.py` — `ChatResponse`'a `latency_ms`, `retrieved_count`, `model` alanları *(0.5 gün)*
-- [ ] **0.2** `llm.py` — Custom exception'lar (`LLMTimeoutError`, `LLMUpstreamError`) *(0.5 gün)*
+- [ ] **0.2** `llm.py` — Strategy pattern: `GeminiProvider` + `OllamaProvider`; `LLM_PROVIDER` env; secrets from `SECRETS_ENV_PATH` (`~/.config/rag/.env`) *(0.75 gün)*
+- [ ] **0.2b** `llm.py` — Custom exception'lar (`LLMTimeoutError`, `LLMUpstreamError`) *(0.25 gün)*
 - [ ] **0.3** `vector_store.py` — `top_k` clamp (1..10), `min_score` filtresi, payload safe defaults *(0.5 gün)*
 - [ ] **0.4** `chat.py` — Empty input validation, empty retrieval handling, exception → HTTP status mapping (400/502/504) *(0.5 gün)*
 - [ ] **0.5** `chat.py` — Prompt'ta kaynak numaralandırma (`[S1] [S2]`), "uydurma yok" talimatı *(0.5 gün)*
 - [ ] **0.6** Request logging middleware (request_id, query length, retrieval count, latency) *(0.5 gün)*
-- [ ] **0.7** `health.py` → `/health/live` + `/health/ready` (Qdrant + Ollama check) *(0.5 gün)*
+- [ ] **0.7** `health.py` → `/health/live` + `/health/ready` (Qdrant + Ollama embed check; Gemini optional ping) *(0.5 gün)*
+- [ ] **0.8** `.env.example` + config — `LLM_PROVIDER`, `GEMINI_MODEL`, `SECRETS_ENV_PATH`; document `GEMINI_API_KEY` in `~/.config/rag/.env` *(0.25 gün)*
 
 **Çıktı:** Her senaryoda doğru status code, ölçülebilir latency, kaynaklı cevaplar.
 
@@ -98,7 +103,7 @@ Neo4j online sorguya dahil — önce **hazır Cypher template'leri**, LLM Cypher
 
 ### 2.D LLM Cypher (ileri)  *(~2 gün — Phase 4'e taşınabilir)*
 
-- [ ] **2.9** `generate_cypher_node` (Qwen + few-shot) *(1 gün)*
+- [ ] **2.9** `generate_cypher_node` (active LLM provider + few-shot) *(1 gün)*
 - [ ] **2.10** Template fallback: LLM Cypher başarısızsa hazır template'e düş *(0.5 gün)*
 
 ---
@@ -188,7 +193,7 @@ Kötü niyetli / domain dışı sorgulardan koru.
 ### 5.B Model-based guards  *(~2 gün)*
 
 - [ ] **5.5** Llama Prompt Guard 2-86M entegrasyonu *(1 gün)*
-- [ ] **5.6** Domain classifier (Qwen mini-prompt: "seyahat sorusu mu?") *(0.5 gün)*
+- [ ] **5.6** Domain classifier (mini-prompt on active LLM: "seyahat sorusu mu?") *(0.5 gün)*
 - [ ] **5.7** Domain dışı sorgular için kullanıcı dostu reddetme mesajı *(0.5 gün)*
 
 ### 5.C Output safety  *(~1 gün)*

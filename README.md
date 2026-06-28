@@ -1,7 +1,8 @@
 # Travel RAG
 
 A multi-step Retrieval-Augmented Generation system for travel queries.  
-Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestrated by **LangGraph** and powered by **Qwen** on Ollama.
+Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestrated by **LangGraph**.  
+**Generation:** **Gemini 2.5 Flash-Lite** (default, cloud API). **Embeddings:** **nomic-embed-text** via Ollama. **Optional:** local **Qwen** on Ollama as an alternate LLM provider.
 
 ---
 
@@ -60,10 +61,13 @@ Combines **vector search** (Qdrant) with a **knowledge graph** (Neo4j), orchestr
            │                    │                    │
            ▼                    ▼                    ▼
 ┌────────────────┐   ┌────────────────┐   ┌────────────────────────┐
-│     Qdrant     │   │     Neo4j      │   │   Ollama (shared)      │
-│  Vector Store  │   │ Knowledge Graph│   │  ├─ qwen-shared (gen)  │
-│  :6333         │   │  :7474/:7687   │   │  └─ nomic-embed-text   │
-└────────────────┘   └────────────────┘   └────────────────────────┘
+│     Qdrant     │   │     Neo4j      │   │  Gemini API (default)  │
+│  Vector Store  │   │ Knowledge Graph│   │  gemini-2.5-flash-lite │
+│  :6333         │   │  :7474/:7687   │   ├────────────────────────┤
+└────────────────┘   └────────────────┘   │  Ollama (embed + opt.) │
+                                          │  └─ nomic-embed-text   │
+                                          │  └─ qwen3:8b (fallback)│
+                                          └────────────────────────┘
 ```
 
 ---
@@ -89,7 +93,7 @@ This question has multiple constraints (family, budget, climate, history, sea). 
 
 A naive RAG makes the user stare at an empty screen for 5-30 seconds. Instead, we use a two-phase pattern:
 
-1. **Plan phase** (~1 sn) — Qwen produces a short "I'll look at X and Y" summary, streamed immediately via WebSocket. The user sees activity within ~1 second.
+1. **Plan phase** (~1 sn) — Gemini produces a short "I'll look at X and Y" summary, streamed immediately via WebSocket. The user sees activity within ~1 second.
 2. **Execute phase** (5-30 sn) — Retrieval (vector / graph) and final synthesis, streamed token-by-token.
 
 Benefits:
@@ -137,16 +141,18 @@ Example: "Istanbul'a yakın, UNESCO listesindeki yerler"
 
 ### Why Semaphore-based Concurrency Control?
 
-Qwen on Ollama processes one prompt at a time efficiently. Concurrent requests to Ollama cause:
+When `LLM_PROVIDER=ollama`, Qwen on Ollama processes one prompt at a time efficiently. Concurrent requests to Ollama cause:
 - Context switching overhead
 - Memory pressure (each prompt loads into VRAM)
 - Unpredictable latency spikes
 
 `asyncio.Semaphore(1)` provides:
-- Guaranteed serial LLM access
-- FIFO fairness across users
+- Guaranteed serial LLM access **for the Ollama provider** (local GPU fairness)
+- FIFO fairness across users when on local LLM
 - Zero external dependency (no Redis/RabbitMQ needed)
 - Observability (queue depth metric)
+
+When `LLM_PROVIDER=gemini`, generation calls go to the Gemini API; the semaphore applies only to Ollama-backed calls (embeddings and optional local LLM).
 
 ### Why a Separate Ingestion Module?
 
@@ -198,7 +204,7 @@ Query Analysis (LLM call #1: classify complexity)
                                     └─ no ──▶ loop (max 2 iterations)
 ```
 
-Note: Each "LLM call" passes through the Semaphore sequentially, even within a single user's request. This is by design — Qwen processes one prompt at a time.
+Note: Each graph LLM call goes through `llm.generate()` (strategy: **Gemini** or **Ollama**). Ollama-backed calls still pass through Semaphore(1) when using the local provider.
 
 ---
 
@@ -234,8 +240,9 @@ This schema enables queries like:
 
 | Layer | Technology | Version | Why |
 |-------|-----------|---------|-----|
-| LLM | Qwen 3 8B (via Ollama) | qwen3:8b | Good multilingual, runs local |
-| Embeddings | nomic-embed-text | v1.5 | 768d, 8K context, Ollama-native |
+| LLM (generation) | Gemini 2.5 Flash-Lite (API) | `gemini-2.5-flash-lite` | Fast, multilingual, low cost; default provider |
+| LLM (fallback) | Qwen 3 8B (via Ollama) | `qwen3:8b` | Local / offline; set `LLM_PROVIDER=ollama` |
+| Embeddings | nomic-embed-text | v1.5 | 768d, 8K context; always via Ollama |
 | Vector DB | Qdrant | latest | Rust-based, fast, good filtering |
 | Graph DB | Neo4j Community | 5.x | Industry standard, Cypher is expressive |
 | Orchestration | LangGraph | 0.2+ | State machines for LLM workflows |
@@ -264,7 +271,7 @@ travel-rag/
 │   │   │   ├── chat.py         # WS /ws/chat (primary) + POST /chat (test only, deprecated)
 │   │   │   └── health.py       # GET /health/live + /health/ready
 │   │   ├── services/
-│   │   │   ├── llm.py          # Ollama client + Semaphore(1)
+│   │   │   ├── llm.py          # LLM strategy (Gemini | Ollama) + Semaphore for Ollama
 │   │   │   ├── embeddings.py   # nomic-embed-text wrapper
 │   │   │   ├── vector_store.py # Qdrant CRUD
 │   │   │   └── graph_store.py  # Neo4j driver + Cypher execution
@@ -368,7 +375,7 @@ npm run dev
 # UI: http://localhost:3000
 ```
 
-Ask a travel question in the chat UI; answers come from `POST /chat` (vector retrieval + Qwen). First response may be slow while the LLM warms up.
+Ask a travel question in the chat UI via **WS `/ws/chat`** (primary). `POST /chat` is test-only (plain LLM). First response may be slow while services warm up.
 
 After changing CORS or API code, rebuild the API container: `docker compose up -d --build api`.
 
@@ -415,7 +422,7 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 - [ ] Rule-based pre-filter (empty, too long, keyword blocklist)
 - [ ] Türkçe profanity keyword list
 - [ ] Llama Prompt Guard 2-86M (prompt injection / jailbreak detection)
-- [ ] Domain classifier (seyahat sorusu mu? — Qwen mini-prompt veya mDeBERTa zero-shot)
+- [ ] Domain classifier (seyahat sorusu mu? — mini-prompt on active LLM provider or mDeBERTa zero-shot)
 - [ ] Output safety check (hallucination / toxic response filtering)
 - [ ] **Remove `POST /chat`** — WebSocket becomes the only client transport
 
@@ -433,10 +440,11 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| LLM concurrency | Semaphore(1), not message queue | Simple, no external deps, sufficient for single-GPU Ollama |
+| LLM provider | Gemini API (default) + Ollama/Qwen (optional) | Cloud speed for planner/synthesize; local fallback for offline dev |
+| LLM concurrency | Semaphore(1) for Ollama only | Gemini is HTTP API; semaphore keeps local GPU serial when `LLM_PROVIDER=ollama` |
 | Retrieval strategy | Hybrid (vector + graph) | Covers both semantic similarity and structured relationships |
 | LangGraph (Phase 1) | 5-node linear graph, 2 LLM calls | MVP before expanding to full target architecture in `LANGGRAPH.md` |
-| Embedding location | Same Ollama instance | Operational simplicity; nomic-embed-text is lightweight |
+| Embedding location | Ollama (nomic-embed-text) | Unchanged; generation moved to Gemini by default |
 | Ingestion language | Python | Shared deps with API, single language across project |
 | Frontend approach | Next.js (App Router) + React | Server `page.tsx` + client `ChatApp`; landing/conversation two-state UI |
 | Client transport | WebSocket (primary), single-shot per question | Required for plan + step + token streaming; REST `/chat` kept only as a Postman test endpoint, removed in Phase 5 |
@@ -448,20 +456,27 @@ After changing CORS or API code, rebuild the API container: `docker compose up -
 
 ## Environment Variables
 
+Configuration is split into two files:
+
+1. **Project `.env`** (repo root, from `.env.example`) — provider choice, model names, service URLs. Safe to version via `.env.example`; real `.env` is gitignored.
+2. **Secrets file** — `~/.config/rag/.env` (default path via `SECRETS_ENV_PATH`) — `GEMINI_API_KEY` and other credentials. **Never commit.**
+
+### Project `.env` (example)
+
 ```env
-# Ollama (shared service on llm_internal network)
+# LLM provider: gemini | ollama
+LLM_PROVIDER=gemini
+GEMINI_MODEL=gemini-2.5-flash-lite
+SECRETS_ENV_PATH=~/.config/rag/.env
+
+# Ollama (embeddings always; generation when LLM_PROVIDER=ollama)
 OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=qwen-shared
+OLLAMA_MODEL=qwen3:8b
 OLLAMA_EMBED_MODEL=nomic-embed-text
 
 # Qdrant
 QDRANT_URL=http://qdrant:6333
 QDRANT_COLLECTION=travel_chunks
-
-# Neo4j
-NEO4J_URI=bolt://neo4j:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=changeme
 
 # API
 API_HOST=0.0.0.0
@@ -471,6 +486,22 @@ LOG_LEVEL=info
 # Web (local dev — copy to web/.env.local)
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
+
+### Secrets `~/.config/rag/.env`
+
+```env
+GEMINI_API_KEY=your-key-here
+```
+
+Setup:
+
+```bash
+cp .env.example .env
+mkdir -p ~/.config/rag
+echo 'GEMINI_API_KEY=...' >> ~/.config/rag/.env
+```
+
+For Docker, mount the secrets file or pass `GEMINI_API_KEY` via compose `env_file` pointing at `~/.config/rag/.env` in addition to project `.env`.
 
 ---
 

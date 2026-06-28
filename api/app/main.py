@@ -31,7 +31,7 @@ async def wait_for_qdrant(url: str, retries: int = 10, delay: float = 2.0):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await wait_for_qdrant(settings.qdrant_url)
-    logger.info("Warming up LLM (this may take a few minutes on first start)...")
+    logger.info("Warming up LLM provider=%s...", settings.llm_provider)
     await warmup()
     logger.info("LLM warm-up complete.")
     yield

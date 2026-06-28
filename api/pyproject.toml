@@ -11,6 +11,8 @@ dependencies = [
     "qdrant-client>=1.9",
     "neo4j>=5.0",
     "langgraph>=0.2",
+    "google-genai>=1.0",
+    "python-dotenv>=1.0",
 ]
 
 [build-system]

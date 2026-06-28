@@ -11,7 +11,7 @@ Uygulama: `api/app/graph/` → `state.py`, `nodes.py`, `edges.py`, `builder.py` 
 
 ## Phase 1 — Minimal graph (implement first)
 
-Lokal Ollama/Qwen yavaş; her şeyi ayrı LLM node yapma. İlk sürüm **tek planner LLM + tek synthesize LLM**.
+Lokal Ollama/Qwen yavaş; cloud **Gemini** varsayılan üretim LLM'i. Her şeyi ayrı LLM node yapma. İlk sürüm **tek planner LLM + tek synthesize LLM** — ikisi de `llm.generate()` üzerinden (provider: Gemini veya Ollama).
 
 ### Graph (linear)
 
@@ -27,7 +27,23 @@ START → intake_node → planner_json_node → vector_retrieval_node → synthe
 | `synthesize_node` | **Evet (2)** stream | `step` (s2) + `token` |
 | `format_node` | Hayır | — (sessiz); `done` + WS close |
 
-**Toplam LLM çağrısı:** 2 (planner + synthesize). Semaphore(1) ile sıralı.
+**Toplam LLM çağrısı:** 2 (planner + synthesize). `LLM_PROVIDER=ollama` iken Semaphore(1) ile sıralı; Gemini'de HTTP API (embed hâlâ Ollama).
+
+### LLM katmanı (provider abstraction)
+
+Tüm LLM node'ları tek giriş noktası kullanır:
+
+```
+planner_json_node ──┐
+chitchat_node       ├──▶ llm.generate(prompt) ──▶ LLMProvider (strategy)
+synthesize_node  ───┘         │
+                              ├─ gemini  → Gemini API (gemini-2.5-flash-lite, default)
+                              └─ ollama  → Ollama / qwen3:8b (fallback)
+```
+
+- **Seçim:** proje `.env` → `LLM_PROVIDER=gemini|ollama`
+- **Secrets:** `~/.config/rag/.env` → `GEMINI_API_KEY` (`SECRETS_ENV_PATH`)
+- **Embedding:** her zaman Ollama `nomic-embed-text` (`vector_retrieval_node`); generation provider'dan bağımsız
 
 ### `planner_json_node` — Tek LLM, çoklu çıktı
 
@@ -144,7 +160,7 @@ Mesajı temizle, dil tespit et, uzunluk/encoding kontrolü, history'yi state'e k
 Prompt injection ("ignore previous…"), küfür, jailbreak. Rule-based + küçük classifier (Llama Prompt Guard 2-86M). Reddedilirse `reject_node`'a köprü.
 
 ### `domain_classifier_node` — Konu uygunluğu
-"Bu seyahatle ilgili mi?" — kısa Qwen promptu veya mDeBERTa zero-shot. **No** ise `out_of_domain_node`.
+"Bu seyahatle ilgili mi?" — kısa prompt (aktif LLM provider) veya mDeBERTa zero-shot. **No** ise `out_of_domain_node`.
 
 ---
 
@@ -218,7 +234,7 @@ Alt soru başına embed + top-k. `min_score` filtre, dedup. Çıktı: `vector_ch
 - `intent == nearby_unesco` → UNESCO yakınlık template
 - `intent == airport_access` → havalimanı erişim template
 
-**Phase 3 ileri:** `cypher_generation_node` (Qwen + few-shot) + validation guard
+**Phase 3 ileri:** `cypher_generation_node` (aktif LLM provider + few-shot) + validation guard
 
 ### `external_data_node` — Canlı veri (opsiyonel, stretch)
 Tarih bağımlı sorular: hava, mevsim, döviz. Bu olmadan "Şu an sıcak mı?", "Euro kaç TL?" cevaplanamaz.
@@ -434,9 +450,9 @@ Sessiz node'lar kısa ve değişmez (genelde <100 ms); kullanıcıya "Düşünü
 
 ## Tasarım notları
 
-- **Phase 1 = 2 LLM çağrısı** — `planner_json_node` + `synthesize_node`; ayrı intent/entity/plan/rewrite node'ları Phase 4'e ertelendi.
+- **Phase 1 = 2 LLM çağrısı** — `planner_json_node` + `synthesize_node`; provider abstraction (`gemini` default, `ollama` optional).
 - **`status` event** plan'dan önce gelir — boş ekran önlenir.
-- **Her LLM node'u** `llm.generate()` üzerinden geçer — tek Semaphore(1) yeter; sıra fairness korunur.
+- **Her LLM node'u** `llm.generate()` üzerinden geçer — strategy seçer; Ollama için Semaphore(1), Gemini için doğrudan API.
 - **Loop limiti** (`iter < 2`) sonsuz döngü riskini engeller.
 - **WS event'leri yalnızca anlamlı node'larda** emit edilir (yukarıdaki listeye bak); sıralı stream UX'in temelidir.
 - **WS bağlantısı single-shot** — server `done`/`error` sonrası kapatır; client her soru için yeniden bağlanır.
