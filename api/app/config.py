@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "travel_chunks"
 
+    neo4j_uri: str = "bolt://neo4j:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "changeme"
+
 
 def _load_gemini_api_key(settings: Settings) -> Settings:
     if settings.gemini_api_key:

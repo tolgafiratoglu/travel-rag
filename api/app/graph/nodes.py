@@ -3,6 +3,7 @@ import logging
 import re
 
 from app.graph.state import GraphState
+from app.services import graph_store
 from app.services import llm
 from app.services import vector_store
 
@@ -27,7 +28,7 @@ Schema:
   }},
   "assumptions": [],
   "plan": {{
-    "summary": "One short active sentence in the user's language: what you are about to do (e.g. 'Kapadokya'nın en iyi mevsimini araştırıyorum.')",
+    "summary": "One short active sentence in the user's language: what you are about to do (e.g. 'Looking into the best season for Goreme.')",
     "steps": [
       {{ "id": "s1", "label": "descriptive action", "kind": "vector|synthesize", "status": "idle" }}
     ]
@@ -37,34 +38,34 @@ Schema:
 }}
 
 Rules:
-- summary: One short, active sentence in the user's language (e.g. "Araştırıyorum..." / "Looking into..."). Keep it under 15 words.
+- summary: One short, active sentence in the user's language (e.g. "Looking into..."). Keep it under 15 words.
 - assumptions: Write in the user's language; if information is missing, add soft fallbacks here instead of asking
 - steps: Generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label in the user's language, and a kind. The last step must always be kind "synthesize". All other steps should be kind "vector". Vary the number, labels, and order based on what the question actually needs.
 - For chitchat or meta intents: use a single step with kind "synthesize" and set search_queries to []
 - search_queries: 1-3 short phrases suitable for vector search (empty for chitchat/meta)
 - All steps start with status "idle"
 
-Example — question: "Antalya'da aileyle gidilecek yerler neresi?"
+Example — question: "Where can I go with my family in Antalya?"
 {{
   "intent": "recommendation",
   "plan": {{
-    "summary": "Antalya'da aile dostu yerleri araştırıyorum.",
+    "summary": "Searching for family-friendly places in Antalya.",
     "steps": [
-      {{ "id": "s1", "label": "Antalya'da aile dostu mekanları ara", "kind": "vector", "status": "idle" }},
-      {{ "id": "s2", "label": "Çocuklara uygun plaj ve aktiviteleri araştır", "kind": "vector", "status": "idle" }},
-      {{ "id": "s3", "label": "Önerileri derleyip sun", "kind": "synthesize", "status": "idle" }}
+      {{ "id": "s1", "label": "Search family-friendly spots in Antalya", "kind": "vector", "status": "idle" }},
+      {{ "id": "s2", "label": "Look up kid-friendly beaches and activities", "kind": "vector", "status": "idle" }},
+      {{ "id": "s3", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Antalya aile dostu mekanlar", "Antalya çocuklara uygun plaj aktivite"]
+  "search_queries": ["Antalya family friendly places", "Antalya kid friendly beach activities"]
 }}
 
-Example — question: "Merhaba, neler yapabilirsin?"
+Example — question: "Hello, what can you do?"
 {{
   "intent": "chitchat",
   "plan": {{
-    "summary": "Sorunuzu yanıtlıyorum.",
+    "summary": "Answering your question.",
     "steps": [
-      {{ "id": "s1", "label": "Sorunuzu yanıtla", "kind": "synthesize", "status": "idle" }}
+      {{ "id": "s1", "label": "Reply to your message", "kind": "synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": []
@@ -76,17 +77,26 @@ Example — question: "Merhaba, neler yapabilirsin?"
 ### JSON
 """
 
-SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using ONLY the provided sources. Reply in the user's language. Reference sources as [S1], [S2], etc.
+SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using ONLY the provided sources. Reply in the user's language.
+
+Reference vector sources as [S1], [S2], etc. Reference graph profiles as [G1], [G2], etc.
 
 If the sources don't contain enough information, say so honestly. Do not make up information.
 
-### Sources
-{sources}
-
-### Question
+{vector_section}{graph_section}### Question
 {question}
 
 ### Answer
+"""
+
+SYNTHESIZE_VECTOR_SECTION = """### Vector sources
+{vector_sources}
+
+"""
+
+SYNTHESIZE_GRAPH_SECTION = """### Graph knowledge
+{graph_sources}
+
 """
 
 CHITCHAT_PROMPT = """You are a friendly travel assistant. The user is making casual conversation or asking about your capabilities. Reply naturally in the user's language. Keep it brief and warm.
@@ -191,6 +201,20 @@ async def vector_retrieval_node(state: GraphState) -> GraphState:
     }
 
 
+async def graph_retrieval_node(state: GraphState) -> GraphState:
+    cities: list[str] = list((state.get("entities") or {}).get("cities") or [])
+    if not cities:
+        return {"graph_contexts": []}
+
+    try:
+        contexts = await graph_store.fetch_contexts_for_cities(cities)
+    except Exception as e:
+        logger.warning("Graph retrieval failed: %s", e)
+        contexts = []
+
+    return {"graph_contexts": contexts}
+
+
 async def chitchat_node(state: GraphState) -> GraphState:
     prompt = CHITCHAT_PROMPT.format(question=state["question"])
     answer = await llm.generate(prompt)
@@ -199,19 +223,33 @@ async def chitchat_node(state: GraphState) -> GraphState:
 
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
-    if not chunks:
+    contexts = state.get("graph_contexts") or []
+
+    if not chunks and not contexts:
         return {
             "answer": "I couldn't find relevant information in my sources. "
             "Try rephrasing your question or asking about a specific city.",
         }
 
-    sources_text = "\n\n".join(
-        f"[S{i + 1}] ({c['city_name']} / {c['section']}): {c['text']}"
-        for i, c in enumerate(chunks)
-    )
+    vector_section = ""
+    if chunks:
+        vector_sources = "\n\n".join(
+            f"[S{i + 1}] ({c['city_name']} / {c['section']}): {c['text']}"
+            for i, c in enumerate(chunks)
+        )
+        vector_section = SYNTHESIZE_VECTOR_SECTION.format(vector_sources=vector_sources)
+
+    graph_section = ""
+    if contexts:
+        graph_sources = "\n\n".join(
+            f"[G{i + 1}] ({ctx['city']}):\n{ctx['text']}"
+            for i, ctx in enumerate(contexts)
+        )
+        graph_section = SYNTHESIZE_GRAPH_SECTION.format(graph_sources=graph_sources)
 
     prompt = SYNTHESIZE_PROMPT.format(
-        sources=sources_text,
+        vector_section=vector_section,
+        graph_section=graph_section,
         question=state["question"],
     )
     answer = await llm.generate(prompt)

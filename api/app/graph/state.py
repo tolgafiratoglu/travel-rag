@@ -12,6 +12,7 @@ class GraphState(TypedDict, total=False):
     answer_style: str
     planner_raw: str
     vector_chunks: list[dict[str, Any]]
+    graph_contexts: list[dict[str, str]]
     sources: list[dict[str, Any]]
     answer: str
     error: str | None

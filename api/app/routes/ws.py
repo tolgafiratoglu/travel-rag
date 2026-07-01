@@ -1,12 +1,9 @@
 import json
 import logging
-import re
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from app.graph.builder import build_graph
-
-_TR_CHARS = re.compile(r"[şçığöüŞÇİĞÖÜ]")
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +29,7 @@ async def ws_chat(ws: WebSocket):
             await ws.close()
             return
 
-        status_msg = "Sorunuzu cevaplıyorum..." if _TR_CHARS.search(question) else "Answering your question..."
-        await _send(ws, {"type": "status", "message": status_msg})
+        await _send(ws, {"type": "status", "message": "Answering your question..."})
 
         result: dict = {}
 
@@ -70,6 +66,16 @@ async def ws_chat(ws: WebSocket):
                         "kind": "vector",
                         "status": "done",
                         "detail": f"{count} sources found",
+                    })
+                    await _send(ws, {"type": "step", "kind": "graph", "status": "running"})
+
+                elif node_name == "graph_retrieval":
+                    count = len(update.get("graph_contexts") or [])
+                    await _send(ws, {
+                        "type": "step",
+                        "kind": "graph",
+                        "status": "done",
+                        "detail": f"{count} city profiles found",
                     })
                     await _send(ws, {"type": "step", "kind": "synthesize", "status": "running"})
 
