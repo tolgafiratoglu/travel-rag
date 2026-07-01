@@ -9,6 +9,9 @@ from app.services import vector_store
 
 logger = logging.getLogger(__name__)
 
+# TODO: remove before prod — appends LLM prompts to the answer for debugging
+DEBUG_APPEND_PROMPT = True
+
 # ---------------------------------------------------------------------------
 # Prompts
 # ---------------------------------------------------------------------------
@@ -77,11 +80,36 @@ Example — question: "Hello, what can you do?"
 ### JSON
 """
 
-SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using ONLY the provided sources. Reply in the user's language.
+GROUNDING_POLICY = """Grounding and partial-answer policy:
+
+Use only the provided sources for factual claims. Vector sources [S] and graph profiles [G] both count as sources.
+
+First identify the user's core request and any modifiers or constraints.
+
+If the provided sources are irrelevant to the core request, say that the answer is not available in the provided sources.
+
+If the sources support a material part of the core request but do not fully answer the question, give a partial answer:
+- state what the sources do support,
+- cite the supporting sources,
+- clearly state what is missing or not explicitly covered,
+- do not fill missing details with assumptions.
+
+If the sources support related information but not the exact requested attribute, present it as limited context, not as a direct answer.
+
+Use phrasing in the user's language, for example:
+"Sources do not fully answer this question, but they support the following..."
+or
+"X is not explicitly stated in the sources, but Y is available..."
+
+Do not infer labels such as family-friendly, cheap, safe, romantic, accessible, best, or suitable unless the sources explicitly support them.
+
+Reject completely only when no source supports any material part of the user's core request."""
+
+SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
 Reference vector sources as [S1], [S2], etc. Reference graph profiles as [G1], [G2], etc.
 
-If the sources don't contain enough information, say so honestly. Do not make up information.
+{grounding_policy}
 
 {vector_section}{graph_section}### Question
 {question}
@@ -110,6 +138,16 @@ CHITCHAT_PROMPT = """You are a friendly travel assistant. The user is making cas
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _append_debug_footer(answer: str, state: GraphState, prompt: str) -> str:
+    if not DEBUG_APPEND_PROMPT:
+        return answer
+    footer = f"\n\n----- prompt -----\n{prompt}"
+    planner_raw = state.get("planner_raw")
+    if planner_raw:
+        footer = f"\n\n----- planner response -----\n{planner_raw}" + footer
+    return answer + footer
 
 
 def _extract_json(text: str) -> dict:
@@ -218,7 +256,7 @@ async def graph_retrieval_node(state: GraphState) -> GraphState:
 async def chitchat_node(state: GraphState) -> GraphState:
     prompt = CHITCHAT_PROMPT.format(question=state["question"])
     answer = await llm.generate(prompt)
-    return {"answer": answer, "sources": []}
+    return {"answer": _append_debug_footer(answer, state, prompt), "sources": []}
 
 
 async def synthesize_node(state: GraphState) -> GraphState:
@@ -226,10 +264,15 @@ async def synthesize_node(state: GraphState) -> GraphState:
     contexts = state.get("graph_contexts") or []
 
     if not chunks and not contexts:
-        return {
-            "answer": "I couldn't find relevant information in my sources. "
-            "Try rephrasing your question or asking about a specific city.",
-        }
+        answer = (
+            "I couldn't find relevant information in my sources. "
+            "Try rephrasing your question or asking about a specific city."
+        )
+        if DEBUG_APPEND_PROMPT:
+            planner_raw = state.get("planner_raw")
+            if planner_raw:
+                answer += f"\n\n----- planner response -----\n{planner_raw}"
+        return {"answer": answer}
 
     vector_section = ""
     if chunks:
@@ -248,12 +291,13 @@ async def synthesize_node(state: GraphState) -> GraphState:
         graph_section = SYNTHESIZE_GRAPH_SECTION.format(graph_sources=graph_sources)
 
     prompt = SYNTHESIZE_PROMPT.format(
+        grounding_policy=GROUNDING_POLICY,
         vector_section=vector_section,
         graph_section=graph_section,
         question=state["question"],
     )
     answer = await llm.generate(prompt)
-    return {"answer": answer}
+    return {"answer": _append_debug_footer(answer, state, prompt)}
 
 
 async def format_node(state: GraphState) -> GraphState:
