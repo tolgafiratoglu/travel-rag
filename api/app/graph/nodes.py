@@ -81,7 +81,6 @@ Example — question: "Hello, what can you do?"
 """
 
 GROUNDING_POLICY = """Grounding and partial-answer policy:
-
 Use only the provided sources for factual claims. Vector sources [S] and graph profiles [G] both count as sources.
 
 First identify the user's core request and any modifiers or constraints.

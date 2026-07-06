@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Literal
 
 from dotenv import dotenv_values
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,13 +18,15 @@ class Settings(BaseSettings):
     api_port: int = 8000
     log_level: str = "info"
 
-    llm_provider: Literal["gemini", "ollama"] = "gemini"
+    llm_provider: Literal["gemini", "qwen"] = "gemini"
     gemini_model: str = "gemini-2.5-flash-lite"
     secrets_env_path: str = "~/.config/rag/.env"
     gemini_api_key: str = Field(default="", validation_alias="GEMINI_API_KEY")
 
     ollama_base_url: str = "http://ollama:11434"
-    ollama_model: str = "qwen3:8b"
+    qwen_llm: Literal["1b", "8b"] = "1b"
+    qwen8b: str = "qwen3:8b"
+    qwen1b: str = "qwen3:1.7b-q4_K_M"
     ollama_embed_model: str = "nomic-embed-text"
 
     qdrant_url: str = "http://qdrant:6333"
@@ -33,6 +35,17 @@ class Settings(BaseSettings):
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "changeme"
+
+    @field_validator("llm_provider", mode="before")
+    @classmethod
+    def _normalize_llm_provider(cls, value: str) -> str:
+        if value == "ollama":
+            return "qwen"
+        return value
+
+    @property
+    def qwen_model(self) -> str:
+        return self.qwen1b if self.qwen_llm == "1b" else self.qwen8b
 
 
 def _load_gemini_api_key(settings: Settings) -> Settings:

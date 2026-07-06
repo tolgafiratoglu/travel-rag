@@ -28,7 +28,13 @@ def _extract_text(response) -> str:
 
 
 class GeminiProvider:
-    async def generate(self, prompt: str, *, stream: bool = False) -> str:
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        stream: bool = False,
+        model: str | None = None,
+    ) -> str:
         client = _get_client()
         config = types.GenerateContentConfig(
             temperature=0.3,
