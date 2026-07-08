@@ -4,6 +4,9 @@ __pycache__/
 .env
 *.egg-info/
 data/
+!data/wikivoyage/
+data/wikivoyage/*
+!data/wikivoyage/sources.json
 web/node_modules/
 web/.next/
 web/.env.local

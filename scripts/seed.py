@@ -6,9 +6,9 @@ the knowledge graph with entities and relationships.
 Creates SourceChunk nodes in Neo4j to bridge both databases.
 
 Usage:
-    ALLOW_DB_RESET=true QDRANT_URL=http://localhost:6333 \
-    NEO4J_URI=bolt://localhost:7687 \
-    OLLAMA_BASE_URL=http://localhost:11434 \
+    ALLOW_DB_RESET=true QDRANT_URL=http://localhost:6333 \\
+    NEO4J_URI=bolt://localhost:7687 \\
+    OLLAMA_BASE_URL=http://localhost:11434 \\
     python scripts/seed.py
 """
 

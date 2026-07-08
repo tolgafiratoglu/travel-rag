@@ -76,12 +76,38 @@ services:
       timeout: 5s
       retries: 5
 
+  mariadb:
+    image: mariadb:11
+    container_name: travel-rag-mariadb
+    restart: unless-stopped
+    environment:
+      - MARIADB_ROOT_PASSWORD=changeme
+      - MARIADB_DATABASE=wikivoyage
+      - MARIADB_USER=wikivoyage
+      - MARIADB_PASSWORD=changeme
+    command:
+      - --max-allowed-packet=512M
+      - --innodb-buffer-pool-size=1G
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./data/wikivoyage:/data/wikivoyage:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - llm_internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   ollama_models:
     external: true
     name: qwen_ollama_models
   qdrant_data:
   neo4j_data:
+  mariadb_data:
 
 networks:
   llm_internal:
