@@ -10,11 +10,20 @@ export type Plan = {
   steps: PlanStep[];
 };
 
+export type Source = {
+  text: string;
+  city_name: string;
+  section: string;
+  source_url: string;
+  score: number;
+};
+
 export type Message = {
   role: "user" | "assistant";
   content: string;
   plan?: Plan;
   status?: string;
+  sources?: Source[];
 };
 
 export const SUGGESTIONS = [

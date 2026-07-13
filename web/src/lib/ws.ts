@@ -3,7 +3,19 @@ export type WsEvent =
   | { type: "plan"; summary: string; steps: { id: string; label: string; kind: string; status: string }[] }
   | { type: "step"; kind: string; status: string; detail?: string }
   | { type: "token"; delta: string }
-  | { type: "done"; answer: string; sources: unknown[]; plan: Record<string, unknown>; assumptions: string[] }
+  | {
+      type: "done";
+      answer: string;
+      sources: {
+        text: string;
+        city_name: string;
+        section: string;
+        source_url: string;
+        score: number;
+      }[];
+      plan: Record<string, unknown>;
+      assumptions: string[];
+    }
   | { type: "error"; message: string };
 
 const WS_BASE =

@@ -2,6 +2,7 @@ export type Source = {
   text: string;
   city_name: string;
   section: string;
+  source_url: string;
   score: number;
 };
 

@@ -8,6 +8,8 @@ services:
       - OLLAMA_KEEP_ALIVE=-1
     volumes:
       - ollama_models:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
     networks:
       llm_internal:
         aliases:

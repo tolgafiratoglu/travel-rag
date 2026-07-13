@@ -79,6 +79,7 @@ export function useChatStream() {
                   content: event.answer || last.content,
                   plan: plan ?? last.plan,
                   status: undefined,
+                  sources: event.sources ?? [],
                 };
               }
               return updated;

@@ -19,7 +19,13 @@ export function MessageList({ messages }: MessageListProps) {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-1 px-4 py-6">
       {messages.map((msg, i) => (
-        <MessageBubble key={i} role={msg.role} content={msg.content} status={msg.status} />
+        <MessageBubble
+          key={i}
+          role={msg.role}
+          content={msg.content}
+          status={msg.status}
+          sources={msg.sources}
+        />
       ))}
       <div ref={bottomRef} />
     </div>

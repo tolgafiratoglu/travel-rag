@@ -11,6 +11,7 @@ class Source(BaseModel):
     text: str
     city_name: str
     section: str
+    source_url: str = ""
     score: float
 
 
