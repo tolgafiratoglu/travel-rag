@@ -4,21 +4,10 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.graph.neo4j_schema import NEO4J_NODE_LABELS_FROZEN
 from app.models.schemas import Plan
 
-NEO4J_RELATION_KEYS = frozenset({
-    "Country",
-    "Region",
-    "City",
-    "District",
-    "Attraction",
-    "Activity",
-    "Airport",
-    "TransportHub",
-    "Route",
-    "TravelTheme",
-    "Season",
-})
+NEO4J_RELATION_KEYS = NEO4J_NODE_LABELS_FROZEN
 
 
 class PlannerEntities(BaseModel):

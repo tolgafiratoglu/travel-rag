@@ -15,7 +15,7 @@ CYPHER_CITY_PROFILE = """
 MATCH (c:City)
 WHERE toLower(c.name) = toLower($city)
 
-OPTIONAL MATCH (c)-[:IN]->(country:Country)
+OPTIONAL MATCH (c)-[:IN_COUNTRY]->(country:Country)
 OPTIONAL MATCH (c)-[:BEST_SEASON]->(season:Season)
 OPTIONAL MATCH (c)-[:BUDGET_LEVEL]->(budget:Budget)
 

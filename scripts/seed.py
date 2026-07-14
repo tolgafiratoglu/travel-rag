@@ -287,15 +287,15 @@ SET pamukkale.name = 'Pamukkale', pamukkale.population = 15000,
     pamukkale.description = 'Beyaz travertenler ve Hierapolis'
 
 // City -> Country
-MERGE (antalya)-[:IN]->(tr)
-MERGE (istanbul)-[:IN]->(tr)
-MERGE (goreme)-[:IN]->(tr)
-MERGE (bodrum)-[:IN]->(tr)
-MERGE (fethiye)-[:IN]->(tr)
-MERGE (trabzon)-[:IN]->(tr)
-MERGE (selcuk)-[:IN]->(tr)
-MERGE (side)-[:IN]->(tr)
-MERGE (pamukkale)-[:IN]->(tr)
+MERGE (antalya)-[:IN_COUNTRY]->(tr)
+MERGE (istanbul)-[:IN_COUNTRY]->(tr)
+MERGE (goreme)-[:IN_COUNTRY]->(tr)
+MERGE (bodrum)-[:IN_COUNTRY]->(tr)
+MERGE (fethiye)-[:IN_COUNTRY]->(tr)
+MERGE (trabzon)-[:IN_COUNTRY]->(tr)
+MERGE (selcuk)-[:IN_COUNTRY]->(tr)
+MERGE (side)-[:IN_COUNTRY]->(tr)
+MERGE (pamukkale)-[:IN_COUNTRY]->(tr)
 
 // Seasons
 MERGE (yaz:Season {name: 'Yaz', months: 'Haziran-Ağustos'})
@@ -313,19 +313,20 @@ MERGE (side)-[:BEST_SEASON]->(yaz)
 MERGE (pamukkale)-[:BEST_SEASON]->(ilkbahar)
 
 // Budget levels
-MERGE (budget:Budget {level: 'budget'})
+MERGE (low:Budget {level: 'low'})
 MERGE (mid:Budget {level: 'mid'})
+MERGE (high:Budget {level: 'high'})
 MERGE (luxury:Budget {level: 'luxury'})
 
 MERGE (antalya)-[:BUDGET_LEVEL]->(mid)
 MERGE (istanbul)-[:BUDGET_LEVEL]->(mid)
 MERGE (goreme)-[:BUDGET_LEVEL]->(mid)
 MERGE (bodrum)-[:BUDGET_LEVEL]->(luxury)
-MERGE (fethiye)-[:BUDGET_LEVEL]->(budget)
-MERGE (trabzon)-[:BUDGET_LEVEL]->(budget)
-MERGE (selcuk)-[:BUDGET_LEVEL]->(budget)
-MERGE (side)-[:BUDGET_LEVEL]->(budget)
-MERGE (pamukkale)-[:BUDGET_LEVEL]->(budget)
+MERGE (fethiye)-[:BUDGET_LEVEL]->(low)
+MERGE (trabzon)-[:BUDGET_LEVEL]->(low)
+MERGE (selcuk)-[:BUDGET_LEVEL]->(low)
+MERGE (side)-[:BUDGET_LEVEL]->(low)
+MERGE (pamukkale)-[:BUDGET_LEVEL]->(low)
 
 // City connections
 MERGE (istanbul)-[:CONNECTED_TO {mode: 'flight', duration: '1h', cost_level: 'mid'}]->(antalya)

@@ -3,6 +3,7 @@ Claude için çalışma talimatı:
 2. Aksini söylememişsem kodu test etmeye çalışma.
 3. Klasör oluşturma gibi eylemler dışında terminalden birşey çalıştırma.
 4. Tamamlanan işlerden sonra eğer test etmem gerekirse POSTMAN'e import etmem için curl ile import kodu yaz.
+5. bir kod yazacağın zaman kod tekrarı yapmamaya özen göster. Mesela bir veritabanına ya da benzeri bir araca bağlanacaksın ya da query'ler göndereceksin. Eğer servisler katmanlar zaten yazıldıysa önce halihazırda yazılmış olan servis metodlarını bul, mümkünse bunları kullan.
 
 Cevabını mümkün olduğunca şu sırayla ver:
 

@@ -78,7 +78,7 @@ Flight search (Kayak):
 neo4j_data:
 - A dict mapping entity names to graph relation types. Use only when graph knowledge would help answer the question.
 - Keys: city, country, or place names mentioned in the question.
-- Values: exactly one of: Country, Region, City, District, Attraction, Activity, Airport, TransportHub, Route, TravelTheme, Season
+- Values: exactly one of: Country, Region, City, District, Attraction, Activity, Airport, TransportHub, Route, TravelTheme, Season, Budget
 - Examples: {{"Istanbul": "City"}}, {{"Istanbul": "Airport"}}, {{"Cappadocia": "Region", "Goreme": "Season"}}
 - Use "City" for general city profile questions; "Airport" or "TransportHub" for airport/transport access; "Season" for best time to visit; "Attraction" for sights/UNESCO.
 - When graph data is not needed, set neo4j_data to {{}}.
