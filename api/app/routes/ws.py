@@ -94,7 +94,13 @@ async def ws_chat(ws: WebSocket):
             "plan": result.get("plan") or {},
             "assumptions": result.get("assumptions") or [],
             "intent": result.get("intent"),
+            "prompt_language": result.get("prompt_language"),
             "search_queries": result.get("search_queries") or [],
+            "is_hotel_search": result.get("is_hotel_search", False),
+            "hotel_search_query": result.get("hotel_search_query", ""),
+            "is_flight_search": result.get("is_flight_search", False),
+            "flight_search_query": result.get("flight_search_query", ""),
+            "neo4j_data": result.get("neo4j_data") or {},
         })
         await ws.close()
 

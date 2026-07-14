@@ -2,7 +2,10 @@ import json
 import logging
 import re
 
+from pydantic import ValidationError
+
 from app.graph.state import GraphState
+from app.models.planner import parse_planner_output, planner_state_update
 from app.services import graph_store
 from app.services import llm
 from app.services import vector_store
@@ -21,6 +24,7 @@ PLANNER_PROMPT = """You are a travel assistant planner. Analyze the user's quest
 Schema:
 {{
   "intent": "chitchat|factoid|recommendation|planning|comparison|logistics|follow_up|meta",
+  "prompt_language": "ISO 639-1 code of the user's message (e.g. tr, en, de)",
   "entities": {{
     "cities": [],
     "countries": [],
@@ -31,47 +35,113 @@ Schema:
   }},
   "assumptions": [],
   "plan": {{
-    "summary": "One short active sentence in the user's language: what you are about to do (e.g. 'Looking into the best season for Goreme.')",
+    "summary": "One short active sentence in the user's language describing what you will do next",
     "steps": [
-      {{ "id": "s1", "label": "descriptive action", "kind": "vector|synthesize", "status": "idle" }}
+      {{ "id": "s1", "label": "descriptive action in the user's language", "kind": "vector|graph|external|synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["retrieval-optimized query 1", "query 2"],
-  "answer_style": "recommendation|factoid|itinerary|comparison|chitchat"
+  "search_queries": ["retrieval-optimized phrase 1", "phrase 2"],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "neo4j_data": {{}}
 }}
 
 Rules:
-- summary: One short, active sentence in the user's language (e.g. "Looking into..."). Keep it under 15 words.
-- assumptions: Write in the user's language; if information is missing, add soft fallbacks here instead of asking
-- steps: Generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label in the user's language, and a kind. The last step must always be kind "synthesize". All other steps should be kind "vector". Vary the number, labels, and order based on what the question actually needs.
-- For chitchat or meta intents: use a single step with kind "synthesize" and set search_queries to []
-- search_queries: 1-3 short phrases suitable for vector search (empty for chitchat/meta)
-- All steps start with status "idle"
+- prompt_language: detect the language of the user's message; use ISO 639-1 (tr, en, de, fr, ...).
+- summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
+- assumptions: write in the user's language; if information is missing, add soft fallbacks here instead of asking the user.
+- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/source retrieval, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
+- For chitchat or meta intents: use a single synthesize step and set search_queries to [], neo4j_data to {{}}, is_hotel_search and is_flight_search to false.
+- search_queries: 1-3 short English phrases optimized for vector search over travel guide content (empty for chitchat/meta). These are separate from hotel/flight URLs.
+
+Hotel search (Booking.com):
+- is_hotel_search: true only when the user asks for accommodation, hotels, or lodging.
+- hotel_search_query: when is_hotel_search is true, build a full Booking.com URL using only known parameters. Omit any parameter you cannot infer — do not guess dates or locations.
+  Base: https://www.booking.com/searchresults.html
+  Parameters: ss (city/area, required for hotel search), checkin (YYYY-MM-DD), checkout (YYYY-MM-DD)
+  Example with dates: https://www.booking.com/searchresults.html?ss=Antalya&checkin=2026-08-10&checkout=2026-08-15
+  Example without dates: https://www.booking.com/searchresults.html?ss=Antalya
+- When is_hotel_search is false, set hotel_search_query to "".
+
+Flight search (Kayak):
+- is_flight_search: true only when the user asks for flights or airfare.
+- flight_search_query: when is_flight_search is true, build a full Kayak URL using only known parameters. Prefer IATA airport codes (Istanbul→IST, Antalya→AYT). Omit unknown segments — do not guess dates or routes.
+  Format: https://www.kayak.com/flights/{{ORIGIN}}-{{DEST}}/{{DEPART}}/{{RETURN}}?sort=bestflight_a
+  One-way (no return date): https://www.kayak.com/flights/IST-AYT/2026-08-10?sort=bestflight_a
+  Round-trip: https://www.kayak.com/flights/IST-AYT/2026-08-10/2026-08-15?sort=bestflight_a
+  No dates: https://www.kayak.com/flights/IST-AYT?sort=bestflight_a
+  If unsure about IATA codes, note the assumption in assumptions[] and use the best available city codes.
+- When is_flight_search is false, set flight_search_query to "".
+
+neo4j_data:
+- A dict mapping entity names to graph relation types. Use only when graph knowledge would help answer the question.
+- Keys: city, country, or place names mentioned in the question.
+- Values: exactly one of: Country, Region, City, District, Attraction, Activity, Airport, TransportHub, Route, TravelTheme, Season
+- Examples: {{"Istanbul": "City"}}, {{"Istanbul": "Airport"}}, {{"Cappadocia": "Region", "Goreme": "Season"}}
+- Use "City" for general city profile questions; "Airport" or "TransportHub" for airport/transport access; "Season" for best time to visit; "Attraction" for sights/UNESCO.
+- When graph data is not needed, set neo4j_data to {{}}.
 
 Example — question: "Where can I go with my family in Antalya?"
 {{
   "intent": "recommendation",
+  "prompt_language": "en",
+  "entities": {{ "cities": ["Antalya"], "theme": ["family", "beach"] }},
+  "assumptions": [],
   "plan": {{
     "summary": "Searching for family-friendly places in Antalya.",
     "steps": [
       {{ "id": "s1", "label": "Search family-friendly spots in Antalya", "kind": "vector", "status": "idle" }},
-      {{ "id": "s2", "label": "Look up kid-friendly beaches and activities", "kind": "vector", "status": "idle" }},
-      {{ "id": "s3", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
+      {{ "id": "s2", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Antalya family friendly places", "Antalya kid friendly beach activities"]
+  "search_queries": ["Antalya family friendly places", "Antalya kid friendly beach activities"],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "neo4j_data": {{ "Antalya": "City" }}
+}}
+
+Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
+{{
+  "intent": "planning",
+  "prompt_language": "tr",
+  "entities": {{ "cities": ["İstanbul"], "duration": "5 gün" }},
+  "assumptions": ["Exact travel dates were not provided."],
+  "plan": {{
+    "summary": "İstanbul için 5 günlük rota, otel ve uçuş seçeneklerini hazırlıyorum.",
+    "steps": [
+      {{ "id": "s1", "label": "İstanbul gezi noktalarını araştır", "kind": "vector", "status": "idle" }},
+      {{ "id": "s2", "label": "Konaklama ve uçuş bağlantılarını hazırla", "kind": "external", "status": "idle" }},
+      {{ "id": "s3", "label": "Rota önerisini sentezle", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": ["Istanbul 5 day itinerary", "Istanbul top attractions"],
+  "is_hotel_search": true,
+  "hotel_search_query": "https://www.booking.com/searchresults.html?ss=İstanbul",
+  "is_flight_search": true,
+  "flight_search_query": "https://www.kayak.com/flights/IST-IST?sort=bestflight_a",
+  "neo4j_data": {{ "İstanbul": "City" }}
 }}
 
 Example — question: "Hello, what can you do?"
 {{
   "intent": "chitchat",
+  "prompt_language": "en",
   "plan": {{
     "summary": "Answering your question.",
     "steps": [
       {{ "id": "s1", "label": "Reply to your message", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": []
+  "search_queries": [],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "neo4j_data": {{}}
 }}
 
 ### Question
@@ -123,6 +193,17 @@ SYNTHESIZE_VECTOR_SECTION = """### Vector sources
 
 SYNTHESIZE_GRAPH_SECTION = """### Graph knowledge
 {graph_sources}
+
+"""
+
+SYNTHESIZE_EXTERNAL_SECTION = """### External booking links
+Include these links in your answer when relevant (use markdown links with descriptive labels in the user's language):
+{external_links}
+
+"""
+
+SYNTHESIZE_ASSUMPTIONS_SECTION = """### Assumptions made
+{assumptions}
 
 """
 
@@ -185,28 +266,19 @@ async def planner_json_node(state: GraphState) -> GraphState:
 
     try:
         data = _extract_json(raw)
+        planner = parse_planner_output(data)
     except (json.JSONDecodeError, ValueError) as e:
         return {
             "planner_raw": raw,
             "error": f"Planner JSON parse failed: {e}",
         }
-
-    plan = data.get("plan") or {}
-    if "summary" not in plan or "steps" not in plan:
+    except ValidationError as e:
         return {
             "planner_raw": raw,
-            "error": "Planner JSON missing plan.summary or plan.steps",
+            "error": f"Planner validation failed: {e}",
         }
 
-    return {
-        "intent": data.get("intent", "factoid"),
-        "entities": data.get("entities") or {},
-        "assumptions": data.get("assumptions") or [],
-        "plan": plan,
-        "search_queries": data.get("search_queries") or [],
-        "answer_style": data.get("answer_style", ""),
-        "planner_raw": raw,
-    }
+    return planner_state_update(planner, raw)
 
 
 async def vector_retrieval_node(state: GraphState) -> GraphState:
@@ -239,7 +311,12 @@ async def vector_retrieval_node(state: GraphState) -> GraphState:
 
 
 async def graph_retrieval_node(state: GraphState) -> GraphState:
-    cities: list[str] = list((state.get("entities") or {}).get("cities") or [])
+    neo4j_data = state.get("neo4j_data") or {}
+    if neo4j_data:
+        cities = list(neo4j_data.keys())
+    else:
+        cities = list((state.get("entities") or {}).get("cities") or [])
+
     if not cities:
         return {"graph_contexts": []}
 
@@ -258,11 +335,33 @@ async def chitchat_node(state: GraphState) -> GraphState:
     return {"answer": _append_debug_footer(answer, state, prompt), "sources": []}
 
 
+def _build_external_links_section(state: GraphState) -> str:
+    links: list[str] = []
+    if state.get("is_hotel_search") and state.get("hotel_search_query"):
+        links.append(f"Hotel: {state['hotel_search_query']}")
+    if state.get("is_flight_search") and state.get("flight_search_query"):
+        links.append(f"Flights: {state['flight_search_query']}")
+    if not links:
+        return ""
+    return SYNTHESIZE_EXTERNAL_SECTION.format(external_links="\n".join(links))
+
+
+def _build_assumptions_section(state: GraphState) -> str:
+    assumptions = state.get("assumptions") or []
+    if not assumptions:
+        return ""
+    bullets = "\n".join(f"- {a}" for a in assumptions)
+    return SYNTHESIZE_ASSUMPTIONS_SECTION.format(assumptions=bullets)
+
+
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
     contexts = state.get("graph_contexts") or []
+    external_section = _build_external_links_section(state)
+    assumptions_section = _build_assumptions_section(state)
+    has_external_only = bool(external_section) and not chunks and not contexts
 
-    if not chunks and not contexts:
+    if not chunks and not contexts and not has_external_only:
         answer = (
             "I couldn't find relevant information in my sources. "
             "Try rephrasing your question or asking about a specific city."
@@ -295,6 +394,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
         graph_section=graph_section,
         question=state["question"],
     )
+    prompt = assumptions_section + external_section + prompt
     answer = await llm.generate(prompt)
     return {"answer": _append_debug_footer(answer, state, prompt)}
 

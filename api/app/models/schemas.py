@@ -31,10 +31,15 @@ class ChatResponse(BaseModel):
     answer: str = ""
     sources: list[Source] = Field(default_factory=list)
     intent: str | None = None
+    prompt_language: str | None = None
     entities: dict[str, Any] | None = None
     assumptions: list[str] = Field(default_factory=list)
     plan: Plan | None = None
     search_queries: list[str] = Field(default_factory=list)
-    answer_style: str | None = None
+    is_hotel_search: bool = False
+    hotel_search_query: str = ""
+    is_flight_search: bool = False
+    flight_search_query: str = ""
+    neo4j_data: dict[str, str] = Field(default_factory=dict)
     error: str | None = None
     planner_raw: str | None = None

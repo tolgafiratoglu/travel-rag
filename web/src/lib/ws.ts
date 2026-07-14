@@ -15,6 +15,14 @@ export type WsEvent =
       }[];
       plan: Record<string, unknown>;
       assumptions: string[];
+      intent?: string;
+      prompt_language?: string;
+      search_queries?: string[];
+      is_hotel_search?: boolean;
+      hotel_search_query?: string;
+      is_flight_search?: boolean;
+      flight_search_query?: string;
+      neo4j_data?: Record<string, string>;
     }
   | { type: "error"; message: string };
 
