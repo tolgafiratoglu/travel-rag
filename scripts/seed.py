@@ -1,13 +1,9 @@
-"""
-Seed script for Qdrant and Neo4j.
+"""Seed script for Qdrant (legacy demo chunks).
 
-Populates the vector store with travel text chunks and
-the knowledge graph with entities and relationships.
-Creates SourceChunk nodes in Neo4j to bridge both databases.
+Neo4j is populated by scripts/ingest-wikivoyage-neo4j.py, not this file.
 
 Usage:
     ALLOW_DB_RESET=true QDRANT_URL=http://localhost:6333 \\
-    NEO4J_URI=bolt://localhost:7687 \\
     OLLAMA_BASE_URL=http://localhost:11434 \\
     python scripts/seed.py
 """
@@ -20,7 +16,6 @@ import uuid
 import httpx
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
-from neo4j import GraphDatabase
 
 # ---------------------------------------------------------------------------
 # Config
@@ -31,9 +26,6 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "changeme")
 
 # ---------------------------------------------------------------------------
 # Seed data
@@ -176,8 +168,7 @@ async def get_embedding(text: str) -> list[float]:
         return resp.json()["embeddings"][0]
 
 
-async def seed_qdrant() -> list[dict]:
-    """Seed Qdrant and return chunk records with ids for Neo4j linking."""
+async def seed_qdrant() -> None:
     print("--- Seeding Qdrant ---")
     client = QdrantClient(url=QDRANT_URL)
 
@@ -186,7 +177,6 @@ async def seed_qdrant() -> list[dict]:
         client.delete_collection(QDRANT_COLLECTION)
         print(f"  Deleted existing collection: {QDRANT_COLLECTION}")
 
-    # Get vector dimension from first embedding
     print("  Detecting vector dimension...")
     first_embedding = await get_embedding(CHUNKS[0]["text"])
     dim = len(first_embedding)
@@ -199,8 +189,6 @@ async def seed_qdrant() -> list[dict]:
     print(f"  Created collection: {QDRANT_COLLECTION}")
 
     points = []
-    chunk_records = []
-
     for i, chunk in enumerate(CHUNKS):
         chunk_id = make_chunk_id(chunk, i)
         print(f"  [{i+1}/{len(CHUNKS)}] {chunk['city_name']} / {chunk['section']}")
@@ -222,225 +210,10 @@ async def seed_qdrant() -> list[dict]:
             "source_url": chunk["source_url"],
             "lang": chunk["lang"],
         }
-
         points.append(PointStruct(id=chunk_id, vector=embedding, payload=payload))
-        chunk_records.append({"chunk_id": chunk_id, "city_qid": chunk["city_qid"]})
 
     client.upsert(collection_name=QDRANT_COLLECTION, points=points)
     print(f"  Inserted {len(points)} chunks")
-    return chunk_records
-
-
-# ---------------------------------------------------------------------------
-# Neo4j
-# ---------------------------------------------------------------------------
-
-NEO4J_CONSTRAINTS = """
-CREATE CONSTRAINT IF NOT EXISTS FOR (c:Country) REQUIRE c.qid IS UNIQUE;
-CREATE CONSTRAINT IF NOT EXISTS FOR (ci:City) REQUIRE ci.qid IS UNIQUE;
-CREATE CONSTRAINT IF NOT EXISTS FOR (a:Attraction) REQUIRE a.qid IS UNIQUE;
-CREATE CONSTRAINT IF NOT EXISTS FOR (act:Activity) REQUIRE act.qid IS UNIQUE;
-CREATE CONSTRAINT IF NOT EXISTS FOR (sc:SourceChunk) REQUIRE sc.chunk_id IS UNIQUE;
-"""
-
-NEO4J_SEED = """
-// Country
-MERGE (tr:Country {qid: 'Q43'})
-SET tr.name = 'Türkiye', tr.continent = 'Asya/Avrupa', tr.currency = 'TRY', tr.language = 'Türkçe'
-
-// Cities
-MERGE (antalya:City {qid: 'Q6487'})
-SET antalya.name = 'Antalya', antalya.population = 2548308,
-    antalya.lat = 36.8969, antalya.lon = 30.7133,
-    antalya.description = 'Akdeniz kıyısında turizm başkenti'
-MERGE (istanbul:City {qid: 'Q406'})
-SET istanbul.name = 'İstanbul', istanbul.population = 15840900,
-    istanbul.lat = 41.0082, istanbul.lon = 28.9784,
-    istanbul.description = 'İki kıtaya yayılan tarihi metropol'
-MERGE (goreme:City {qid: 'Q6710593'})
-SET goreme.name = 'Göreme', goreme.population = 2500,
-    goreme.lat = 38.6431, goreme.lon = 34.8283,
-    goreme.description = 'Kapadokya bölgesinin merkezi'
-MERGE (bodrum:City {qid: 'Q172267'})
-SET bodrum.name = 'Bodrum', bodrum.population = 196000,
-    bodrum.lat = 37.0344, bodrum.lon = 27.4305,
-    bodrum.description = 'Ege kıyısında tatil beldesi'
-MERGE (fethiye:City {qid: 'Q207998'})
-SET fethiye.name = 'Fethiye', fethiye.population = 162000,
-    fethiye.lat = 36.6510, fethiye.lon = 29.1257,
-    fethiye.description = 'Ölüdeniz ve kelebek vadisi'
-MERGE (trabzon:City {qid: 'Q45301'})
-SET trabzon.name = 'Trabzon', trabzon.population = 808000,
-    trabzon.lat = 41.0027, trabzon.lon = 39.7168,
-    trabzon.description = 'Karadeniz kıyısında tarihi liman şehri'
-MERGE (selcuk:City {qid: 'Q876176'})
-SET selcuk.name = 'Selçuk', selcuk.population = 36000,
-    selcuk.lat = 37.9510, selcuk.lon = 27.3689,
-    selcuk.description = 'Efes antik kentine ev sahipliği yapar'
-MERGE (side:City {qid: 'Q152405'})
-SET side.name = 'Side', side.population = 25000,
-    side.lat = 36.7674, side.lon = 31.3901,
-    side.description = 'Antik liman kenti ve sahil kasabası'
-MERGE (pamukkale:City {qid: 'Q420157'})
-SET pamukkale.name = 'Pamukkale', pamukkale.population = 15000,
-    pamukkale.lat = 37.9204, pamukkale.lon = 29.1187,
-    pamukkale.description = 'Beyaz travertenler ve Hierapolis'
-
-// City -> Country
-MERGE (antalya)-[:IN_COUNTRY]->(tr)
-MERGE (istanbul)-[:IN_COUNTRY]->(tr)
-MERGE (goreme)-[:IN_COUNTRY]->(tr)
-MERGE (bodrum)-[:IN_COUNTRY]->(tr)
-MERGE (fethiye)-[:IN_COUNTRY]->(tr)
-MERGE (trabzon)-[:IN_COUNTRY]->(tr)
-MERGE (selcuk)-[:IN_COUNTRY]->(tr)
-MERGE (side)-[:IN_COUNTRY]->(tr)
-MERGE (pamukkale)-[:IN_COUNTRY]->(tr)
-
-// Seasons
-MERGE (yaz:Season {name: 'Yaz', months: 'Haziran-Ağustos'})
-MERGE (ilkbahar:Season {name: 'İlkbahar', months: 'Mart-Mayıs'})
-MERGE (sonbahar:Season {name: 'Sonbahar', months: 'Eylül-Kasım'})
-
-MERGE (antalya)-[:BEST_SEASON]->(yaz)
-MERGE (istanbul)-[:BEST_SEASON]->(ilkbahar)
-MERGE (goreme)-[:BEST_SEASON]->(ilkbahar)
-MERGE (bodrum)-[:BEST_SEASON]->(yaz)
-MERGE (fethiye)-[:BEST_SEASON]->(yaz)
-MERGE (trabzon)-[:BEST_SEASON]->(yaz)
-MERGE (selcuk)-[:BEST_SEASON]->(ilkbahar)
-MERGE (side)-[:BEST_SEASON]->(yaz)
-MERGE (pamukkale)-[:BEST_SEASON]->(ilkbahar)
-
-// Budget levels
-MERGE (low:Budget {level: 'low'})
-MERGE (mid:Budget {level: 'mid'})
-MERGE (high:Budget {level: 'high'})
-MERGE (luxury:Budget {level: 'luxury'})
-
-MERGE (antalya)-[:BUDGET_LEVEL]->(mid)
-MERGE (istanbul)-[:BUDGET_LEVEL]->(mid)
-MERGE (goreme)-[:BUDGET_LEVEL]->(mid)
-MERGE (bodrum)-[:BUDGET_LEVEL]->(luxury)
-MERGE (fethiye)-[:BUDGET_LEVEL]->(low)
-MERGE (trabzon)-[:BUDGET_LEVEL]->(low)
-MERGE (selcuk)-[:BUDGET_LEVEL]->(low)
-MERGE (side)-[:BUDGET_LEVEL]->(low)
-MERGE (pamukkale)-[:BUDGET_LEVEL]->(low)
-
-// City connections
-MERGE (istanbul)-[:CONNECTED_TO {mode: 'flight', duration: '1h', cost_level: 'mid'}]->(antalya)
-MERGE (antalya)-[:CONNECTED_TO {mode: 'bus', duration: '3h', cost_level: 'budget'}]->(fethiye)
-MERGE (fethiye)-[:CONNECTED_TO {mode: 'bus', duration: '3h', cost_level: 'budget'}]->(bodrum)
-MERGE (istanbul)-[:CONNECTED_TO {mode: 'flight', duration: '1.5h', cost_level: 'mid'}]->(trabzon)
-MERGE (istanbul)-[:CONNECTED_TO {mode: 'flight', duration: '1h', cost_level: 'mid'}]->(goreme)
-MERGE (antalya)-[:CONNECTED_TO {mode: 'bus', duration: '1.5h', cost_level: 'budget'}]->(side)
-
-// Attractions
-MERGE (kaleici:Attraction {qid: 'Q1424175'})
-SET kaleici.name = 'Kaleiçi', kaleici.type = 'historic_district', kaleici.unesco = false,
-    kaleici.description = 'Roma, Bizans ve Osmanlı dönemlerinden kalma tarihi merkez'
-MERGE (kaleici)-[:LOCATED_IN]->(antalya)
-
-MERGE (efes:Attraction {qid: 'Q80547'})
-SET efes.name = 'Efes Antik Kenti', efes.type = 'ancient_city', efes.unesco = true,
-    efes.description = 'Roma dönemi metropolü, Celsus Kütüphanesi'
-MERGE (efes)-[:LOCATED_IN]->(selcuk)
-
-MERGE (goreme_museum:Attraction {qid: 'Q1539966'})
-SET goreme_museum.name = 'Göreme Açık Hava Müzesi', goreme_museum.type = 'museum',
-    goreme_museum.unesco = true,
-    goreme_museum.description = 'Kaya oyma kiliseler ve freskler'
-MERGE (goreme_museum)-[:LOCATED_IN]->(goreme)
-
-MERGE (pamukkale_attr:Attraction {qid: 'Q105893254'})
-SET pamukkale_attr.name = 'Pamukkale Travertenleri', pamukkale_attr.type = 'natural',
-    pamukkale_attr.unesco = true,
-    pamukkale_attr.description = 'Beyaz kireçtaşı teraslar ve termal sular'
-MERGE (pamukkale_attr)-[:LOCATED_IN]->(pamukkale)
-
-MERGE (sumela:Attraction {qid: 'Q752484'})
-SET sumela.name = 'Sümela Manastırı', sumela.type = 'monastery', sumela.unesco = false,
-    sumela.description = 'Dik yamaçta inşa edilmiş MS 386 tarihli manastır'
-MERGE (sumela)-[:LOCATED_IN]->(trabzon)
-
-MERGE (bodrum_castle:Attraction {qid: 'Q672498'})
-SET bodrum_castle.name = 'Bodrum Kalesi', bodrum_castle.type = 'castle',
-    bodrum_castle.unesco = false,
-    bodrum_castle.description = 'Sualtı Arkeoloji Müzesi, Haçlılar dönemi'
-MERGE (bodrum_castle)-[:LOCATED_IN]->(bodrum)
-
-// Activities
-MERGE (balon:Activity {qid: 'ACT_BALON'})
-SET balon.name = 'Sıcak Hava Balonu', balon.category = 'adventure',
-    balon.season_dependent = true
-MERGE (balon)-[:LOCATED_IN]->(goreme)
-
-MERGE (parasut:Activity {qid: 'ACT_PARASUT'})
-SET parasut.name = 'Yamaç Paraşütü', parasut.category = 'adventure',
-    parasut.season_dependent = true
-MERGE (parasut)-[:LOCATED_IN]->(fethiye)
-
-MERGE (bogaz_turu:Activity {qid: 'ACT_BOGAZ'})
-SET bogaz_turu.name = 'Boğaz Turu', bogaz_turu.category = 'cruise',
-    bogaz_turu.season_dependent = false
-MERGE (bogaz_turu)-[:LOCATED_IN]->(istanbul)
-
-MERGE (mavi_yolculuk:Activity {qid: 'ACT_MAVI'})
-SET mavi_yolculuk.name = 'Mavi Yolculuk', mavi_yolculuk.category = 'cruise',
-    mavi_yolculuk.season_dependent = true
-MERGE (mavi_yolculuk)-[:LOCATED_IN]->(bodrum)
-"""
-
-
-def seed_neo4j(chunk_records: list[dict]):
-    print("\n--- Seeding Neo4j ---")
-    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-
-    with driver.session() as session:
-        # Clear
-        session.run("MATCH (n) DETACH DELETE n")
-        print("  Cleared existing graph data")
-
-        # Constraints
-        for stmt in NEO4J_CONSTRAINTS.strip().split(";"):
-            stmt = stmt.strip()
-            if stmt:
-                session.run(stmt)
-        print("  Created unique constraints")
-
-        # Entities and relationships
-        session.run(NEO4J_SEED)
-        print("  Inserted entities and relationships")
-
-        # SourceChunk nodes — bridge between Qdrant and Neo4j
-        for record in chunk_records:
-            session.run(
-                """
-                MERGE (sc:SourceChunk {chunk_id: $chunk_id})
-                WITH sc
-                MATCH (city:City {qid: $city_qid})
-                MERGE (sc)-[:ABOUT]->(city)
-                """,
-                chunk_id=record["chunk_id"],
-                city_qid=record["city_qid"],
-            )
-        print(f"  Created {len(chunk_records)} SourceChunk nodes linked to cities")
-
-        # Verify
-        result = session.run(
-            "MATCH (n) RETURN labels(n)[0] AS label, count(n) AS count ORDER BY label"
-        )
-        print("  Node counts:")
-        for r in result:
-            print(f"    {r['label']}: {r['count']}")
-
-    driver.close()
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
 
 
 async def main():
@@ -448,9 +221,8 @@ async def main():
         print("ERROR: Set ALLOW_DB_RESET=true to run this script (destructive operation)")
         sys.exit(1)
 
-    print("Travel RAG — Seed Data\n")
-    chunk_records = await seed_qdrant()
-    seed_neo4j(chunk_records)
+    print("Travel RAG — Seed Qdrant\n")
+    await seed_qdrant()
     print("\nDone!")
 
 
