@@ -14,7 +14,6 @@ export type WsEvent =
         score: number;
       }[];
       plan: Record<string, unknown>;
-      assumptions: string[];
       intent?: string;
       prompt_language?: string;
       search_queries?: string[];

@@ -33,7 +33,6 @@ class ChatResponse(BaseModel):
     intent: str | None = None
     prompt_language: str | None = None
     entities: dict[str, Any] | None = None
-    assumptions: list[str] = Field(default_factory=list)
     plan: Plan | None = None
     search_queries: list[str] = Field(default_factory=list)
     is_hotel_search: bool = False

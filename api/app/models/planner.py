@@ -11,12 +11,9 @@ NEO4J_RELATION_KEYS = NEO4J_NODE_LABELS_FROZEN
 
 
 class PlannerEntities(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     cities: list[str] = Field(default_factory=list)
-    countries: list[str] = Field(default_factory=list)
-    theme: list[str] = Field(default_factory=list)
-    audience: list[str] = Field(default_factory=list)
-    budget: str | None = None
-    duration: str | None = None
 
 
 class PlannerOutput(BaseModel):
@@ -25,7 +22,6 @@ class PlannerOutput(BaseModel):
     intent: str = "factoid"
     prompt_language: str = "en"
     entities: PlannerEntities = Field(default_factory=PlannerEntities)
-    assumptions: list[str] = Field(default_factory=list)
     plan: Plan
     search_queries: list[str] = Field(default_factory=list)
     is_hotel_search: bool = False
@@ -61,7 +57,6 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
         "intent": planner.intent,
         "prompt_language": planner.prompt_language,
         "entities": dump["entities"],
-        "assumptions": planner.assumptions,
         "plan": dump["plan"],
         "search_queries": planner.search_queries,
         "is_hotel_search": planner.is_hotel_search,

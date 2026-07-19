@@ -8,7 +8,6 @@ class GraphState(TypedDict, total=False):
     intent: str
     prompt_language: str
     entities: dict[str, Any]
-    assumptions: list[str]
     plan: dict[str, Any]
     search_queries: list[str]
     is_hotel_search: bool

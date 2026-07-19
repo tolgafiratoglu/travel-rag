@@ -92,7 +92,6 @@ async def ws_chat(ws: WebSocket):
             "answer": result.get("answer", ""),
             "sources": result.get("sources") or [],
             "plan": result.get("plan") or {},
-            "assumptions": result.get("assumptions") or [],
             "intent": result.get("intent"),
             "prompt_language": result.get("prompt_language"),
             "search_queries": result.get("search_queries") or [],

@@ -26,14 +26,8 @@ Schema:
   "intent": "chitchat|factoid|recommendation|planning|comparison|logistics|follow_up|meta",
   "prompt_language": "ISO 639-1 code of the user's message (e.g. tr, en, de)",
   "entities": {{
-    "cities": [],
-    "countries": [],
-    "theme": [],
-    "audience": [],
-    "budget": null,
-    "duration": null
+    "cities": []
   }},
-  "assumptions": [],
   "plan": {{
     "summary": "One short active sentence in the user's language describing what you will do next",
     "steps": [
@@ -51,7 +45,7 @@ Schema:
 Rules:
 - prompt_language: detect the language of the user's message; use ISO 639-1 (tr, en, de, fr, ...).
 - summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
-- assumptions: write in the user's language; if information is missing, add soft fallbacks here instead of asking the user.
+- entities.cities: list city names mentioned or clearly implied in the question (empty for chitchat/meta).
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/source retrieval, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
 - For chitchat or meta intents: use a single synthesize step and set search_queries to [], neo4j_data to {{}}, is_hotel_search and is_flight_search to false.
 - search_queries: 1-3 short English phrases optimized for vector search over travel guide content (empty for chitchat/meta). These are separate from hotel/flight URLs.
@@ -72,7 +66,6 @@ Flight search (Kayak):
   One-way (no return date): https://www.kayak.com/flights/IST-AYT/2026-08-10?sort=bestflight_a
   Round-trip: https://www.kayak.com/flights/IST-AYT/2026-08-10/2026-08-15?sort=bestflight_a
   No dates: https://www.kayak.com/flights/IST-AYT?sort=bestflight_a
-  If unsure about IATA codes, note the assumption in assumptions[] and use the best available city codes.
 - When is_flight_search is false, set flight_search_query to "".
 
 neo4j_data:
@@ -87,8 +80,7 @@ Example — question: "Where can I go with my family in Antalya?"
 {{
   "intent": "recommendation",
   "prompt_language": "en",
-  "entities": {{ "cities": ["Antalya"], "theme": ["family", "beach"] }},
-  "assumptions": [],
+  "entities": {{ "cities": ["Antalya"] }},
   "plan": {{
     "summary": "Searching for family-friendly places in Antalya.",
     "steps": [
@@ -108,8 +100,7 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
 {{
   "intent": "planning",
   "prompt_language": "tr",
-  "entities": {{ "cities": ["İstanbul"], "duration": "5 gün" }},
-  "assumptions": ["Exact travel dates were not provided."],
+  "entities": {{ "cities": ["İstanbul"] }},
   "plan": {{
     "summary": "İstanbul için 5 günlük rota, otel ve uçuş seçeneklerini hazırlıyorum.",
     "steps": [
@@ -199,11 +190,6 @@ SYNTHESIZE_GRAPH_SECTION = """### Graph knowledge
 SYNTHESIZE_EXTERNAL_SECTION = """### External booking links
 Include these links in your answer when relevant (use markdown links with descriptive labels in the user's language):
 {external_links}
-
-"""
-
-SYNTHESIZE_ASSUMPTIONS_SECTION = """### Assumptions made
-{assumptions}
 
 """
 
@@ -346,19 +332,10 @@ def _build_external_links_section(state: GraphState) -> str:
     return SYNTHESIZE_EXTERNAL_SECTION.format(external_links="\n".join(links))
 
 
-def _build_assumptions_section(state: GraphState) -> str:
-    assumptions = state.get("assumptions") or []
-    if not assumptions:
-        return ""
-    bullets = "\n".join(f"- {a}" for a in assumptions)
-    return SYNTHESIZE_ASSUMPTIONS_SECTION.format(assumptions=bullets)
-
-
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
     contexts = state.get("graph_contexts") or []
     external_section = _build_external_links_section(state)
-    assumptions_section = _build_assumptions_section(state)
     has_external_only = bool(external_section) and not chunks and not contexts
 
     if not chunks and not contexts and not has_external_only:
@@ -394,7 +371,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
         graph_section=graph_section,
         question=state["question"],
     )
-    prompt = assumptions_section + external_section + prompt
+    prompt = external_section + prompt
     answer = await llm.generate(prompt)
     return {"answer": _append_debug_footer(answer, state, prompt)}
 
