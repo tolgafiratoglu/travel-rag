@@ -70,6 +70,7 @@ except ImportError as exc:
 
 from app.config import settings
 from app.graph.neo4j_schema import (
+    ANCHOR_REL_TYPE,
     NEO4J_NODE_LABELS,
     NEO4J_REL_TYPES,
     city_graph_id,
@@ -119,7 +120,7 @@ Output schema:
     {{
       "from_graph_id": "attraction:bordeaux:cathedrale-saint-andre",
       "to_graph_id": "{city_graph_id}",
-      "type": "LOCATED_IN",
+      "type": "PART_OF",
       "properties": {{
         "evidence": "short quote or paraphrase",
         "section": "see"
@@ -128,27 +129,31 @@ Output schema:
   ]
 }}
 
+Relationship meanings and directions (from_graph_id -> to_graph_id):
+- PART_OF: entity is part of a larger place/admin/whole (Attraction/Activity/District/Airport -> City; City is NOT created by you).
+- IN_SAME_AREA: two peer entities share the same area/district/destination (use sparsely; both ends must be nodes you emit or the city id).
+- GOOD_BASE_FOR: city/destination is a good base for an activity, route, or surrounding region (from city {city_graph_id} -> Activity|Route|Region).
+- ACCESSIBLE_BY: place is reachable via a transport node (from City or place -> Airport|TransportHub|Route). Prefer City -ACCESSIBLE_BY-> Airport when the text says the city is served by that airport.
+- SEASONAL_FOR: entity is recommended/available in a season (from City|Activity|Attraction -> Season).
+
 Rules:
 - Do NOT create City or Country nodes.
-- For every relationship involving the current city, use exactly this graph_id as the city target: {city_graph_id}
+- For every relationship involving the current city, use exactly this graph_id: {city_graph_id}
 - Never construct, normalize, shorten, or modify the city graph_id.
-- CONNECTED_TO to other cities is disabled in v1 — do not emit cross-city travel edges.
-- Use SERVES for airports and transport hubs that serve the current city.
-- Use LOCATED_IN for an airport only when the text explicitly says it is physically inside the city.
-- LOCATED_IN direction: object/place -> city (from_graph_id is the place, to_graph_id is the city).
+- Do not invent cross-city travel networks; skip distant cities you cannot ground in these sections.
 - Season nodes must use global ids only: season:spring, season:summer, season:autumn, season:winter
-- Budget nodes must use global ids only: budget:low, budget:mid, budget:high, budget:luxury
-- Put city-specific season/budget evidence on the edge properties (months, evidence, section).
+- Budget nodes are optional metadata only; do not invent budget edges (no budget relationship type).
+- Put city-specific season evidence on SEASONAL_FOR edge properties (months, evidence, section).
 - graph_id format: {{prefix}}:{{city-slug}}:{{entity-slug}} for city-scoped entities; use lowercase ASCII slugs.
 - Derive nodes only from the provided sections; do not invent facts.
 - Omit nodes or edges you cannot support from the text.
 
 Section mapping hints:
-- intro / understand -> Region, TravelTheme
-- see -> Attraction
-- do -> Activity
-- get_in / go / get_around -> Airport, TransportHub, Route
-- climate -> Season (BEST_SEASON edge from city)
+- intro / understand -> Region, TravelTheme, PART_OF / GOOD_BASE_FOR sparingly
+- see -> Attraction PART_OF city
+- do -> Activity PART_OF city; GOOD_BASE_FOR when city is a base for the activity
+- get_in / go / get_around -> Airport, TransportHub, Route with ACCESSIBLE_BY from city
+- climate -> Season via SEASONAL_FOR from city
 - sleep / eat / buy -> optional Activity or skip if insufficient detail
 
 City metadata:
@@ -253,7 +258,7 @@ async def ingest_city(
         counts = IngestCounts()
         counts.bump_node("Country")
         counts.bump_node("City")
-        counts.bump_edge("IN_COUNTRY")
+        counts.bump_edge(ANCHOR_REL_TYPE)
         for node in extract.nodes:
             counts.bump_node(node.label)
         for edge in extract.edges:

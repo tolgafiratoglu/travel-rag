@@ -54,28 +54,26 @@ GRAPH_ID_PREFIX: dict[str, str] = {
     "Budget": "budget",
 }
 
+# Relationship semantics (direction: from -> to):
+# - PART_OF: entity is part of a larger place/admin/conceptual whole
+# - IN_SAME_AREA: two peers share the same area / district / destination
+# - GOOD_BASE_FOR: city/destination is a suitable base for an activity / route / region
+# - ACCESSIBLE_BY: place is reachable via a transport node (Airport, TransportHub, Route)
+# - SEASONAL_FOR: entity is particularly relevant during a Season
 NEO4J_REL_TYPES: tuple[str, ...] = (
-    "IN_COUNTRY",
-    "IN_REGION",
-    "IN_CITY",
-    "LOCATED_IN",
-    "BEST_SEASON",
-    "BUDGET_LEVEL",
-    "HAS_THEME",
-    "SERVES",
-    "PART_OF_ROUTE",
+    "PART_OF",
+    "IN_SAME_AREA",
+    "GOOD_BASE_FOR",
+    "ACCESSIBLE_BY",
+    "SEASONAL_FOR",
 )
 
 Neo4jRelType = Literal[
-    "IN_COUNTRY",
-    "IN_REGION",
-    "IN_CITY",
-    "LOCATED_IN",
-    "BEST_SEASON",
-    "BUDGET_LEVEL",
-    "HAS_THEME",
-    "SERVES",
-    "PART_OF_ROUTE",
+    "PART_OF",
+    "IN_SAME_AREA",
+    "GOOD_BASE_FOR",
+    "ACCESSIBLE_BY",
+    "SEASONAL_FOR",
 ]
 
 NEO4J_REL_TYPES_FROZEN = frozenset(NEO4J_REL_TYPES)
@@ -92,6 +90,9 @@ GLOBAL_SEASON_IDS: tuple[str, ...] = (
 
 NEO4J_MERGE_KEY = "graph_id"
 
+# Deterministic City -> Country edge; protected on city re-ingest delete.
+ANCHOR_REL_TYPE: Neo4jRelType = "PART_OF"
+
 
 class ManagedScope(str, Enum):
     GLOBAL = "global"
@@ -107,7 +108,7 @@ CITY_SCOPED_LABELS = frozenset(
     if label not in GLOBAL_NODE_LABELS and label not in ANCHOR_NODE_LABELS
 )
 
-V1_DISABLED_REL_TYPES = frozenset()  # CONNECTED_TO disabled — not in NEO4J_REL_TYPES
+V1_DISABLED_REL_TYPES = frozenset()
 
 
 def slugify(value: str) -> str:

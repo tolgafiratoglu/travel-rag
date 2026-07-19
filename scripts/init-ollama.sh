@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Pull Ollama models required by travel-rag (Qwen 8B + 1.7B + nomic-embed-text).
+# Pull Ollama models required by travel-rag.
+#
+# Models:
+#   - Qwen 8B / 1.7B (optional local LLM)
+#   - bge-m3 (embeddings; replaces nomic-embed-text)
+#   - Qwen3Guard-Gen 0.6B (prompt safety; load only for now)
 #
 # Run from project root (host), with Docker services up:
 #   ./scripts/init-ollama.sh
@@ -8,14 +13,16 @@
 #   OLLAMA_CONTAINER=travel-rag-ollama
 #   QWEN8B=qwen3:8b
 #   QWEN1B=qwen3:1.7b-q4_K_M
-#   OLLAMA_EMBED_MODEL=nomic-embed-text
+#   OLLAMA_EMBED_MODEL=bge-m3
+#   OLLAMA_GUARD_MODEL=sileader/qwen3guard:0.6b
 
 set -euo pipefail
 
 CONTAINER="${OLLAMA_CONTAINER:-travel-rag-ollama}"
 QWEN8B="${QWEN8B:-qwen3:8b}"
 QWEN1B="${QWEN1B:-qwen3:1.7b-q4_K_M}"
-EMBED_MODEL="${OLLAMA_EMBED_MODEL:-nomic-embed-text}"
+EMBED_MODEL="${OLLAMA_EMBED_MODEL:-bge-m3}"
+GUARD_MODEL="${OLLAMA_GUARD_MODEL:-sileader/qwen3guard:0.6b}"
 
 if ! docker ps --format '{{.Names}}' | grep -qx "$CONTAINER"; then
   echo "ERROR: Container '$CONTAINER' is not running."
@@ -28,6 +35,7 @@ echo "Container: $CONTAINER"
 echo "Qwen 8B:   $QWEN8B"
 echo "Qwen 1.7B: $QWEN1B"
 echo "Embedding: $EMBED_MODEL"
+echo "Guard:     $GUARD_MODEL"
 echo
 
 echo "Pulling $QWEN8B (this may take a while on first run)..."
@@ -42,8 +50,13 @@ echo "Pulling $EMBED_MODEL..."
 docker exec "$CONTAINER" ollama pull "$EMBED_MODEL"
 
 echo
+echo "Pulling $GUARD_MODEL..."
+docker exec "$CONTAINER" ollama pull "$GUARD_MODEL"
+
+echo
 echo "Installed models:"
 docker exec "$CONTAINER" ollama list
 
 echo
 echo "Done."
+echo "Note: API/ingest still default to nomic until wiring; re-run ingest after switching embed model (bge-m3 is 1024-dim)."

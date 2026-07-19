@@ -7,7 +7,11 @@ from typing import Any
 
 from neo4j import Driver
 
-from app.graph.neo4j_schema import ManagedScope, managed_scope_for_label
+from app.graph.neo4j_schema import (
+    ANCHOR_REL_TYPE,
+    ManagedScope,
+    managed_scope_for_label,
+)
 from app.models.graph_extract import GraphExtract, GraphEdge, GraphNode
 
 WV_CONSTRAINTS = """
@@ -89,12 +93,14 @@ def delete_city_derived(driver: Driver, city_gid: str) -> tuple[int, int]:
     with driver.session() as session:
         city_edge_result = session.run(
             """
-            MATCH (c:City {graph_id: $city_gid})-[r]->()
-            WHERE type(r) <> 'IN_COUNTRY' AND coalesce(r.source, '') = 'wikivoyage'
+            MATCH (c:City {graph_id: $city_gid})-[r]->(t)
+            WHERE NOT (type(r) = $anchor_rel AND t:Country)
+              AND coalesce(r.source, '') = 'wikivoyage'
             DELETE r
             RETURN count(r) AS deleted
             """,
             city_gid=city_gid,
+            anchor_rel=ANCHOR_REL_TYPE,
         )
         edges_deleted += city_edge_result.single()["deleted"]
 
@@ -203,12 +209,12 @@ def upsert_city_graph(
             GraphEdge(
                 from_graph_id=city_anchor.graph_id,
                 to_graph_id=country_anchor.graph_id,
-                type="IN_COUNTRY",
+                type=ANCHOR_REL_TYPE,
                 properties={"source_url": source_url},
             ),
             source_url=source_url,
         )
-        counts.bump_edge("IN_COUNTRY")
+        counts.bump_edge(ANCHOR_REL_TYPE)
 
         for node in extract.nodes:
             merge_node(session, node, city_gid=city_gid, source_url=source_url)

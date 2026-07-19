@@ -15,21 +15,31 @@ CYPHER_CITY_PROFILE = """
 MATCH (c:City)
 WHERE toLower(c.name) = toLower($city)
 
-OPTIONAL MATCH (c)-[:IN_COUNTRY]->(country:Country)
-OPTIONAL MATCH (c)-[:BEST_SEASON]->(season:Season)
-OPTIONAL MATCH (c)-[:BUDGET_LEVEL]->(budget:Budget)
+OPTIONAL MATCH (c)-[:PART_OF]->(country:Country)
 
-OPTIONAL MATCH (c)-[conn:CONNECTED_TO]->(other:City)
-WITH c, country, season, budget,
-     collect(DISTINCT {
-       other: other.name,
-       mode: conn.mode,
-       duration: conn.duration,
-       cost_level: conn.cost_level
-     }) AS connections
+OPTIONAL MATCH (c)-[:SEASONAL_FOR]->(season:Season)
+WITH c, country, collect(DISTINCT {
+  name: season.name,
+  months: season.months
+}) AS seasons
 
-OPTIONAL MATCH (attr:Attraction)-[:LOCATED_IN]->(c)
-WITH c, country, season, budget, connections,
+OPTIONAL MATCH (c)-[:ACCESSIBLE_BY]->(access)
+WHERE access:Airport OR access:TransportHub OR access:Route
+WITH c, country, seasons, collect(DISTINCT {
+  name: access.name,
+  label: head([l IN labels(access) WHERE l <> 'WvEntity' | l]),
+  mode: access.mode
+}) AS access_options
+
+OPTIONAL MATCH (c)-[:GOOD_BASE_FOR]->(base_target)
+WITH c, country, seasons, access_options, collect(DISTINCT {
+  name: base_target.name,
+  label: head([l IN labels(base_target) WHERE l <> 'WvEntity' | l])
+}) AS good_base_for
+
+OPTIONAL MATCH (attr)-[:PART_OF]->(c)
+WHERE attr:Attraction
+WITH c, country, seasons, access_options, good_base_for,
      collect(DISTINCT {
        name: attr.name,
        type: attr.type,
@@ -37,23 +47,30 @@ WITH c, country, season, budget, connections,
        description: attr.description
      }) AS attractions
 
-OPTIONAL MATCH (act:Activity)-[:LOCATED_IN]->(c)
+OPTIONAL MATCH (act)-[:PART_OF]->(c)
+WHERE act:Activity
+
+OPTIONAL MATCH (peer)-[:IN_SAME_AREA]-(c)
+WHERE peer:Attraction OR peer:Activity OR peer:District OR peer:City
 
 RETURN
   c.name AS city,
   c.description AS description,
   c.population AS population,
   country.name AS country,
-  season.name AS season,
-  season.months AS season_months,
-  budget.level AS budget,
-  connections,
+  seasons,
+  access_options,
+  good_base_for,
   attractions,
   collect(DISTINCT {
     name: act.name,
     category: act.category,
     season_dependent: act.season_dependent
-  }) AS activities
+  }) AS activities,
+  collect(DISTINCT {
+    name: peer.name,
+    label: head([l IN labels(peer) WHERE l <> 'WvEntity' | l])
+  }) AS same_area
 """
 
 _driver = None
@@ -98,17 +115,18 @@ def city_profile_to_context(row: dict[str, Any]) -> str | None:
     if country:
         lines.append(f"Country: {country}")
 
-    season = row.get("season")
-    season_months = row.get("season_months")
-    if season:
-        if season_months:
-            lines.append(f"Best season: {season} ({season_months})")
-        else:
-            lines.append(f"Best season: {season}")
-
-    budget = row.get("budget")
-    if budget:
-        lines.append(f"Budget level: {budget}")
+    seasons = [s for s in (row.get("seasons") or []) if _has_values(s)]
+    if seasons:
+        lines.append("Seasonal:")
+        for season in seasons:
+            name = season.get("name")
+            if not name:
+                continue
+            months = season.get("months")
+            if months:
+                lines.append(f" - {name} ({months})")
+            else:
+                lines.append(f" - {name}")
 
     attractions = [a for a in (row.get("attractions") or []) if _has_values(a)]
     if attractions:
@@ -146,22 +164,45 @@ def city_profile_to_context(row: dict[str, Any]) -> str | None:
                 )
             lines.append(" - " + ", ".join(parts))
 
-    connections = [c for c in (row.get("connections") or []) if _has_values(c)]
-    if connections:
-        lines.append("Connections:")
-        for conn in connections:
-            other = conn.get("other")
-            if not other:
+    access_options = [a for a in (row.get("access_options") or []) if _has_values(a)]
+    if access_options:
+        lines.append("Accessible by:")
+        for access in access_options:
+            name = access.get("name")
+            if not name:
                 continue
-
-            parts = [f"to {other}"]
-            if conn.get("mode"):
-                parts.append(f"mode: {conn['mode']}")
-            if conn.get("duration"):
-                parts.append(f"duration: {conn['duration']}")
-            if conn.get("cost_level"):
-                parts.append(f"cost: {conn['cost_level']}")
+            parts = [name]
+            if access.get("label"):
+                parts.append(f"kind: {access['label']}")
+            if access.get("mode"):
+                parts.append(f"mode: {access['mode']}")
             lines.append(" - " + ", ".join(parts))
+
+    good_base_for = [g for g in (row.get("good_base_for") or []) if _has_values(g)]
+    if good_base_for:
+        lines.append("Good base for:")
+        for item in good_base_for:
+            name = item.get("name")
+            if not name:
+                continue
+            label = item.get("label")
+            if label:
+                lines.append(f" - {name} ({label})")
+            else:
+                lines.append(f" - {name}")
+
+    same_area = [p for p in (row.get("same_area") or []) if _has_values(p)]
+    if same_area:
+        lines.append("Same area:")
+        for peer in same_area:
+            name = peer.get("name")
+            if not name:
+                continue
+            label = peer.get("label")
+            if label:
+                lines.append(f" - {name} ({label})")
+            else:
+                lines.append(f" - {name}")
 
     return "\n".join(lines)
 

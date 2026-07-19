@@ -36,10 +36,12 @@ echo "Installing host dependencies..."
   langgraph \
   google-genai \
   python-dotenv \
-  pymysql
+  pymysql \
+  langchain-text-splitters
 
 echo "Verifying imports..."
-"${VENV_DIR}/bin/python" -c "import neo4j, pymysql, google.genai; print('ok')"
+"${VENV_DIR}/bin/python" -c \
+  "import neo4j, pymysql, google.genai, langchain_text_splitters; print('ok')"
 
 echo
 echo "Done. Example:"
