@@ -1,12 +1,12 @@
 from app.graph.state import GraphState
 
-_CHITCHAT_INTENTS = {"chitchat", "meta"}
+_SKIP_RETRIEVAL_INTENTS = frozenset({"chitchat", "meta"})
 
 
 def retrieval_router(state: GraphState) -> str:
-    """Route based on intent: chitchat/meta skip retrieval, others go to vector search."""
+    """Route on primary_intent: chitchat/meta skip retrieval, others go to vector search."""
     if state.get("error"):
         return "format"
-    if state.get("intent", "") in _CHITCHAT_INTENTS:
+    if state.get("primary_intent", "") in _SKIP_RETRIEVAL_INTENTS:
         return "chitchat"
     return "vector_retrieval"

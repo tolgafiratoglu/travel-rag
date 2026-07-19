@@ -30,9 +30,9 @@ class Plan(BaseModel):
 class ChatResponse(BaseModel):
     answer: str = ""
     sources: list[Source] = Field(default_factory=list)
-    intent: str | None = None
+    primary_intent: str | None = None
+    intents: list[dict[str, Any]] = Field(default_factory=list)
     prompt_language: str | None = None
-    entities: dict[str, Any] | None = None
     plan: Plan | None = None
     search_queries: list[str] = Field(default_factory=list)
     is_hotel_search: bool = False

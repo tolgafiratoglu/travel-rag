@@ -18,7 +18,7 @@ def build_graph():
     Phase 2 graph with retrieval router:
 
       intake → planner_json → retrieval_router
-        ├── chitchat/meta   → chitchat        → format → END
+        ├── chitchat/meta (primary_intent) → chitchat → format → END
         └── everything else → vector_retrieval → graph_retrieval → synthesize → format → END
     """
     g = StateGraph(GraphState)

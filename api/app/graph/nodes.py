@@ -5,7 +5,7 @@ import re
 from pydantic import ValidationError
 
 from app.graph.state import GraphState
-from app.models.planner import parse_planner_output, planner_state_update
+from app.models.planner import cities_from_intents, parse_planner_output, planner_state_update
 from app.services import graph_store
 from app.services import llm
 from app.services import vector_store
@@ -23,11 +23,11 @@ PLANNER_PROMPT = """You are a travel assistant planner. Analyze the user's quest
 
 Schema:
 {{
-  "intent": "chitchat|factoid|recommendation|planning|comparison|logistics|follow_up|meta",
+  "primary_intent": "chitchat|factoid|recommendation|planning|comparison|logistics|meta",
+  "intents": [
+    {{ "intent": "planning", "cities": ["Antalya"] }}
+  ],
   "prompt_language": "ISO 639-1 code of the user's message (e.g. tr, en, de)",
-  "entities": {{
-    "cities": []
-  }},
   "plan": {{
     "summary": "One short active sentence in the user's language describing what you will do next",
     "steps": [
@@ -45,9 +45,15 @@ Schema:
 Rules:
 - prompt_language: detect the language of the user's message; use ISO 639-1 (tr, en, de, fr, ...).
 - summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
-- entities.cities: list city names mentioned or clearly implied in the question (empty for chitchat/meta).
+- primary_intent: the single main goal of the question.
+- intents: zero or more task slots. Order does not matter. Each item is {{ "intent": "...", "cities": [...] }}.
+  Allowed intents[].intent values: factoid, recommendation, planning, comparison, logistics.
+  Do NOT put chitchat or meta inside intents[]; those are primary_intent only (use intents: []).
+  cities: cities relevant to that specific intent (empty list if none).
+  If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
+  When primary_intent is a task intent (not chitchat/meta), include a matching entry in intents[].
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/source retrieval, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
-- For chitchat or meta intents: use a single synthesize step and set search_queries to [], neo4j_data to {{}}, is_hotel_search and is_flight_search to false.
+- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], neo4j_data to {{}}, is_hotel_search and is_flight_search to false.
 - search_queries: 1-3 short English phrases optimized for vector search over travel guide content (empty for chitchat/meta). These are separate from hotel/flight URLs.
 
 Hotel search (Booking.com):
@@ -78,9 +84,11 @@ neo4j_data:
 
 Example — question: "Where can I go with my family in Antalya?"
 {{
-  "intent": "recommendation",
+  "primary_intent": "recommendation",
+  "intents": [
+    {{ "intent": "recommendation", "cities": ["Antalya"] }}
+  ],
   "prompt_language": "en",
-  "entities": {{ "cities": ["Antalya"] }},
   "plan": {{
     "summary": "Searching for family-friendly places in Antalya.",
     "steps": [
@@ -96,11 +104,37 @@ Example — question: "Where can I go with my family in Antalya?"
   "neo4j_data": {{ "Antalya": "City" }}
 }}
 
+Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
+{{
+  "primary_intent": "planning",
+  "intents": [
+    {{ "intent": "planning", "cities": ["Antalya"] }},
+    {{ "intent": "comparison", "cities": ["Antalya", "Bodrum"] }}
+  ],
+  "prompt_language": "tr",
+  "plan": {{
+    "summary": "Antalya planı hazırlayıp Bodrum ile karşılaştırıyorum.",
+    "steps": [
+      {{ "id": "s1", "label": "Antalya ve Bodrum bilgilerini araştır", "kind": "vector", "status": "idle" }},
+      {{ "id": "s2", "label": "Plan ve karşılaştırmayı sentezle", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": ["Antalya 5 day itinerary", "Bodrum vs Antalya"],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "neo4j_data": {{ "Antalya": "City", "Bodrum": "City" }}
+}}
+
 Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
 {{
-  "intent": "planning",
+  "primary_intent": "planning",
+  "intents": [
+    {{ "intent": "planning", "cities": ["İstanbul"] }},
+    {{ "intent": "logistics", "cities": ["İstanbul"] }}
+  ],
   "prompt_language": "tr",
-  "entities": {{ "cities": ["İstanbul"] }},
   "plan": {{
     "summary": "İstanbul için 5 günlük rota, otel ve uçuş seçeneklerini hazırlıyorum.",
     "steps": [
@@ -119,7 +153,8 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
 
 Example — question: "Hello, what can you do?"
 {{
-  "intent": "chitchat",
+  "primary_intent": "chitchat",
+  "intents": [],
   "prompt_language": "en",
   "plan": {{
     "summary": "Answering your question.",
@@ -301,7 +336,7 @@ async def graph_retrieval_node(state: GraphState) -> GraphState:
     if neo4j_data:
         cities = list(neo4j_data.keys())
     else:
-        cities = list((state.get("entities") or {}).get("cities") or [])
+        cities = cities_from_intents(state.get("intents"))
 
     if not cities:
         return {"graph_contexts": []}

@@ -14,7 +14,8 @@ export type WsEvent =
         score: number;
       }[];
       plan: Record<string, unknown>;
-      intent?: string;
+      primary_intent?: string;
+      intents?: { intent: string; cities: string[] }[];
       prompt_language?: string;
       search_queries?: string[];
       is_hotel_search?: boolean;

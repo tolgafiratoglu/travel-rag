@@ -55,8 +55,12 @@ async def ws_chat(ws: WebSocket):
                         "steps": plan.get("steps", []),
                     })
 
-                    intent = update.get("intent", "")
-                    first_kind = "synthesize" if intent in ("chitchat", "meta") else "vector"
+                    primary_intent = update.get("primary_intent", "")
+                    first_kind = (
+                        "synthesize"
+                        if primary_intent in ("chitchat", "meta")
+                        else "vector"
+                    )
                     await _send(ws, {"type": "step", "kind": first_kind, "status": "running"})
 
                 elif node_name == "vector_retrieval":
@@ -92,7 +96,8 @@ async def ws_chat(ws: WebSocket):
             "answer": result.get("answer", ""),
             "sources": result.get("sources") or [],
             "plan": result.get("plan") or {},
-            "intent": result.get("intent"),
+            "primary_intent": result.get("primary_intent"),
+            "intents": result.get("intents") or [],
             "prompt_language": result.get("prompt_language"),
             "search_queries": result.get("search_queries") or [],
             "is_hotel_search": result.get("is_hotel_search", False),

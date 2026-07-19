@@ -5,9 +5,9 @@ class GraphState(TypedDict, total=False):
     question: str
     history: list[dict[str, str]]
     planner: dict[str, Any]
-    intent: str
+    primary_intent: str
+    intents: list[dict[str, Any]]
     prompt_language: str
-    entities: dict[str, Any]
     plan: dict[str, Any]
     search_queries: list[str]
     is_hotel_search: bool
