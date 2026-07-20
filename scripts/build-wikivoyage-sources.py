@@ -37,6 +37,9 @@ COUNTRIES: dict[str, str] = {
     "Spain": "Spain",
     "Italy": "Italy",
     "Japan": "Japan",
+    "United Kingdom": "United_Kingdom",
+    "Greece": "Greece",
+    "Portugal": "Portugal",
 }
 
 SECTIONS = ("Cities", "Other destinations")
@@ -72,6 +75,9 @@ SKIP_TITLES = {
     "Spain",
     "Italy",
     "Japan",
+    "United Kingdom",
+    "Greece",
+    "Portugal",
 }
 
 

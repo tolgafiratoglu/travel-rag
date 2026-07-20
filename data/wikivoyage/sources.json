@@ -1,0 +1,174 @@
+{
+  "Turkey": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Turkey",
+    "pages": {
+      "Ankara": "https://en.wikivoyage.org/wiki/Ankara",
+      "Antalya": "https://en.wikivoyage.org/wiki/Antalya",
+      "Aphrodisias": "https://en.wikivoyage.org/wiki/Aphrodisias",
+      "Bodrum": "https://en.wikivoyage.org/wiki/Bodrum",
+      "Cappadocia": "https://en.wikivoyage.org/wiki/Cappadocia",
+      "Edirne": "https://en.wikivoyage.org/wiki/Edirne",
+      "Ephesus": "https://en.wikivoyage.org/wiki/Ephesus",
+      "Gallipoli": "https://en.wikivoyage.org/wiki/Gallipoli",
+      "Istanbul": "https://en.wikivoyage.org/wiki/Istanbul",
+      "Izmir": "https://en.wikivoyage.org/wiki/Izmir",
+      "Konya": "https://en.wikivoyage.org/wiki/Konya",
+      "Mount Nemrut": "https://en.wikivoyage.org/wiki/Mount_Nemrut",
+      "Pamukkale": "https://en.wikivoyage.org/wiki/Pamukkale",
+      "Safranbolu": "https://en.wikivoyage.org/wiki/Safranbolu",
+      "Trabzon": "https://en.wikivoyage.org/wiki/Trabzon",
+      "Troy": "https://en.wikivoyage.org/wiki/Troy",
+      "Urfa": "https://en.wikivoyage.org/wiki/Urfa"
+    }
+  },
+  "France": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/France",
+    "pages": {
+      "Bordeaux": "https://en.wikivoyage.org/wiki/Bordeaux",
+      "Lille": "https://en.wikivoyage.org/wiki/Lille",
+      "Lyon": "https://en.wikivoyage.org/wiki/Lyon",
+      "Marseille": "https://en.wikivoyage.org/wiki/Marseille",
+      "Monaco": "https://en.wikivoyage.org/wiki/Monaco",
+      "Nantes": "https://en.wikivoyage.org/wiki/Nantes",
+      "Nice": "https://en.wikivoyage.org/wiki/Nice",
+      "Paris": "https://en.wikivoyage.org/wiki/Paris",
+      "Strasbourg": "https://en.wikivoyage.org/wiki/Strasbourg",
+      "Toulouse": "https://en.wikivoyage.org/wiki/Toulouse"
+    }
+  },
+  "United States": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/United_States",
+    "pages": {
+      "Boston": "https://en.wikivoyage.org/wiki/Boston",
+      "Chicago": "https://en.wikivoyage.org/wiki/Chicago",
+      "Los Angeles": "https://en.wikivoyage.org/wiki/Los_Angeles",
+      "Miami": "https://en.wikivoyage.org/wiki/Miami",
+      "New Orleans": "https://en.wikivoyage.org/wiki/New_Orleans",
+      "New York City": "https://en.wikivoyage.org/wiki/New_York_City",
+      "San Francisco": "https://en.wikivoyage.org/wiki/San_Francisco",
+      "Seattle": "https://en.wikivoyage.org/wiki/Seattle",
+      "Washington, D.C.": "https://en.wikivoyage.org/wiki/Washington,_D.C."
+    }
+  },
+  "Germany": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Germany",
+    "pages": {
+      "Berlin": "https://en.wikivoyage.org/wiki/Berlin",
+      "Bremen": "https://en.wikivoyage.org/wiki/Bremen",
+      "Cologne": "https://en.wikivoyage.org/wiki/Cologne",
+      "Dresden": "https://en.wikivoyage.org/wiki/Dresden",
+      "Düsseldorf": "https://en.wikivoyage.org/wiki/Düsseldorf",
+      "Frankfurt": "https://en.wikivoyage.org/wiki/Frankfurt",
+      "Hamburg": "https://en.wikivoyage.org/wiki/Hamburg",
+      "Munich": "https://en.wikivoyage.org/wiki/Munich",
+      "Nuremberg": "https://en.wikivoyage.org/wiki/Nuremberg"
+    }
+  },
+  "Spain": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Spain",
+    "pages": {
+      "Barcelona": "https://en.wikivoyage.org/wiki/Barcelona",
+      "Bilbao": "https://en.wikivoyage.org/wiki/Bilbao",
+      "Córdoba": "https://en.wikivoyage.org/wiki/Córdoba_(city,_Spain)",
+      "Granada": "https://en.wikivoyage.org/wiki/Granada",
+      "Madrid": "https://en.wikivoyage.org/wiki/Madrid",
+      "Málaga": "https://en.wikivoyage.org/wiki/Málaga",
+      "Seville": "https://en.wikivoyage.org/wiki/Seville",
+      "Valencia": "https://en.wikivoyage.org/wiki/Valencia",
+      "Zaragoza": "https://en.wikivoyage.org/wiki/Zaragoza"
+    }
+  },
+  "Italy": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Italy",
+    "pages": {
+      "Bologna": "https://en.wikivoyage.org/wiki/Bologna",
+      "Florence": "https://en.wikivoyage.org/wiki/Florence",
+      "Genoa": "https://en.wikivoyage.org/wiki/Genoa",
+      "Milan": "https://en.wikivoyage.org/wiki/Milan",
+      "Naples": "https://en.wikivoyage.org/wiki/Naples",
+      "Pisa": "https://en.wikivoyage.org/wiki/Pisa",
+      "Rome": "https://en.wikivoyage.org/wiki/Rome",
+      "Turin": "https://en.wikivoyage.org/wiki/Turin",
+      "Venice": "https://en.wikivoyage.org/wiki/Venice"
+    }
+  },
+  "Japan": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Japan",
+    "pages": {
+      "Hiroshima": "https://en.wikivoyage.org/wiki/Hiroshima",
+      "Kanazawa": "https://en.wikivoyage.org/wiki/Kanazawa",
+      "Kyoto": "https://en.wikivoyage.org/wiki/Kyoto",
+      "Nagasaki": "https://en.wikivoyage.org/wiki/Nagasaki",
+      "Nara": "https://en.wikivoyage.org/wiki/Nara",
+      "Osaka": "https://en.wikivoyage.org/wiki/Osaka",
+      "Sapporo": "https://en.wikivoyage.org/wiki/Sapporo",
+      "Sendai": "https://en.wikivoyage.org/wiki/Sendai",
+      "Tokyo": "https://en.wikivoyage.org/wiki/Tokyo"
+    }
+  },
+  "United Kingdom": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/United_Kingdom",
+    "pages": {
+      "Belfast": "https://en.wikivoyage.org/wiki/Belfast",
+      "Bristol": "https://en.wikivoyage.org/wiki/Bristol",
+      "Cardiff": "https://en.wikivoyage.org/wiki/Cardiff",
+      "Edinburgh": "https://en.wikivoyage.org/wiki/Edinburgh",
+      "Giant's Causeway": "https://en.wikivoyage.org/wiki/Giant's_Causeway",
+      "Glasgow": "https://en.wikivoyage.org/wiki/Glasgow",
+      "Gower Peninsula": "https://en.wikivoyage.org/wiki/Gower_Peninsula",
+      "Hadrian's Wall": "https://en.wikivoyage.org/wiki/Hadrian's_Wall",
+      "Isle of Arran": "https://en.wikivoyage.org/wiki/Isle_of_Arran",
+      "Lake District National Park": "https://en.wikivoyage.org/wiki/Lake_District_National_Park",
+      "Liverpool": "https://en.wikivoyage.org/wiki/Liverpool",
+      "Loch Ness": "https://en.wikivoyage.org/wiki/Loch_Ness",
+      "London": "https://en.wikivoyage.org/wiki/London",
+      "Manchester": "https://en.wikivoyage.org/wiki/Manchester",
+      "Peak District National Park": "https://en.wikivoyage.org/wiki/Peak_District_National_Park",
+      "Snowdonia National Park": "https://en.wikivoyage.org/wiki/Snowdonia_National_Park",
+      "Stonehenge": "https://en.wikivoyage.org/wiki/Stonehenge",
+      "York": "https://en.wikivoyage.org/wiki/York"
+    }
+  },
+  "Greece": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Greece",
+    "pages": {
+      "Athens": "https://en.wikivoyage.org/wiki/Athens",
+      "Chania": "https://en.wikivoyage.org/wiki/Chania",
+      "Chersonissos": "https://en.wikivoyage.org/wiki/Chersonissos",
+      "Corfu": "https://en.wikivoyage.org/wiki/Corfu",
+      "Crete": "https://en.wikivoyage.org/wiki/Crete",
+      "Delphi": "https://en.wikivoyage.org/wiki/Delphi",
+      "Heraklion": "https://en.wikivoyage.org/wiki/Heraklion",
+      "Kavala": "https://en.wikivoyage.org/wiki/Kavala",
+      "Meteora": "https://en.wikivoyage.org/wiki/Meteora",
+      "Mount Athos": "https://en.wikivoyage.org/wiki/Mount_Athos",
+      "Mykonos": "https://en.wikivoyage.org/wiki/Mykonos",
+      "Olympia": "https://en.wikivoyage.org/wiki/Olympia",
+      "Patras": "https://en.wikivoyage.org/wiki/Patras",
+      "Rhodes": "https://en.wikivoyage.org/wiki/Rhodes",
+      "Santorini": "https://en.wikivoyage.org/wiki/Santorini",
+      "Thessaloniki": "https://en.wikivoyage.org/wiki/Thessaloniki",
+      "Volos": "https://en.wikivoyage.org/wiki/Volos"
+    }
+  },
+  "Portugal": {
+    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Portugal",
+    "pages": {
+      "Alto Douro Wine Region": "https://en.wikivoyage.org/wiki/Alto_Douro_Wine_Region",
+      "Angra do Heroísmo": "https://en.wikivoyage.org/wiki/Angra_do_Heroísmo",
+      "Aveiro": "https://en.wikivoyage.org/wiki/Aveiro",
+      "Braga": "https://en.wikivoyage.org/wiki/Braga",
+      "Cabo da Roca": "https://en.wikivoyage.org/wiki/Cabo_da_Roca",
+      "Coimbra": "https://en.wikivoyage.org/wiki/Coimbra",
+      "Évora": "https://en.wikivoyage.org/wiki/Évora",
+      "Funchal": "https://en.wikivoyage.org/wiki/Funchal",
+      "Guimarães": "https://en.wikivoyage.org/wiki/Guimarães",
+      "Laurisilva of Madeira": "https://en.wikivoyage.org/wiki/Laurisilva_of_Madeira",
+      "Lisbon": "https://en.wikivoyage.org/wiki/Lisbon",
+      "Peneda-Gerês National Park": "https://en.wikivoyage.org/wiki/Peneda-Gerês_National_Park",
+      "Porto": "https://en.wikivoyage.org/wiki/Porto",
+      "Prehistoric Rock Art Sites in the Côa Valley": "https://en.wikivoyage.org/wiki/Prehistoric_Rock_Art_Sites_in_the_Côa_Valley",
+      "Serra da Estrela Natural Park": "https://en.wikivoyage.org/wiki/Serra_da_Estrela_Natural_Park"
+    }
+  }
+}
