@@ -1,0 +1,3256 @@
+{
+    "Turkey": {
+      "historical_sites": {
+        "Ankara": [
+          {
+            "name": "Ankara Castle",
+            "wikipedia": "https://en.wikipedia.org/wiki/Ankara_Castle"
+          },
+          {
+            "name": "Temple of Augustus and Rome",
+            "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Augustus_and_Rome"
+          },
+          {
+            "name": "Roman Baths of Ankara",
+            "wikipedia": "https://en.wikipedia.org/wiki/Roman_Baths_of_Ankara"
+          }
+        ],
+        "Antalya": [
+          {
+            "name": "Hadrian's Gate",
+            "wikipedia": "https://en.wikipedia.org/wiki/Hadrian%27s_Gate"
+          },
+          {
+            "name": "Yivli Minaret Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/Yivli_Minaret"
+          },
+          {
+            "name": "Perga",
+            "wikipedia": "https://en.wikipedia.org/wiki/Perga"
+          },
+          {
+            "name": "Aspendos",
+            "wikipedia": "https://en.wikipedia.org/wiki/Aspendos"
+          },
+          {
+            "name": "Termessos",
+            "wikipedia": "https://en.wikipedia.org/wiki/Termessos"
+          },
+          {
+            "name": "Karain Cave",
+            "wikipedia": "https://en.wikipedia.org/wiki/Karain_Cave"
+          }
+        ],
+        "Aphrodisias": [
+          {
+            "name": "Aphrodisias",
+            "wikipedia": "https://en.wikipedia.org/wiki/Aphrodisias"
+          }
+        ],
+        "Bodrum": [
+          {
+            "name": "Bodrum Castle",
+            "wikipedia": "https://en.wikipedia.org/wiki/Bodrum_Castle"
+          },
+          {
+            "name": "Mausoleum at Halicarnassus",
+            "wikipedia": "https://en.wikipedia.org/wiki/Mausoleum_at_Halicarnassus"
+          }
+        ],
+        "Cappadocia": [
+          {
+            "name": "Göreme",
+            "wikipedia": "https://en.wikipedia.org/wiki/G%C3%B6reme"
+          },
+          {
+            "name": "Derinkuyu Underground City",
+            "wikipedia": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city"
+          },
+          {
+            "name": "Kaymakli Underground City",
+            "wikipedia": "https://en.wikipedia.org/wiki/Kaymakli_underground_city"
+          },
+          {
+            "name": "Uçhisar",
+            "wikipedia": "https://en.wikipedia.org/wiki/U%C3%A7hisar"
+          },
+          {
+            "name": "Ihlara Valley",
+            "wikipedia": "https://en.wikipedia.org/wiki/Ihlara_Valley"
+          },
+          {
+            "name": "Zelve Monastery",
+            "wikipedia": "https://en.wikipedia.org/wiki/Zelve_Monastery"
+          }
+        ],
+        "Edirne": [
+          {
+            "name": "Selimiye Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/Selimiye_Mosque,_Edirne"
+          },
+          {
+            "name": "Old Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/Old_Mosque,_Edirne"
+          },
+          {
+            "name": "Üç Şerefeli Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C3%9C%C3%A7_%C5%9Eerefeli_Mosque"
+          },
+          {
+            "name": "Edirne Palace",
+            "wikipedia": "https://en.wikipedia.org/wiki/Edirne_Palace"
+          },
+          {
+            "name": "Grand Synagogue of Edirne",
+            "wikipedia": "https://en.wikipedia.org/wiki/Grand_Synagogue_of_Edirne"
+          }
+        ],
+        "Ephesus": [
+          {
+            "name": "Ephesus",
+            "wikipedia": "https://en.wikipedia.org/wiki/Ephesus"
+          },
+          {
+            "name": "Library of Celsus",
+            "wikipedia": "https://en.wikipedia.org/wiki/Library_of_Celsus"
+          },
+          {
+            "name": "Temple of Artemis",
+            "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Artemis"
+          },
+          {
+            "name": "House of the Virgin Mary",
+            "wikipedia": "https://en.wikipedia.org/wiki/House_of_the_Virgin_Mary"
+          },
+          {
+            "name": "Basilica of St. John",
+            "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_St._John"
+          }
+        ],
+        "Gallipoli": [
+          {
+            "name": "Gallipoli Peninsula Historical Site",
+            "wikipedia": "https://en.wikipedia.org/wiki/Gallipoli_Peninsula_Historical_Site"
+          },
+          {
+            "name": "Çanakkale Martyrs' Memorial",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C3%87anakkale_Martyrs%27_Memorial"
+          },
+          {
+            "name": "Lone Pine Cemetery",
+            "wikipedia": "https://en.wikipedia.org/wiki/Lone_Pine_Cemetery"
+          },
+          {
+            "name": "ANZAC Cove",
+            "wikipedia": "https://en.wikipedia.org/wiki/Anzac_Cove"
+          },
+          {
+            "name": "Chunuk Bair",
+            "wikipedia": "https://en.wikipedia.org/wiki/Chunuk_Bair"
+          }
+        ],
+        "Istanbul": [
+          {
+            "name": "Hagia Sophia",
+            "wikipedia": "https://en.wikipedia.org/wiki/Hagia_Sophia"
+          },
+          {
+            "name": "Blue Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/Blue_Mosque,_Istanbul"
+          },
+          {
+            "name": "Basilica Cistern",
+            "wikipedia": "https://en.wikipedia.org/wiki/Basilica_Cistern"
+          },
+          {
+            "name": "Walls of Constantinople",
+            "wikipedia": "https://en.wikipedia.org/wiki/Walls_of_Constantinople"
+          },
+          {
+            "name": "Galata Tower",
+            "wikipedia": "https://en.wikipedia.org/wiki/Galata_Tower"
+          },
+          {
+            "name": "Dolmabahçe Palace",
+            "wikipedia": "https://en.wikipedia.org/wiki/Dolmabah%C3%A7e_Palace"
+          },
+          {
+            "name": "The Chora",
+            "wikipedia": "https://en.wikipedia.org/wiki/Chora_Church"
+          },
+          {
+            "name": "Süleymaniye Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/S%C3%BCleymaniye_Mosque"
+          },
+          {
+            "name": "Rumelihisarı",
+            "wikipedia": "https://en.wikipedia.org/wiki/Rumelihisar%C4%B1"
+          }
+        ],
+        "Izmir": [
+          {
+            "name": "Agora of Smyrna",
+            "wikipedia": "https://en.wikipedia.org/wiki/Agora_of_Smyrna"
+          },
+          {
+            "name": "Kadifekale",
+            "wikipedia": "https://en.wikipedia.org/wiki/Kadifekale"
+          },
+          {
+            "name": "İzmir Clock Tower",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C4%B0zmir_Clock_Tower"
+          },
+          {
+            "name": "Kemeraltı",
+            "wikipedia": "https://en.wikipedia.org/wiki/Kemeralt%C4%B1"
+          }
+        ],
+        "Konya": [
+          {
+            "name": "Alâeddin Mosque",
+            "wikipedia": "https://en.wikipedia.org/wiki/Alaeddin_Mosque"
+          },
+          {
+            "name": "Sille",
+            "wikipedia": "https://en.wikipedia.org/wiki/Sille"
+          },
+          {
+            "name": "Çatalhöyük",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C3%87atalh%C3%B6y%C3%BCk"
+          }
+        ],
+        "Mount Nemrut": [
+          {
+            "name": "Mount Nemrut",
+            "wikipedia": "https://en.wikipedia.org/wiki/Mount_Nemrut"
+          },
+          {
+            "name": "Arsameia",
+            "wikipedia": "https://en.wikipedia.org/wiki/Arsameia"
+          },
+          {
+            "name": "Karakuş Tumulus",
+            "wikipedia": "https://en.wikipedia.org/wiki/Karaku%C5%9F_Tumulus"
+          },
+          {
+            "name": "Severan Bridge",
+            "wikipedia": "https://en.wikipedia.org/wiki/Severan_Bridge"
+          }
+        ],
+        "Pamukkale": [
+          {
+            "name": "Hierapolis",
+            "wikipedia": "https://en.wikipedia.org/wiki/Hierapolis"
+          },
+          {
+            "name": "Pamukkale",
+            "wikipedia": "https://en.wikipedia.org/wiki/Pamukkale"
+          },
+          {
+            "name": "Laodicea on the Lycus",
+            "wikipedia": "https://en.wikipedia.org/wiki/Laodicea_on_the_Lycus"
+          }
+        ],
+        "Safranbolu": [
+          {
+            "name": "Safranbolu",
+            "wikipedia": "https://en.wikipedia.org/wiki/Safranbolu"
+          },
+          {
+            "name": "İncekaya Aqueduct",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C4%B0ncekaya_Aqueduct"
+          }
+        ],
+        "Trabzon": [
+          {
+            "name": "Sumela Monastery",
+            "wikipedia": "https://en.wikipedia.org/wiki/Sumela_Monastery"
+          },
+          {
+            "name": "Walls of Trabzon",
+            "wikipedia": "https://en.wikipedia.org/wiki/Trabzon_Castle"
+          },
+          {
+            "name": "Hagia Sophia, Trabzon",
+            "wikipedia": "https://en.wikipedia.org/wiki/Hagia_Sophia,_Trabzon"
+          },
+          {
+            "name": "Vazelon Monastery",
+            "wikipedia": "https://en.wikipedia.org/wiki/Vazelon_Monastery"
+          }
+        ],
+        "Troy": [
+          {
+            "name": "Troy",
+            "wikipedia": "https://en.wikipedia.org/wiki/Troy"
+          }
+        ],
+        "Urfa": [
+          {
+            "name": "Göbekli Tepe",
+            "wikipedia": "https://en.wikipedia.org/wiki/G%C3%B6bekli_Tepe"
+          },
+          {
+            "name": "Harran",
+            "wikipedia": "https://en.wikipedia.org/wiki/Harran"
+          },
+          {
+            "name": "Balıklıgöl",
+            "wikipedia": "https://en.wikipedia.org/wiki/Bal%C4%B1kl%C4%B1g%C3%B6l"
+          },
+          {
+            "name": "Şanlıurfa Castle",
+            "wikipedia": "https://en.wikipedia.org/wiki/%C5%9Eanl%C4%B1urfa_Castle"
+          },
+          {
+            "name": "Karahan Tepe",
+            "wikipedia": "https://en.wikipedia.org/wiki/Karahan_Tepe"
+          }
+        ]
+      }
+    },
+    "France": {
+    "historical_sites": {
+      "Bordeaux": [
+        {
+          "name": "Place de la Bourse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Place_de_la_Bourse,_Bordeaux"
+        },
+        {
+          "name": "Bordeaux Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bordeaux_Cathedral"
+        },
+        {
+          "name": "Basilica of Saint-Michel",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_St._Michael,_Bordeaux"
+        },
+        {
+          "name": "Porte Cailhau",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porte_Cailhau"
+        },
+        {
+          "name": "Grosse Cloche",
+          "wikipedia": "https://en.wikipedia.org/wiki/Grosse_Cloche"
+        },
+        {
+          "name": "Grand Théâtre de Bordeaux",
+          "wikipedia": "https://en.wikipedia.org/wiki/Grand_Th%C3%A9%C3%A2tre_de_Bordeaux"
+        }
+      ],
+      "Lille": [
+        {
+          "name": "Lille Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lille_Cathedral"
+        },
+        {
+          "name": "Vieille Bourse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vieille_Bourse"
+        },
+        {
+          "name": "Citadel of Lille",
+          "wikipedia": "https://en.wikipedia.org/wiki/Citadel_of_Lille"
+        },
+        {
+          "name": "Porte de Paris",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porte_de_Paris_(Lille)"
+        }
+      ],
+      "Lyon": [
+        {
+          "name": "Vieux Lyon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vieux_Lyon"
+        },
+        {
+          "name": "Basilica of Notre-Dame de Fourvière",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Notre-Dame_de_Fourvi%C3%A8re"
+        },
+        {
+          "name": "Lyon Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lyon_Cathedral"
+        },
+        {
+          "name": "Ancient Theatre of Fourvière",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ancient_Theatre_of_Fourvi%C3%A8re"
+        },
+        {
+          "name": "Amphitheatre of the Three Gauls",
+          "wikipedia": "https://en.wikipedia.org/wiki/Amphitheatre_of_the_Three_Gauls"
+        },
+        {
+          "name": "Hôtel de Ville de Lyon",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C3%B4tel_de_Ville,_Lyon"
+        }
+      ],
+      "Marseille": [
+        {
+          "name": "Old Port of Marseille",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Port_of_Marseille"
+        },
+        {
+          "name": "Notre-Dame de la Garde",
+          "wikipedia": "https://en.wikipedia.org/wiki/Notre-Dame_de_la_Garde"
+        },
+        {
+          "name": "Marseille Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Marseille_Cathedral"
+        },
+        {
+          "name": "Fort Saint-Jean",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fort_Saint-Jean_(Marseille)"
+        },
+        {
+          "name": "Château d'If",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_d%27If"
+        },
+        {
+          "name": "Abbey of Saint-Victor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Abbey_of_Saint-Victor,_Marseille"
+        },
+        {
+          "name": "Palais Longchamp",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palais_Longchamp"
+        }
+      ],
+      "Monaco": [
+        {
+          "name": "Prince's Palace of Monaco",
+          "wikipedia": "https://en.wikipedia.org/wiki/Prince%27s_Palace_of_Monaco"
+        },
+        {
+          "name": "Monaco Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monaco_Cathedral"
+        },
+        {
+          "name": "Monte Carlo Casino",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monte_Carlo_Casino"
+        },
+        {
+          "name": "Fort Antoine Theatre",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fort_Antoine_Theatre"
+        }
+      ],
+      "Nantes": [
+        {
+          "name": "Château des ducs de Bretagne",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ch%C3%A2teau_des_ducs_de_Bretagne"
+        },
+        {
+          "name": "Nantes Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nantes_Cathedral"
+        },
+        {
+          "name": "Passage Pommeraye",
+          "wikipedia": "https://en.wikipedia.org/wiki/Passage_Pommeraye"
+        },
+        {
+          "name": "Porte Saint-Pierre",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porte_Saint-Pierre_(Nantes)"
+        }
+      ],
+      "Nice": [
+        {
+          "name": "Nice Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nice_Cathedral"
+        },
+        {
+          "name": "Castle Hill",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_Hill_(Nice)"
+        },
+        {
+          "name": "Cimiez Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cimiez_Monastery"
+        },
+        {
+          "name": "Russian Orthodox Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Russian_Orthodox_Cathedral,_Nice"
+        },
+        {
+          "name": "Notre-Dame de Nice",
+          "wikipedia": "https://en.wikipedia.org/wiki/Notre-Dame_de_Nice"
+        },
+        {
+          "name": "Palais Lascaris",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palais_Lascaris"
+        }
+      ],
+      "Paris": [
+        {
+          "name": "Notre-Dame de Paris",
+          "wikipedia": "https://en.wikipedia.org/wiki/Notre-Dame_de_Paris"
+        },
+        {
+          "name": "Eiffel Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Eiffel_Tower"
+        },
+        {
+          "name": "Arc de Triomphe",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arc_de_Triomphe"
+        },
+        {
+          "name": "Sainte-Chapelle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sainte-Chapelle"
+        },
+        {
+          "name": "Panthéon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Panth%C3%A9on"
+        },
+        {
+          "name": "Sacré-Cœur",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sacr%C3%A9-C%C5%93ur,_Paris"
+        },
+        {
+          "name": "Palais Garnier",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palais_Garnier"
+        },
+        {
+          "name": "Conciergerie",
+          "wikipedia": "https://en.wikipedia.org/wiki/Conciergerie"
+        },
+        {
+          "name": "Les Invalides",
+          "wikipedia": "https://en.wikipedia.org/wiki/Les_Invalides"
+        },
+        {
+          "name": "Pont Neuf",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pont_Neuf"
+        },
+        {
+          "name": "Place de la Concorde",
+          "wikipedia": "https://en.wikipedia.org/wiki/Place_de_la_Concorde"
+        },
+        {
+          "name": "Hôtel de Ville",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C3%B4tel_de_Ville,_Paris"
+        },
+        {
+          "name": "Catacombs of Paris",
+          "wikipedia": "https://en.wikipedia.org/wiki/Catacombs_of_Paris"
+        }
+      ],
+      "Strasbourg": [
+        {
+          "name": "Strasbourg Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Strasbourg_Cathedral"
+        },
+        {
+          "name": "Petite France",
+          "wikipedia": "https://en.wikipedia.org/wiki/Petite_France,_Strasbourg"
+        },
+        {
+          "name": "Palais Rohan",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palais_Rohan,_Strasbourg"
+        },
+        {
+          "name": "Barrage Vauban",
+          "wikipedia": "https://en.wikipedia.org/wiki/Barrage_Vauban"
+        },
+        {
+          "name": "Ponts Couverts",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ponts_Couverts,_Strasbourg"
+        },
+        {
+          "name": "Saint Thomas Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Saint_Thomas_Church,_Strasbourg"
+        },
+        {
+          "name": "Kammerzell House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kammerzell_House"
+        }
+      ],
+      "Toulouse": [
+        {
+          "name": "Basilica of Saint-Sernin",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Saint-Sernin,_Toulouse"
+        },
+        {
+          "name": "Capitole de Toulouse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Capitole_de_Toulouse"
+        },
+        {
+          "name": "Toulouse Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Toulouse_Cathedral"
+        },
+        {
+          "name": "Church of the Jacobins",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_the_Jacobins,_Toulouse"
+        },
+        {
+          "name": "Pont Neuf",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pont_Neuf,_Toulouse"
+        },
+        {
+          "name": "Hôtel d'Assézat",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C3%B4tel_d%27Ass%C3%A9zat"
+        }
+      ]
+    }
+  },
+  "United States": {
+    "historical_sites": {
+      "Boston": [
+        {
+          "name": "Freedom Trail",
+          "wikipedia": "https://en.wikipedia.org/wiki/Freedom_Trail"
+        },
+        {
+          "name": "Faneuil Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Faneuil_Hall"
+        },
+        {
+          "name": "Old State House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_State_House_(Boston)"
+        },
+        {
+          "name": "Paul Revere House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Paul_Revere_House"
+        },
+        {
+          "name": "Old North Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_North_Church"
+        },
+        {
+          "name": "Boston Common",
+          "wikipedia": "https://en.wikipedia.org/wiki/Boston_Common"
+        },
+        {
+          "name": "USS Constitution",
+          "wikipedia": "https://en.wikipedia.org/wiki/USS_Constitution"
+        },
+        {
+          "name": "Bunker Hill Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bunker_Hill_Monument"
+        },
+        {
+          "name": "Massachusetts State House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Massachusetts_State_House"
+        }
+      ],
+      "Chicago": [
+        {
+          "name": "Chicago Water Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chicago_Water_Tower"
+        },
+        {
+          "name": "Rookery Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rookery_Building"
+        },
+        {
+          "name": "Frederick C. Robie House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Frederick_C._Robie_House"
+        },
+        {
+          "name": "Tribune Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tribune_Tower"
+        },
+        {
+          "name": "Wrigley Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Wrigley_Building"
+        },
+        {
+          "name": "Pullman National Historical Park",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pullman_National_Historical_Park"
+        },
+        {
+          "name": "Chicago Union Station",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chicago_Union_Station"
+        },
+        {
+          "name": "Monadnock Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monadnock_Building"
+        }
+      ],
+      "Los Angeles": [
+        {
+          "name": "Hollywood Walk of Fame",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hollywood_Walk_of_Fame"
+        },
+        {
+          "name": "TCL Chinese Theatre",
+          "wikipedia": "https://en.wikipedia.org/wiki/TCL_Chinese_Theatre"
+        },
+        {
+          "name": "Bradbury Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bradbury_Building"
+        },
+        {
+          "name": "Watts Towers",
+          "wikipedia": "https://en.wikipedia.org/wiki/Watts_Towers"
+        },
+        {
+          "name": "Los Angeles City Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Los_Angeles_City_Hall"
+        },
+        {
+          "name": "Union Station",
+          "wikipedia": "https://en.wikipedia.org/wiki/Union_Station_(Los_Angeles)"
+        },
+        {
+          "name": "El Pueblo de Los Ángeles Historical Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/El_Pueblo_de_Los_%C3%81ngeles_Historical_Monument"
+        },
+        {
+          "name": "Griffith Observatory",
+          "wikipedia": "https://en.wikipedia.org/wiki/Griffith_Observatory"
+        },
+        {
+          "name": "Angels Flight",
+          "wikipedia": "https://en.wikipedia.org/wiki/Angels_Flight"
+        }
+      ],
+      "Miami": [
+        {
+          "name": "Freedom Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Freedom_Tower_(Miami)"
+        },
+        {
+          "name": "Miami Circle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Miami_Circle"
+        },
+        {
+          "name": "Cape Florida Light",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cape_Florida_Light"
+        },
+        {
+          "name": "Gesu Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gesu_Church_(Miami,_Florida)"
+        },
+        {
+          "name": "Venetian Pool",
+          "wikipedia": "https://en.wikipedia.org/wiki/Venetian_Pool"
+        },
+        {
+          "name": "Miami Beach Architectural District",
+          "wikipedia": "https://en.wikipedia.org/wiki/Miami_Beach_Architectural_District"
+        }
+      ],
+      "New Orleans": [
+        {
+          "name": "French Quarter",
+          "wikipedia": "https://en.wikipedia.org/wiki/French_Quarter"
+        },
+        {
+          "name": "Jackson Square",
+          "wikipedia": "https://en.wikipedia.org/wiki/Jackson_Square_(New_Orleans)"
+        },
+        {
+          "name": "St. Louis Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Louis_Cathedral_(New_Orleans)"
+        },
+        {
+          "name": "Bourbon Street",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bourbon_Street"
+        },
+        {
+          "name": "Preservation Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Preservation_Hall"
+        },
+        {
+          "name": "Garden District",
+          "wikipedia": "https://en.wikipedia.org/wiki/Garden_District,_New_Orleans"
+        },
+        {
+          "name": "Lafayette Cemetery No. 1",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lafayette_Cemetery_No._1"
+        },
+        {
+          "name": "Old Ursuline Convent",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Ursuline_Convent,_New_Orleans"
+        },
+        {
+          "name": "St. Charles Avenue",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Charles_Avenue"
+        }
+      ],
+      "New York City": [
+        {
+          "name": "Statue of Liberty",
+          "wikipedia": "https://en.wikipedia.org/wiki/Statue_of_Liberty"
+        },
+        {
+          "name": "Ellis Island",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ellis_Island"
+        },
+        {
+          "name": "Empire State Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Empire_State_Building"
+        },
+        {
+          "name": "Brooklyn Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Brooklyn_Bridge"
+        },
+        {
+          "name": "Grand Central Terminal",
+          "wikipedia": "https://en.wikipedia.org/wiki/Grand_Central_Terminal"
+        },
+        {
+          "name": "Rockefeller Center",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rockefeller_Center"
+        },
+        {
+          "name": "Chrysler Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chrysler_Building"
+        },
+        {
+          "name": "Flatiron Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Flatiron_Building"
+        },
+        {
+          "name": "Federal Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Federal_Hall"
+        },
+        {
+          "name": "Trinity Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Trinity_Church_(Manhattan)"
+        },
+        {
+          "name": "St. Patrick's Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Patrick%27s_Cathedral_(Midtown_Manhattan)"
+        },
+        {
+          "name": "Stonewall Inn",
+          "wikipedia": "https://en.wikipedia.org/wiki/Stonewall_Inn"
+        },
+        {
+          "name": "New York Stock Exchange Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/New_York_Stock_Exchange_Building"
+        },
+        {
+          "name": "African Burial Ground National Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/African_Burial_Ground_National_Monument"
+        }
+      ],
+      "San Francisco": [
+        {
+          "name": "Golden Gate Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Golden_Gate_Bridge"
+        },
+        {
+          "name": "Alcatraz Island",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alcatraz_Island"
+        },
+        {
+          "name": "Palace of Fine Arts",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_Fine_Arts"
+        },
+        {
+          "name": "Coit Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Coit_Tower"
+        },
+        {
+          "name": "Mission San Francisco de Asís",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mission_San_Francisco_de_As%C3%ADs"
+        },
+        {
+          "name": "Chinatown",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chinatown,_San_Francisco"
+        },
+        {
+          "name": "San Francisco Ferry Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/San_Francisco_Ferry_Building"
+        },
+        {
+          "name": "Painted Ladies",
+          "wikipedia": "https://en.wikipedia.org/wiki/Painted_ladies"
+        },
+        {
+          "name": "Fort Point",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fort_Point,_San_Francisco"
+        }
+      ],
+      "Seattle": [
+        {
+          "name": "Space Needle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Space_Needle"
+        },
+        {
+          "name": "Pike Place Market",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pike_Place_Market"
+        },
+        {
+          "name": "Pioneer Square",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pioneer_Square,_Seattle"
+        },
+        {
+          "name": "Smith Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Smith_Tower"
+        },
+        {
+          "name": "Klondike Gold Rush National Historical Park",
+          "wikipedia": "https://en.wikipedia.org/wiki/Klondike_Gold_Rush_National_Historical_Park"
+        },
+        {
+          "name": "Seattle Underground",
+          "wikipedia": "https://en.wikipedia.org/wiki/Seattle_Underground"
+        },
+        {
+          "name": "Hiram M. Chittenden Locks",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hiram_M._Chittenden_Locks"
+        },
+        {
+          "name": "St. James Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._James_Cathedral_(Seattle)"
+        }
+      ],
+      "Washington, D.C.": [
+        {
+          "name": "White House",
+          "wikipedia": "https://en.wikipedia.org/wiki/White_House"
+        },
+        {
+          "name": "United States Capitol",
+          "wikipedia": "https://en.wikipedia.org/wiki/United_States_Capitol"
+        },
+        {
+          "name": "Lincoln Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lincoln_Memorial"
+        },
+        {
+          "name": "Washington Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/Washington_Monument"
+        },
+        {
+          "name": "Jefferson Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Jefferson_Memorial"
+        },
+        {
+          "name": "Martin Luther King Jr. Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Martin_Luther_King_Jr._Memorial"
+        },
+        {
+          "name": "National Mall",
+          "wikipedia": "https://en.wikipedia.org/wiki/National_Mall"
+        },
+        {
+          "name": "Supreme Court Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/United_States_Supreme_Court_Building"
+        },
+        {
+          "name": "Library of Congress",
+          "wikipedia": "https://en.wikipedia.org/wiki/Library_of_Congress"
+        },
+        {
+          "name": "Ford's Theatre",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ford%27s_Theatre"
+        },
+        {
+          "name": "Vietnam Veterans Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vietnam_Veterans_Memorial"
+        },
+        {
+          "name": "Korean War Veterans Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Korean_War_Veterans_Memorial"
+        },
+        {
+          "name": "World War II Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/World_War_II_Memorial"
+        }
+      ]
+    }
+  },
+  "Germany": {
+    "historical_sites": {
+      "Berlin": [
+        {
+          "name": "Brandenburg Gate",
+          "wikipedia": "https://en.wikipedia.org/wiki/Brandenburg_Gate"
+        },
+        {
+          "name": "Reichstag Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Reichstag_building"
+        },
+        {
+          "name": "Berlin Wall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Berlin_Wall"
+        },
+        {
+          "name": "East Side Gallery",
+          "wikipedia": "https://en.wikipedia.org/wiki/East_Side_Gallery"
+        },
+        {
+          "name": "Checkpoint Charlie",
+          "wikipedia": "https://en.wikipedia.org/wiki/Checkpoint_Charlie"
+        },
+        {
+          "name": "Berlin Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Berlin_Cathedral"
+        },
+        {
+          "name": "Charlottenburg Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Charlottenburg_Palace"
+        },
+        {
+          "name": "Kaiser Wilhelm Memorial Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kaiser_Wilhelm_Memorial_Church"
+        },
+        {
+          "name": "Memorial to the Murdered Jews of Europe",
+          "wikipedia": "https://en.wikipedia.org/wiki/Memorial_to_the_Murdered_Jews_of_Europe"
+        },
+        {
+          "name": "Gendarmenmarkt",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gendarmenmarkt"
+        },
+        {
+          "name": "Berlin Victory Column",
+          "wikipedia": "https://en.wikipedia.org/wiki/Berlin_Victory_Column"
+        },
+        {
+          "name": "Bebelplatz",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bebelplatz"
+        }
+      ],
+      "Bremen": [
+        {
+          "name": "Bremen Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bremen_Cathedral"
+        },
+        {
+          "name": "Bremen Roland",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bremen_Roland"
+        },
+        {
+          "name": "Bremen City Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bremen_City_Hall"
+        },
+        {
+          "name": "Böttcherstraße",
+          "wikipedia": "https://en.wikipedia.org/wiki/B%C3%B6ttcherstra%C3%9Fe"
+        },
+        {
+          "name": "Schnoor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Schnoor"
+        }
+      ],
+      "Cologne": [
+        {
+          "name": "Cologne Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cologne_Cathedral"
+        },
+        {
+          "name": "Hohenzollern Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hohenzollern_Bridge"
+        },
+        {
+          "name": "Great St. Martin Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Great_St._Martin_Church,_Cologne"
+        },
+        {
+          "name": "Cologne City Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cologne_City_Hall"
+        },
+        {
+          "name": "Eigelstein Torburg",
+          "wikipedia": "https://en.wikipedia.org/wiki/Eigelstein_Torburg"
+        },
+        {
+          "name": "Basilica of St. Gereon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_St._Gereon,_Cologne"
+        }
+      ],
+      "Dresden": [
+        {
+          "name": "Dresden Frauenkirche",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dresden_Frauenkirche"
+        },
+        {
+          "name": "Zwinger",
+          "wikipedia": "https://en.wikipedia.org/wiki/Zwinger_(Dresden)"
+        },
+        {
+          "name": "Dresden Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dresden_Castle"
+        },
+        {
+          "name": "Semperoper",
+          "wikipedia": "https://en.wikipedia.org/wiki/Semperoper"
+        },
+        {
+          "name": "Brühl's Terrace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Br%C3%BChl%27s_Terrace"
+        },
+        {
+          "name": "Fürstenzug",
+          "wikipedia": "https://en.wikipedia.org/wiki/F%C3%BCrstenzug"
+        },
+        {
+          "name": "Pillnitz Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pillnitz_Castle"
+        },
+        {
+          "name": "Dresden Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dresden_Cathedral"
+        }
+      ],
+      "Düsseldorf": [
+        {
+          "name": "Benrath Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Benrath_Palace"
+        },
+        {
+          "name": "St. Lambertus Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Lambertus,_D%C3%BCsseldorf"
+        },
+        {
+          "name": "Schlossturm",
+          "wikipedia": "https://en.wikipedia.org/wiki/Schlossturm,_D%C3%BCsseldorf"
+        },
+        {
+          "name": "Kaiserpfalz Kaiserswerth",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kaiserpfalz_Kaiserswerth"
+        },
+        {
+          "name": "Ratinger Tor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ratinger_Tor"
+        }
+      ],
+      "Frankfurt": [
+        {
+          "name": "Römer",
+          "wikipedia": "https://en.wikipedia.org/wiki/R%C3%B6mer"
+        },
+        {
+          "name": "Frankfurt Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Frankfurt_Cathedral"
+        },
+        {
+          "name": "St. Paul's Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Paul%27s_Church,_Frankfurt_am_Main"
+        },
+        {
+          "name": "Eschenheimer Turm",
+          "wikipedia": "https://en.wikipedia.org/wiki/Eschenheimer_Turm"
+        },
+        {
+          "name": "Alte Oper",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alte_Oper"
+        },
+        {
+          "name": "Hauptwache",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hauptwache_(Frankfurt_am_Main)"
+        },
+        {
+          "name": "IG Farben Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/IG_Farben_Building"
+        }
+      ],
+      "Hamburg": [
+        {
+          "name": "Speicherstadt",
+          "wikipedia": "https://en.wikipedia.org/wiki/Speicherstadt"
+        },
+        {
+          "name": "St. Michael's Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Michael%27s_Church,_Hamburg"
+        },
+        {
+          "name": "Hamburg City Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hamburg_City_Hall"
+        },
+        {
+          "name": "Chilehaus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chilehaus"
+        },
+        {
+          "name": "St. Nicholas' Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Nicholas%27_Church,_Hamburg"
+        },
+        {
+          "name": "Deichstraße",
+          "wikipedia": "https://en.wikipedia.org/wiki/Deichstra%C3%9Fe"
+        },
+        {
+          "name": "Old Elbe Tunnel",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Elbe_Tunnel"
+        },
+        {
+          "name": "Hamburg Stock Exchange",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hamburg_Stock_Exchange"
+        }
+      ],
+      "Munich": [
+        {
+          "name": "Marienplatz",
+          "wikipedia": "https://en.wikipedia.org/wiki/Marienplatz"
+        },
+        {
+          "name": "Frauenkirche",
+          "wikipedia": "https://en.wikipedia.org/wiki/Frauenkirche,_Munich"
+        },
+        {
+          "name": "Nymphenburg Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nymphenburg_Palace"
+        },
+        {
+          "name": "Munich Residenz",
+          "wikipedia": "https://en.wikipedia.org/wiki/Munich_Residenz"
+        },
+        {
+          "name": "New Town Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/New_Town_Hall,_Munich"
+        },
+        {
+          "name": "Hofbräuhaus am Platzl",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hofbr%C3%A4uhaus_am_Platzl"
+        },
+        {
+          "name": "Feldherrnhalle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Feldherrnhalle"
+        },
+        {
+          "name": "Theatine Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Theatine_Church,_Munich"
+        },
+        {
+          "name": "Old Town Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Town_Hall,_Munich"
+        },
+        {
+          "name": "Siegestor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Siegestor"
+        }
+      ],
+      "Nuremberg": [
+        {
+          "name": "Nuremberg Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nuremberg_Castle"
+        },
+        {
+          "name": "Nazi Party Rally Grounds",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nazi_Party_Rally_Grounds"
+        },
+        {
+          "name": "St. Sebaldus Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Sebaldus_Church,_Nuremberg"
+        },
+        {
+          "name": "St. Lorenz",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Lorenz,_Nuremberg"
+        },
+        {
+          "name": "Nuremberg City Walls",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nuremberg_city_walls"
+        },
+        {
+          "name": "Frauenkirche",
+          "wikipedia": "https://en.wikipedia.org/wiki/Frauenkirche,_Nuremberg"
+        },
+        {
+          "name": "Weinstadel",
+          "wikipedia": "https://en.wikipedia.org/wiki/Weinstadel"
+        },
+        {
+          "name": "Heilig-Geist-Spital",
+          "wikipedia": "https://en.wikipedia.org/wiki/Heilig-Geist-Spital_(Nuremberg)"
+        }
+        ]
+        }
+    },
+    "Spain": {
+    "historical_sites": {
+      "Barcelona": [
+        {
+          "name": "Sagrada Família",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sagrada_Fam%C3%ADlia"
+        },
+        {
+          "name": "Park Güell",
+          "wikipedia": "https://en.wikipedia.org/wiki/Park_G%C3%BCell"
+        },
+        {
+          "name": "Casa Batlló",
+          "wikipedia": "https://en.wikipedia.org/wiki/Casa_Batll%C3%B3"
+        },
+        {
+          "name": "Casa Milà",
+          "wikipedia": "https://en.wikipedia.org/wiki/Casa_Mil%C3%A0"
+        },
+        {
+          "name": "Palau de la Música Catalana",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palau_de_la_M%C3%BAsica_Catalana"
+        },
+        {
+          "name": "Gothic Quarter",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gothic_Quarter,_Barcelona"
+        },
+        {
+          "name": "Barcelona Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Barcelona_Cathedral"
+        },
+        {
+          "name": "Santa Maria del Mar",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_del_Mar,_Barcelona"
+        },
+        {
+          "name": "Montjuïc Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Montju%C3%AFc_Castle"
+        }
+      ],
+      "Bilbao": [
+        {
+          "name": "Casco Viejo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Casco_Viejo_(Bilbao)"
+        },
+        {
+          "name": "Bilbao Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bilbao_Cathedral"
+        },
+        {
+          "name": "Basilica of Begoña",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Bego%C3%B1a"
+        },
+        {
+          "name": "Church of San Antón",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_San_Ant%C3%B3n"
+        },
+        {
+          "name": "Arriaga Theatre",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arriaga_Theatre"
+        },
+        {
+          "name": "Vizcaya Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vizcaya_Bridge"
+        }
+      ],
+      "Córdoba": [
+        {
+          "name": "Mosque–Cathedral of Córdoba",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mosque%E2%80%93Cathedral_of_C%C3%B3rdoba"
+        },
+        {
+          "name": "Alcázar de los Reyes Cristianos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alc%C3%A1zar_de_los_Reyes_Cristianos"
+        },
+        {
+          "name": "Roman Bridge of Córdoba",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_bridge_of_C%C3%B3rdoba"
+        },
+        {
+          "name": "Medina Azahara",
+          "wikipedia": "https://en.wikipedia.org/wiki/Medina_Azahara"
+        },
+        {
+          "name": "Calahorra Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Calahorra_Tower"
+        },
+        {
+          "name": "Synagogue of Córdoba",
+          "wikipedia": "https://en.wikipedia.org/wiki/Synagogue_of_C%C3%B3rdoba"
+        },
+        {
+          "name": "Roman Temple of Córdoba",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_temple_of_C%C3%B3rdoba"
+        }
+      ],
+      "Granada": [
+        {
+          "name": "Alhambra",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alhambra"
+        },
+        {
+          "name": "Generalife",
+          "wikipedia": "https://en.wikipedia.org/wiki/Generalife"
+        },
+        {
+          "name": "Granada Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Granada_Cathedral"
+        },
+        {
+          "name": "Royal Chapel of Granada",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Chapel_of_Granada"
+        },
+        {
+          "name": "Albaicín",
+          "wikipedia": "https://en.wikipedia.org/wiki/Albaic%C3%ADn"
+        },
+        {
+          "name": "Sacromonte Abbey",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sacromonte_Abbey"
+        },
+        {
+          "name": "Corral del Carbón",
+          "wikipedia": "https://en.wikipedia.org/wiki/Corral_del_Carb%C3%B3n"
+        }
+      ],
+      "Madrid": [
+        {
+          "name": "Royal Palace of Madrid",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Palace_of_Madrid"
+        },
+        {
+          "name": "Plaza Mayor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Plaza_Mayor,_Madrid"
+        },
+        {
+          "name": "Puerta del Sol",
+          "wikipedia": "https://en.wikipedia.org/wiki/Puerta_del_Sol"
+        },
+        {
+          "name": "Almudena Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Almudena_Cathedral"
+        },
+        {
+          "name": "Temple of Debod",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Debod"
+        },
+        {
+          "name": "Puerta de Alcalá",
+          "wikipedia": "https://en.wikipedia.org/wiki/Puerta_de_Alcal%C3%A1"
+        },
+        {
+          "name": "Cybele Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cybele_Palace"
+        },
+        {
+          "name": "Royal Basilica of San Francisco el Grande",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Basilica_of_San_Francisco_el_Grande"
+        },
+        {
+          "name": "Plaza de Oriente",
+          "wikipedia": "https://en.wikipedia.org/wiki/Plaza_de_Oriente"
+        }
+      ],
+      "Málaga": [
+        {
+          "name": "Alcazaba of Málaga",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alcazaba_of_M%C3%A1laga"
+        },
+        {
+          "name": "Gibralfaro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gibralfaro"
+        },
+        {
+          "name": "Málaga Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/M%C3%A1laga_Cathedral"
+        },
+        {
+          "name": "Roman Theatre",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Theatre_(M%C3%A1laga)"
+        }
+      ],
+      "Seville": [
+        {
+          "name": "Seville Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Seville_Cathedral"
+        },
+        {
+          "name": "Royal Alcázar of Seville",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Alc%C3%A1zar_of_Seville"
+        },
+        {
+          "name": "Giralda",
+          "wikipedia": "https://en.wikipedia.org/wiki/Giralda"
+        },
+        {
+          "name": "Archivo General de Indias",
+          "wikipedia": "https://en.wikipedia.org/wiki/Archivo_General_de_Indias"
+        },
+        {
+          "name": "Plaza de España",
+          "wikipedia": "https://en.wikipedia.org/wiki/Plaza_de_Espa%C3%B1a,_Seville"
+        },
+        {
+          "name": "Torre del Oro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Torre_del_Oro"
+        },
+        {
+          "name": "Casa de Pilatos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Casa_de_Pilatos"
+        },
+        {
+          "name": "Palace of San Telmo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_San_Telmo"
+        }
+      ],
+      "Valencia": [
+        {
+          "name": "Valencia Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Valencia_Cathedral"
+        },
+        {
+          "name": "Llotja de la Seda",
+          "wikipedia": "https://en.wikipedia.org/wiki/Llotja_de_la_Seda"
+        },
+        {
+          "name": "Torres de Serranos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Torres_de_Serranos"
+        },
+        {
+          "name": "Torres de Quart",
+          "wikipedia": "https://en.wikipedia.org/wiki/Torres_de_Quart"
+        },
+        {
+          "name": "Palau de la Generalitat Valenciana",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palau_de_la_Generalitat_Valenciana"
+        },
+        {
+          "name": "Palace of the Marqués de Dos Aguas",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_the_Marqu%C3%A9s_de_Dos_Aguas"
+        }
+      ],
+      "Zaragoza": [
+        {
+          "name": "Cathedral-Basilica of Our Lady of the Pillar",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cathedral-Basilica_of_Our_Lady_of_the_Pillar"
+        },
+        {
+          "name": "Aljafería",
+          "wikipedia": "https://en.wikipedia.org/wiki/Aljafer%C3%ADa"
+        },
+        {
+          "name": "La Seo Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/La_Seo_Cathedral"
+        },
+        {
+          "name": "Roman Walls of Zaragoza",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_walls_of_Zaragoza"
+        },
+        {
+          "name": "Church of San Pablo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_San_Pablo,_Zaragoza"
+        },
+        {
+          "name": "Puente de Piedra",
+          "wikipedia": "https://en.wikipedia.org/wiki/Puente_de_Piedra_(Zaragoza)"
+        }
+      ]
+    }
+  },
+  "Italy": {
+    "historical_sites": {
+      "Bologna": [
+        {
+          "name": "Piazza Maggiore",
+          "wikipedia": "https://en.wikipedia.org/wiki/Piazza_Maggiore"
+        },
+        {
+          "name": "Basilica of San Petronio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_San_Petronio"
+        },
+        {
+          "name": "Two Towers",
+          "wikipedia": "https://en.wikipedia.org/wiki/Two_Towers,_Bologna"
+        },
+        {
+          "name": "Archiginnasio of Bologna",
+          "wikipedia": "https://en.wikipedia.org/wiki/Archiginnasio_of_Bologna"
+        },
+        {
+          "name": "Sanctuary of the Madonna di San Luca",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sanctuary_of_the_Madonna_di_San_Luca"
+        },
+        {
+          "name": "Santo Stefano",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santo_Stefano,_Bologna"
+        },
+        {
+          "name": "Palazzo d'Accursio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palazzo_d%27Accursio"
+        }
+      ],
+      "Florence": [
+        {
+          "name": "Florence Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Florence_Cathedral"
+        },
+        {
+          "name": "Ponte Vecchio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ponte_Vecchio"
+        },
+        {
+          "name": "Palazzo Vecchio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palazzo_Vecchio"
+        },
+        {
+          "name": "Basilica of Santa Croce",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Santa_Croce,_Florence"
+        },
+        {
+          "name": "Santa Maria Novella",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_Novella"
+        },
+        {
+          "name": "Medici Chapels",
+          "wikipedia": "https://en.wikipedia.org/wiki/Medici_Chapels"
+        },
+        {
+          "name": "Basilica of San Lorenzo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_San_Lorenzo,_Florence"
+        },
+        {
+          "name": "Boboli Gardens",
+          "wikipedia": "https://en.wikipedia.org/wiki/Boboli_Gardens"
+        },
+        {
+          "name": "Piazzale Michelangelo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Piazzale_Michelangelo"
+        }
+      ],
+      "Genoa": [
+        {
+          "name": "Palazzi dei Rolli",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palazzi_dei_Rolli"
+        },
+        {
+          "name": "Genoa Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Genoa_Cathedral"
+        },
+        {
+          "name": "Doge's Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Doge%27s_Palace,_Genoa"
+        },
+        {
+          "name": "Porta Soprana",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porta_Soprana"
+        },
+        {
+          "name": "Lighthouse of Genoa",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lighthouse_of_Genoa"
+        },
+        {
+          "name": "Basilica della Santissima Annunziata del Vastato",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_della_Santissima_Annunziata_del_Vastato"
+        },
+        {
+          "name": "San Donato, Genoa",
+          "wikipedia": "https://en.wikipedia.org/wiki/San_Donato,_Genoa"
+        }
+      ],
+      "Milan": [
+        {
+          "name": "Milan Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Milan_Cathedral"
+        },
+        {
+          "name": "Sforza Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sforza_Castle"
+        },
+        {
+          "name": "Santa Maria delle Grazie",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_delle_Grazie,_Milan"
+        },
+        {
+          "name": "Galleria Vittorio Emanuele II",
+          "wikipedia": "https://en.wikipedia.org/wiki/Galleria_Vittorio_Emanuele_II"
+        },
+        {
+          "name": "Basilica of Sant'Ambrogio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Sant%27Ambrogio"
+        },
+        {
+          "name": "Royal Palace of Milan",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Palace_of_Milan"
+        },
+        {
+          "name": "Porta Ticinese",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porta_Ticinese"
+        },
+        {
+          "name": "San Bernardino alle Ossa",
+          "wikipedia": "https://en.wikipedia.org/wiki/San_Bernardino_alle_Ossa"
+        }
+      ],
+      "Naples": [
+        {
+          "name": "Naples Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Naples_Cathedral"
+        },
+        {
+          "name": "Castel Nuovo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castel_Nuovo"
+        },
+        {
+          "name": "Castel dell'Ovo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castel_dell%27Ovo"
+        },
+        {
+          "name": "Royal Palace of Naples",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Palace_of_Naples"
+        },
+        {
+          "name": "Santa Chiara",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Chiara,_Naples"
+        },
+        {
+          "name": "Teatro di San Carlo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Teatro_di_San_Carlo"
+        },
+        {
+          "name": "Galleria Umberto I",
+          "wikipedia": "https://en.wikipedia.org/wiki/Galleria_Umberto_I"
+        },
+        {
+          "name": "Catacombs of San Gennaro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Catacombs_of_San_Gennaro"
+        },
+        {
+          "name": "Gesù Nuovo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ges%C3%B9_Nuovo"
+        },
+        {
+          "name": "Pompeii",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pompeii"
+        },
+        {
+          "name": "Herculaneum",
+          "wikipedia": "https://en.wikipedia.org/wiki/Herculaneum"
+        }
+      ],
+      "Pisa": [
+        {
+          "name": "Leaning Tower of Pisa",
+          "wikipedia": "https://en.wikipedia.org/wiki/Leaning_Tower_of_Pisa"
+        },
+        {
+          "name": "Pisa Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pisa_Cathedral"
+        },
+        {
+          "name": "Pisa Baptistery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pisa_Baptistery"
+        },
+        {
+          "name": "Camposanto Monumentale",
+          "wikipedia": "https://en.wikipedia.org/wiki/Camposanto_Monumentale"
+        },
+        {
+          "name": "Piazza dei Cavalieri",
+          "wikipedia": "https://en.wikipedia.org/wiki/Piazza_dei_Cavalieri"
+        },
+        {
+          "name": "Santa Maria della Spina",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_della_Spina"
+        }
+      ],
+      "Rome": [
+        {
+          "name": "Colosseum",
+          "wikipedia": "https://en.wikipedia.org/wiki/Colosseum"
+        },
+        {
+          "name": "Roman Forum",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Forum"
+        },
+        {
+          "name": "Pantheon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pantheon,_Rome"
+        },
+        {
+          "name": "St. Peter's Basilica",
+          "wikipedia": "https://en.wikipedia.org/wiki/St._Peter%27s_Basilica"
+        },
+        {
+          "name": "Trevi Fountain",
+          "wikipedia": "https://en.wikipedia.org/wiki/Trevi_Fountain"
+        },
+        {
+          "name": "Spanish Steps",
+          "wikipedia": "https://en.wikipedia.org/wiki/Spanish_Steps"
+        },
+        {
+          "name": "Castel Sant'Angelo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castel_Sant%27Angelo"
+        },
+        {
+          "name": "Piazza Navona",
+          "wikipedia": "https://en.wikipedia.org/wiki/Piazza_Navona"
+        },
+        {
+          "name": "Basilica di Santa Maria Maggiore",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_Maggiore"
+        },
+        {
+          "name": "Arch of Constantine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arch_of_Constantine"
+        },
+        {
+          "name": "Baths of Caracalla",
+          "wikipedia": "https://en.wikipedia.org/wiki/Baths_of_Caracalla"
+        },
+        {
+          "name": "Circus Maximus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Circus_Maximus"
+        },
+        {
+          "name": "Appian Way",
+          "wikipedia": "https://en.wikipedia.org/wiki/Appian_Way"
+        },
+        {
+          "name": "Domus Aurea",
+          "wikipedia": "https://en.wikipedia.org/wiki/Domus_Aurea"
+        },
+        {
+          "name": "Palatine Hill",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palatine_Hill"
+        }
+      ],
+      "Turin": [
+        {
+          "name": "Mole Antonelliana",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mole_Antonelliana"
+        },
+        {
+          "name": "Royal Palace of Turin",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Palace_of_Turin"
+        },
+        {
+          "name": "Palazzo Madama",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palazzo_Madama,_Turin"
+        },
+        {
+          "name": "Turin Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Turin_Cathedral"
+        },
+        {
+          "name": "Basilica of Superga",
+          "wikipedia": "https://en.wikipedia.org/wiki/Basilica_of_Superga"
+        },
+        {
+          "name": "Palatine Towers",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palatine_Towers"
+        },
+        {
+          "name": "Villa della Regina",
+          "wikipedia": "https://en.wikipedia.org/wiki/Villa_della_Regina"
+        }
+      ],
+      "Venice": [
+        {
+          "name": "St Mark's Basilica",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Mark%27s_Basilica"
+        },
+        {
+          "name": "St Mark's Square",
+          "wikipedia": "https://en.wikipedia.org/wiki/Piazza_San_Marco"
+        },
+        {
+          "name": "Rialto Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rialto_Bridge"
+        },
+        {
+          "name": "Bridge of Sighs",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bridge_of_Sighs"
+        },
+        {
+          "name": "Grand Canal",
+          "wikipedia": "https://en.wikipedia.org/wiki/Grand_Canal,_Venice"
+        },
+        {
+          "name": "Santa Maria della Salute",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Maria_della_Salute"
+        },
+        {
+          "name": "Scuola Grande di San Rocco",
+          "wikipedia": "https://en.wikipedia.org/wiki/Scuola_Grande_di_San_Rocco"
+        },
+        {
+          "name": "Ca' d'Oro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ca%27_d%27Oro"
+        },
+        {
+          "name": "San Giorgio Maggiore",
+          "wikipedia": "https://en.wikipedia.org/wiki/San_Giorgio_Maggiore"
+        },
+        {
+          "name": "Venetian Arsenal",
+          "wikipedia": "https://en.wikipedia.org/wiki/Venetian_Arsenal"
+        }
+      ]
+    }
+  },
+  "Japan": {
+    "historical_sites": {
+      "Hiroshima": [
+        {
+          "name": "Hiroshima Peace Memorial",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hiroshima_Peace_Memorial"
+        },
+        {
+          "name": "Hiroshima Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hiroshima_Castle"
+        },
+        {
+          "name": "Itsukushima Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Itsukushima_Shrine"
+        },
+        {
+          "name": "Shukkei-en",
+          "wikipedia": "https://en.wikipedia.org/wiki/Shukkei-en"
+        },
+        {
+          "name": "Mitaki-dera",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mitaki-dera"
+        },
+        {
+          "name": "Fudō-in",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fud%C5%8D-in"
+        }
+      ],
+      "Kanazawa": [
+        {
+          "name": "Kanazawa Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kanazawa_Castle"
+        },
+        {
+          "name": "Kenroku-en",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kenroku-en"
+        },
+        {
+          "name": "Higashi Chaya District",
+          "wikipedia": "https://en.wikipedia.org/wiki/Higashi_Chaya_District"
+        },
+        {
+          "name": "Oyama Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Oyama_Shrine_(Ishikawa)"
+        },
+        {
+          "name": "Myōryū-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/My%C5%8Dry%C5%AB-ji"
+        },
+        {
+          "name": "Seisonkaku Villa",
+          "wikipedia": "https://en.wikipedia.org/wiki/Seisonkaku_Villa"
+        }
+      ],
+      "Kyoto": [
+        {
+          "name": "Kiyomizu-dera",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kiyomizu-dera"
+        },
+        {
+          "name": "Kinkaku-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kinkaku-ji"
+        },
+        {
+          "name": "Ginkaku-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ginkaku-ji"
+        },
+        {
+          "name": "Fushimi Inari-taisha",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fushimi_Inari-taisha"
+        },
+        {
+          "name": "Nijō Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nij%C5%8D_Castle"
+        },
+        {
+          "name": "Kyoto Imperial Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kyoto_Imperial_Palace"
+        },
+        {
+          "name": "Heian Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Heian_Shrine"
+        },
+        {
+          "name": "Sanjūsangen-dō",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sanj%C5%ABsangen-d%C5%8D"
+        },
+        {
+          "name": "Tō-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/T%C5%8D-ji"
+        },
+        {
+          "name": "Yasaka Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Yasaka_Shrine"
+        },
+        {
+          "name": "Gion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gion"
+        },
+        {
+          "name": "Ryōan-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ry%C5%8Dan-ji"
+        }
+      ],
+      "Nagasaki": [
+        {
+          "name": "Ōura Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/%C5%8Cura_Church"
+        },
+        {
+          "name": "Glover Garden",
+          "wikipedia": "https://en.wikipedia.org/wiki/Glover_Garden"
+        },
+        {
+          "name": "Dejima",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dejima"
+        },
+        {
+          "name": "Suwa Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Suwa_Shrine_(Nagasaki)"
+        },
+        {
+          "name": "Meganebashi Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Meganebashi_Bridge"
+        },
+        {
+          "name": "Sōfuku-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/S%C5%8Dfuku-ji_(Nagasaki)"
+        },
+        {
+          "name": "Nagasaki Confucius Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nagasaki_Confucius_Shrine"
+        },
+        {
+          "name": "Twenty-Six Martyrs Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/Twenty-Six_Martyrs_Monument"
+        }
+      ],
+      "Nara": [
+        {
+          "name": "Tōdai-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/T%C5%8Ddai-ji"
+        },
+        {
+          "name": "Kasuga-taisha",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kasuga-taisha"
+        },
+        {
+          "name": "Kōfuku-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/K%C5%8Dfuku-ji"
+        },
+        {
+          "name": "Yakushi-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Yakushi-ji"
+        },
+        {
+          "name": "Tōshōdai-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/T%C5%8Dsh%C5%8Ddai-ji"
+        },
+        {
+          "name": "Heijō Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Heij%C5%8D_Palace"
+        },
+        {
+          "name": "Hōryū-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C5%8Dry%C5%AB-ji"
+        }
+      ],
+      "Osaka": [
+        {
+          "name": "Osaka Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Osaka_Castle"
+        },
+        {
+          "name": "Shitennō-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Shitenn%C5%8D-ji"
+        },
+        {
+          "name": "Sumiyoshi-taisha",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sumiyoshi-taisha"
+        },
+        {
+          "name": "Tsūtenkaku",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ts%C5%ABtenkaku"
+        },
+        {
+          "name": "Osaka Tenmangū",
+          "wikipedia": "https://en.wikipedia.org/wiki/Osaka_Tenmang%C5%AB"
+        },
+        {
+          "name": "Hōzen-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C5%8Dzen-ji"
+        },
+        {
+          "name": "Osaka City Central Public Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Osaka_City_Central_Public_Hall"
+        }
+      ],
+      "Sapporo": [
+        {
+          "name": "Sapporo Clock Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sapporo_Clock_Tower"
+        },
+        {
+          "name": "Former Hokkaidō Government Office",
+          "wikipedia": "https://en.wikipedia.org/wiki/Former_Hokkaid%C5%8D_Government_Office"
+        },
+        {
+          "name": "Hokkaido Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hokkaido_Shrine"
+        },
+        {
+          "name": "Hōheikan",
+          "wikipedia": "https://en.wikipedia.org/wiki/H%C5%8Dheikan"
+        }
+      ],
+      "Sendai": [
+        {
+          "name": "Sendai Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sendai_Castle"
+        },
+        {
+          "name": "Zuihōden",
+          "wikipedia": "https://en.wikipedia.org/wiki/Zuih%C5%8Dden"
+        },
+        {
+          "name": "Ōsaki Hachimangū",
+          "wikipedia": "https://en.wikipedia.org/wiki/%C5%8Csaki_Hachimang%C5%AB"
+        },
+        {
+          "name": "Sendai Tōshō-gū",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sendai_T%C5%8Dsh%C5%8D-g%C5%AB"
+        },
+        {
+          "name": "Rinnō-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rinn%C5%8D-ji_(Sendai)"
+        }
+      ],
+      "Tokyo": [
+        {
+          "name": "Sensō-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sens%C5%8D-ji"
+        },
+        {
+          "name": "Meiji Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Meiji_Shrine"
+        },
+        {
+          "name": "Tokyo Imperial Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tokyo_Imperial_Palace"
+        },
+        {
+          "name": "Tokyo Station",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tokyo_Station"
+        },
+        {
+          "name": "Yasukuni Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Yasukuni_Shrine"
+        },
+        {
+          "name": "Zōjō-ji",
+          "wikipedia": "https://en.wikipedia.org/wiki/Z%C5%8Dj%C5%8D-ji"
+        },
+        {
+          "name": "Nezu Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nezu_Shrine"
+        },
+        {
+          "name": "Hie Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hie_Shrine"
+        },
+        {
+          "name": "Nihonbashi",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nihonbashi"
+        },
+        {
+          "name": "Akasaka Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Akasaka_Palace"
+        },
+        {
+          "name": "Kanda Shrine",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kanda_Shrine"
+        }
+      ]
+    }
+  },
+  "United Kingdom": {
+    "historical_sites": {
+      "Belfast": [
+        {
+          "name": "Belfast City Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Belfast_City_Hall"
+        },
+        {
+          "name": "Albert Memorial Clock",
+          "wikipedia": "https://en.wikipedia.org/wiki/Albert_Memorial_Clock"
+        },
+        {
+          "name": "Belfast Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Belfast_Castle"
+        },
+        {
+          "name": "St Anne's Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Anne%27s_Cathedral,_Belfast"
+        },
+        {
+          "name": "Crumlin Road Gaol",
+          "wikipedia": "https://en.wikipedia.org/wiki/Crumlin_Road_Gaol"
+        },
+        {
+          "name": "Parliament Buildings",
+          "wikipedia": "https://en.wikipedia.org/wiki/Parliament_Buildings_(Northern_Ireland)"
+        },
+        {
+          "name": "Queen's University Belfast",
+          "wikipedia": "https://en.wikipedia.org/wiki/Queen%27s_University_Belfast"
+        }
+      ],
+      "Bristol": [
+        {
+          "name": "Clifton Suspension Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Clifton_Suspension_Bridge"
+        },
+        {
+          "name": "Bristol Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bristol_Cathedral"
+        },
+        {
+          "name": "St Mary Redcliffe",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Mary_Redcliffe"
+        },
+        {
+          "name": "Cabot Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cabot_Tower,_Bristol"
+        },
+        {
+          "name": "SS Great Britain",
+          "wikipedia": "https://en.wikipedia.org/wiki/SS_Great_Britain"
+        },
+        {
+          "name": "Temple Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_Church,_Bristol"
+        },
+        {
+          "name": "Blaise Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Blaise_Castle"
+        }
+      ],
+      "Cardiff": [
+        {
+          "name": "Cardiff Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cardiff_Castle"
+        },
+        {
+          "name": "Castell Coch",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castell_Coch"
+        },
+        {
+          "name": "Llandaff Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Llandaff_Cathedral"
+        },
+        {
+          "name": "Pierhead Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pierhead_Building"
+        },
+        {
+          "name": "Norwegian Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Norwegian_Church,_Cardiff_Bay"
+        }
+      ],
+      "Edinburgh": [
+        {
+          "name": "Edinburgh Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Edinburgh_Castle"
+        },
+        {
+          "name": "Palace of Holyroodhouse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_Holyroodhouse"
+        },
+        {
+          "name": "St Giles' Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Giles%27_Cathedral"
+        },
+        {
+          "name": "Scott Monument",
+          "wikipedia": "https://en.wikipedia.org/wiki/Scott_Monument"
+        },
+        {
+          "name": "Calton Hill",
+          "wikipedia": "https://en.wikipedia.org/wiki/Calton_Hill"
+        },
+        {
+          "name": "Greyfriars Kirkyard",
+          "wikipedia": "https://en.wikipedia.org/wiki/Greyfriars_Kirkyard"
+        },
+        {
+          "name": "Holyrood Abbey",
+          "wikipedia": "https://en.wikipedia.org/wiki/Holyrood_Abbey"
+        },
+        {
+          "name": "Dean Village",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dean_Village"
+        }
+      ],
+      "Giant's Causeway": [
+        {
+          "name": "Dunluce Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dunluce_Castle"
+        },
+        {
+          "name": "Old Bushmills Distillery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Bushmills_Distillery"
+        }
+      ],
+      "Glasgow": [
+        {
+          "name": "Glasgow Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Glasgow_Cathedral"
+        },
+        {
+          "name": "George Square",
+          "wikipedia": "https://en.wikipedia.org/wiki/George_Square"
+        },
+        {
+          "name": "Glasgow City Chambers",
+          "wikipedia": "https://en.wikipedia.org/wiki/Glasgow_City_Chambers"
+        },
+        {
+          "name": "Provand's Lordship",
+          "wikipedia": "https://en.wikipedia.org/wiki/Provand%27s_Lordship"
+        },
+        {
+          "name": "University of Glasgow",
+          "wikipedia": "https://en.wikipedia.org/wiki/University_of_Glasgow"
+        },
+        {
+          "name": "The Lighthouse",
+          "wikipedia": "https://en.wikipedia.org/wiki/The_Lighthouse,_Glasgow"
+        }
+      ],
+      "Gower Peninsula": [
+        {
+          "name": "Pennard Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pennard_Castle"
+        },
+        {
+          "name": "Weobley Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Weobley_Castle,_Gower"
+        },
+        {
+          "name": "Oxwich Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Oxwich_Castle"
+        },
+        {
+          "name": "Arthur's Stone",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arthur%27s_Stone,_Gower"
+        }
+      ],
+      "Hadrian's Wall": [
+        {
+          "name": "Hadrian's Wall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hadrian%27s_Wall"
+        },
+        {
+          "name": "Housesteads Roman Fort",
+          "wikipedia": "https://en.wikipedia.org/wiki/Housesteads_Roman_Fort"
+        },
+        {
+          "name": "Vindolanda",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vindolanda"
+        },
+        {
+          "name": "Chesters Roman Fort",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chesters_Roman_Fort"
+        },
+        {
+          "name": "Birdoswald Roman Fort",
+          "wikipedia": "https://en.wikipedia.org/wiki/Birdoswald_Roman_Fort"
+        }
+      ],
+      "Isle of Arran": [
+        {
+          "name": "Brodick Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Brodick_Castle"
+        },
+        {
+          "name": "Lochranza Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lochranza_Castle"
+        },
+        {
+          "name": "Machrie Moor Stone Circles",
+          "wikipedia": "https://en.wikipedia.org/wiki/Machrie_Moor_Stone_Circles"
+        },
+        {
+          "name": "King's Cave",
+          "wikipedia": "https://en.wikipedia.org/wiki/King%27s_Cave,_Isle_of_Arran"
+        }
+      ],
+      "Lake District National Park": [
+        {
+          "name": "Castlerigg Stone Circle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castlerigg_stone_circle"
+        },
+        {
+          "name": "Hardknott Roman Fort",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hardknott_Roman_Fort"
+        },
+        {
+          "name": "Muncaster Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Muncaster_Castle"
+        },
+        {
+          "name": "Dove Cottage",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dove_Cottage"
+        },
+        {
+          "name": "Hill Top",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hill_Top,_Cumbria"
+        }
+      ],
+      "Liverpool": [
+        {
+          "name": "Liverpool Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Liverpool_Cathedral"
+        },
+        {
+          "name": "Royal Liver Building",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Liver_Building"
+        },
+        {
+          "name": "St George's Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_George%27s_Hall,_Liverpool"
+        },
+        {
+          "name": "Royal Albert Dock",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Albert_Dock,_Liverpool"
+        },
+        {
+          "name": "Cavern Club",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cavern_Club"
+        },
+        {
+          "name": "Liverpool Town Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Liverpool_Town_Hall"
+        },
+        {
+          "name": "Liverpool Metropolitan Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Liverpool_Metropolitan_Cathedral"
+        },
+        {
+          "name": "Williamson Tunnels",
+          "wikipedia": "https://en.wikipedia.org/wiki/Williamson_Tunnels"
+        }
+      ],
+      "Loch Ness": [
+        {
+          "name": "Urquhart Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Urquhart_Castle"
+        },
+        {
+          "name": "Corrimony Chambered Cairn",
+          "wikipedia": "https://en.wikipedia.org/wiki/Corrimony_Chambered_Cairn"
+        },
+        {
+          "name": "Fort Augustus Abbey",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fort_Augustus_Abbey"
+        }
+      ],
+      "London": [
+        {
+          "name": "Tower of London",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tower_of_London"
+        },
+        {
+          "name": "Westminster Abbey",
+          "wikipedia": "https://en.wikipedia.org/wiki/Westminster_Abbey"
+        },
+        {
+          "name": "Palace of Westminster",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_Westminster"
+        },
+        {
+          "name": "Buckingham Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Buckingham_Palace"
+        },
+        {
+          "name": "St Paul's Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Paul%27s_Cathedral"
+        },
+        {
+          "name": "Tower Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tower_Bridge"
+        },
+        {
+          "name": "Hampton Court Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hampton_Court_Palace"
+        },
+        {
+          "name": "Kensington Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kensington_Palace"
+        },
+        {
+          "name": "Old Royal Naval College",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Royal_Naval_College"
+        },
+        {
+          "name": "Monument to the Great Fire of London",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monument_to_the_Great_Fire_of_London"
+        },
+        {
+          "name": "Royal Albert Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Royal_Albert_Hall"
+        },
+        {
+          "name": "Shakespeare's Globe",
+          "wikipedia": "https://en.wikipedia.org/wiki/Shakespeare%27s_Globe"
+        },
+        {
+          "name": "Banqueting House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Banqueting_House"
+        }
+      ],
+      "Manchester": [
+        {
+          "name": "Manchester Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Manchester_Cathedral"
+        },
+        {
+          "name": "Manchester Town Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Manchester_Town_Hall"
+        },
+        {
+          "name": "John Rylands Library",
+          "wikipedia": "https://en.wikipedia.org/wiki/John_Rylands_Library"
+        },
+        {
+          "name": "Castlefield",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castlefield"
+        },
+        {
+          "name": "Victoria Baths",
+          "wikipedia": "https://en.wikipedia.org/wiki/Victoria_Baths"
+        },
+        {
+          "name": "Ordsall Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ordsall_Hall"
+        },
+        {
+          "name": "Chetham's Library",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chetham%27s_Library"
+        }
+      ],
+      "Peak District National Park": [
+        {
+          "name": "Chatsworth House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chatsworth_House"
+        },
+        {
+          "name": "Haddon Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Haddon_Hall"
+        },
+        {
+          "name": "Peveril Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Peveril_Castle"
+        },
+        {
+          "name": "Eyam Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Eyam_Hall"
+        },
+        {
+          "name": "Arbor Low",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arbor_Low"
+        },
+        {
+          "name": "Nine Ladies",
+          "wikipedia": "https://en.wikipedia.org/wiki/Nine_Ladies"
+        }
+      ],
+      "Snowdonia National Park": [
+        {
+          "name": "Harlech Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Harlech_Castle"
+        },
+        {
+          "name": "Dolbadarn Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dolbadarn_Castle"
+        },
+        {
+          "name": "Tomen y Mur",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tomen_y_Mur"
+        },
+        {
+          "name": "Dolwyddelan Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dolwyddelan_Castle"
+        }
+      ],
+      "Stonehenge": [
+        {
+          "name": "Stonehenge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Stonehenge"
+        },
+        {
+          "name": "Durrington Walls",
+          "wikipedia": "https://en.wikipedia.org/wiki/Durrington_Walls"
+        },
+        {
+          "name": "Woodhenge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Woodhenge"
+        }
+      ],
+      "York": [
+        {
+          "name": "York Minster",
+          "wikipedia": "https://en.wikipedia.org/wiki/York_Minster"
+        },
+        {
+          "name": "York City Walls",
+          "wikipedia": "https://en.wikipedia.org/wiki/York_city_walls"
+        },
+        {
+          "name": "Clifford's Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Clifford%27s_Tower"
+        },
+        {
+          "name": "The Shambles",
+          "wikipedia": "https://en.wikipedia.org/wiki/The_Shambles"
+        },
+        {
+          "name": "Treasurer's House",
+          "wikipedia": "https://en.wikipedia.org/wiki/Treasurer%27s_House,_York"
+        },
+        {
+          "name": "Bar Convent",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bar_Convent"
+        },
+        {
+          "name": "Merchant Adventurers' Hall",
+          "wikipedia": "https://en.wikipedia.org/wiki/Merchant_Adventurers%27_Hall"
+        },
+        {
+          "name": "St Mary's Abbey",
+          "wikipedia": "https://en.wikipedia.org/wiki/St_Mary%27s_Abbey,_York"
+        }
+      ]
+    }
+  },
+  "Greece": {
+    "historical_sites": {
+      "Athens": [
+        {
+          "name": "Acropolis of Athens",
+          "wikipedia": "https://en.wikipedia.org/wiki/Acropolis_of_Athens"
+        },
+        {
+          "name": "Parthenon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Parthenon"
+        },
+        {
+          "name": "Ancient Agora of Athens",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ancient_Agora_of_Athens"
+        },
+        {
+          "name": "Temple of Olympian Zeus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Olympian_Zeus,_Athens"
+        },
+        {
+          "name": "Panathenaic Stadium",
+          "wikipedia": "https://en.wikipedia.org/wiki/Panathenaic_Stadium"
+        },
+        {
+          "name": "Odeon of Herodes Atticus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Odeon_of_Herodes_Atticus"
+        },
+        {
+          "name": "Kerameikos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kerameikos"
+        },
+        {
+          "name": "Roman Agora",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Agora"
+        },
+        {
+          "name": "Arch of Hadrian",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arch_of_Hadrian_(Athens)"
+        },
+        {
+          "name": "Temple of Hephaestus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Hephaestus"
+        },
+        {
+          "name": "Pnyx",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pnyx"
+        }
+      ],
+      "Chania": [
+        {
+          "name": "Firkas Fortress",
+          "wikipedia": "https://en.wikipedia.org/wiki/Firkas_Fortress"
+        },
+        {
+          "name": "Chania Lighthouse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chania_Lighthouse"
+        },
+        {
+          "name": "Etz Hayyim Synagogue",
+          "wikipedia": "https://en.wikipedia.org/wiki/Etz_Hayyim_Synagogue"
+        },
+        {
+          "name": "Agia Triada Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Agia_Triada_Monastery"
+        }
+      ],
+      "Chersonissos": [
+        {
+          "name": "Malia Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Malia_Palace"
+        }
+      ],
+      "Corfu": [
+        {
+          "name": "Old Fortress",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Fortress,_Corfu"
+        },
+        {
+          "name": "New Fortress",
+          "wikipedia": "https://en.wikipedia.org/wiki/New_Fortress,_Corfu"
+        },
+        {
+          "name": "Achilleion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Achilleion"
+        },
+        {
+          "name": "Saint Spyridon Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Saint_Spyridon_Church"
+        },
+        {
+          "name": "Palace of St. Michael and St. George",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_St._Michael_and_St._George"
+        },
+        {
+          "name": "Angelokastro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Angelokastro_(Corfu)"
+        }
+      ],
+      "Crete": [
+        {
+          "name": "Phaistos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Phaistos"
+        },
+        {
+          "name": "Gortyna",
+          "wikipedia": "https://en.wikipedia.org/wiki/Gortyna"
+        },
+        {
+          "name": "Arkadi Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arkadi_Monastery"
+        },
+        {
+          "name": "Spinalonga",
+          "wikipedia": "https://en.wikipedia.org/wiki/Spinalonga"
+        },
+        {
+          "name": "Preveli Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Preveli_Monastery"
+        }
+      ],
+      "Delphi": [
+        {
+          "name": "Delphi",
+          "wikipedia": "https://en.wikipedia.org/wiki/Delphi"
+        },
+        {
+          "name": "Temple of Apollo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Apollo_(Delphi)"
+        },
+        {
+          "name": "Treasury of the Athenians",
+          "wikipedia": "https://en.wikipedia.org/wiki/Treasury_of_the_Athenians"
+        },
+        {
+          "name": "Tholos of Delphi",
+          "wikipedia": "https://en.wikipedia.org/wiki/Tholos_of_Delphi"
+        }
+      ],
+      "Heraklion": [
+        {
+          "name": "Knossos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Knossos"
+        },
+        {
+          "name": "Koules Fortress",
+          "wikipedia": "https://en.wikipedia.org/wiki/Koules_Fortress"
+        },
+        {
+          "name": "Walls of Heraklion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Walls_of_Heraklion"
+        },
+        {
+          "name": "Cathedral of Saint Minas",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cathedral_of_Saint_Minas"
+        },
+        {
+          "name": "Loggia of Heraklion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Loggia_of_Heraklion"
+        }
+      ],
+      "Kavala": [
+        {
+          "name": "Kavala Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kavala_Castle"
+        },
+        {
+          "name": "Kavala Aqueduct",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kavala_Aqueduct"
+        },
+        {
+          "name": "Imaret of Kavala",
+          "wikipedia": "https://en.wikipedia.org/wiki/Imaret_of_Kavala"
+        }
+      ],
+      "Meteora": [
+        {
+          "name": "Meteora",
+          "wikipedia": "https://en.wikipedia.org/wiki/Meteora"
+        },
+        {
+          "name": "Great Meteoron Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Great_Meteoron_Monastery"
+        },
+        {
+          "name": "Varlaam Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Varlaam_Monastery"
+        },
+        {
+          "name": "Monastery of the Holy Trinity",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monastery_of_the_Holy_Trinity,_Meteora"
+        },
+        {
+          "name": "Rousanou Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rousanou_Monastery"
+        }
+      ],
+      "Mount Athos": [
+        {
+          "name": "Mount Athos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mount_Athos"
+        },
+        {
+          "name": "Great Lavra",
+          "wikipedia": "https://en.wikipedia.org/wiki/Great_Lavra"
+        },
+        {
+          "name": "Vatopedi",
+          "wikipedia": "https://en.wikipedia.org/wiki/Vatopedi"
+        },
+        {
+          "name": "Iviron Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Iviron_Monastery"
+        },
+        {
+          "name": "Hilandar",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hilandar"
+        },
+        {
+          "name": "Simonopetra",
+          "wikipedia": "https://en.wikipedia.org/wiki/Simonopetra"
+        }
+      ],
+      "Mykonos": [
+        {
+          "name": "Church of Panagia Paraportiani",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_Panagia_Paraportiani"
+        },
+        {
+          "name": "Delos",
+          "wikipedia": "https://en.wikipedia.org/wiki/Delos"
+        }
+      ],
+      "Olympia": [
+        {
+          "name": "Olympia",
+          "wikipedia": "https://en.wikipedia.org/wiki/Olympia,_Greece"
+        },
+        {
+          "name": "Temple of Zeus",
+          "wikipedia": "https://en.wikipedia.org/wiki/Temple_of_Zeus,_Olympia"
+        },
+        {
+          "name": "Heraion of Olympia",
+          "wikipedia": "https://en.wikipedia.org/wiki/Heraion_of_Olympia"
+        },
+        {
+          "name": "Philippeion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Philippeion"
+        },
+        {
+          "name": "Stadium at Olympia",
+          "wikipedia": "https://en.wikipedia.org/wiki/Stadium_at_Olympia"
+        }
+      ],
+      "Patras": [
+        {
+          "name": "Patras Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Patras_Castle"
+        },
+        {
+          "name": "Roman Odeon of Patras",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Odeon_of_Patras"
+        },
+        {
+          "name": "Cathedral of Saint Andrew",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cathedral_of_Saint_Andrew,_Patras"
+        },
+        {
+          "name": "Achaia Clauss",
+          "wikipedia": "https://en.wikipedia.org/wiki/Achaia_Clauss"
+        }
+      ],
+      "Rhodes": [
+        {
+          "name": "Palace of the Grand Master of the Knights of Rhodes",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_the_Grand_Master_of_the_Knights_of_Rhodes"
+        },
+        {
+          "name": "Acropolis of Rhodes",
+          "wikipedia": "https://en.wikipedia.org/wiki/Acropolis_of_Rhodes"
+        },
+        {
+          "name": "Fortifications of Rhodes",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fortifications_of_Rhodes"
+        },
+        {
+          "name": "Kahal Shalom Synagogue",
+          "wikipedia": "https://en.wikipedia.org/wiki/Kahal_Shalom_Synagogue"
+        },
+        {
+          "name": "Street of the Knights",
+          "wikipedia": "https://en.wikipedia.org/wiki/Street_of_the_Knights,_Rhodes"
+        },
+        {
+          "name": "Lindos Acropolis",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lindos_Acropolis"
+        }
+      ],
+      "Santorini": [
+        {
+          "name": "Akrotiri",
+          "wikipedia": "https://en.wikipedia.org/wiki/Akrotiri_(prehistoric_city)"
+        },
+        {
+          "name": "Ancient Thera",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ancient_Thera"
+        },
+        {
+          "name": "Panagia Episkopi",
+          "wikipedia": "https://en.wikipedia.org/wiki/Panagia_Episkopi"
+        }
+      ],
+      "Thessaloniki": [
+        {
+          "name": "White Tower of Thessaloniki",
+          "wikipedia": "https://en.wikipedia.org/wiki/White_Tower_of_Thessaloniki"
+        },
+        {
+          "name": "Rotunda",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arch_and_Tomb_of_Galerius"
+        },
+        {
+          "name": "Arch of Galerius",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arch_of_Galerius_and_Rotunda"
+        },
+        {
+          "name": "Church of Saint Demetrius",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_Saint_Demetrius,_Thessaloniki"
+        },
+        {
+          "name": "Hagia Sophia",
+          "wikipedia": "https://en.wikipedia.org/wiki/Hagia_Sophia,_Thessaloniki"
+        },
+        {
+          "name": "Heptapyrgion",
+          "wikipedia": "https://en.wikipedia.org/wiki/Heptapyrgion,_Thessaloniki"
+        },
+        {
+          "name": "Roman Forum of Thessaloniki",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Forum_of_Thessaloniki"
+        },
+        {
+          "name": "Church of Panagia Chalkeon",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_Panagia_Chalkeon"
+        }
+      ],
+      "Volos": [
+        {
+          "name": "Dimini",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dimini"
+        },
+        {
+          "name": "Sesklo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sesklo"
+        }
+      ]
+    }
+  },
+  "Portugal": {
+    "historical_sites": {
+      "Alto Douro Wine Region": [
+        {
+          "name": "Alto Douro Wine Region",
+          "wikipedia": "https://en.wikipedia.org/wiki/Alto_Douro_Wine_Region"
+        },
+        {
+          "name": "Mateus Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/Mateus_Palace"
+        }
+      ],
+      "Angra do Heroísmo": [
+        {
+          "name": "Historic Centre of Angra do Heroísmo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Angra_do_Hero%C3%ADsmo"
+        },
+        {
+          "name": "Cathedral of Angra do Heroísmo",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cathedral_of_Angra_do_Hero%C3%ADsmo"
+        },
+        {
+          "name": "Forte de São Sebastião",
+          "wikipedia": "https://en.wikipedia.org/wiki/Forte_de_S%C3%A3o_Sebasti%C3%A3o_(Angra_do_Hero%C3%ADsmo)"
+        }
+      ],
+      "Aveiro": [
+        {
+          "name": "Aveiro Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Aveiro_Cathedral"
+        },
+        {
+          "name": "Aveiro Railway Station",
+          "wikipedia": "https://en.wikipedia.org/wiki/Aveiro_railway_station"
+        }
+      ],
+      "Braga": [
+        {
+          "name": "Braga Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Braga_Cathedral"
+        },
+        {
+          "name": "Bom Jesus do Monte",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bom_Jesus_do_Monte"
+        },
+        {
+          "name": "Sanctuary of Our Lady of Sameiro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Sanctuary_of_Our_Lady_of_Sameiro"
+        },
+        {
+          "name": "Episcopal Palace of Braga",
+          "wikipedia": "https://en.wikipedia.org/wiki/Episcopal_Palace_of_Braga"
+        },
+        {
+          "name": "Arco da Porta Nova",
+          "wikipedia": "https://en.wikipedia.org/wiki/Arco_da_Porta_Nova"
+        },
+        {
+          "name": "Castle of Braga",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Braga"
+        }
+      ],
+      "Cabo da Roca": [
+        {
+          "name": "Cabo da Roca Lighthouse",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cabo_da_Roca_Lighthouse"
+        }
+      ],
+      "Coimbra": [
+        {
+          "name": "University of Coimbra",
+          "wikipedia": "https://en.wikipedia.org/wiki/University_of_Coimbra"
+        },
+        {
+          "name": "Joanina Library",
+          "wikipedia": "https://en.wikipedia.org/wiki/Joanina_Library"
+        },
+        {
+          "name": "Old Cathedral of Coimbra",
+          "wikipedia": "https://en.wikipedia.org/wiki/Old_Cathedral_of_Coimbra"
+        },
+        {
+          "name": "Monastery of Santa Clara-a-Velha",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monastery_of_Santa_Clara-a-Velha"
+        },
+        {
+          "name": "Monastery of Santa Cruz",
+          "wikipedia": "https://en.wikipedia.org/wiki/Monastery_of_Santa_Cruz"
+        },
+        {
+          "name": "New Cathedral of Coimbra",
+          "wikipedia": "https://en.wikipedia.org/wiki/New_Cathedral_of_Coimbra"
+        },
+        {
+          "name": "Quinta das Lágrimas",
+          "wikipedia": "https://en.wikipedia.org/wiki/Quinta_das_L%C3%A1grimas"
+        }
+      ],
+      "Évora": [
+        {
+          "name": "Roman Temple of Évora",
+          "wikipedia": "https://en.wikipedia.org/wiki/Roman_Temple_of_%C3%89vora"
+        },
+        {
+          "name": "Cathedral of Évora",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cathedral_of_%C3%89vora"
+        },
+        {
+          "name": "Chapel of Bones",
+          "wikipedia": "https://en.wikipedia.org/wiki/Chapel_of_Bones"
+        },
+        {
+          "name": "Walls of Évora",
+          "wikipedia": "https://en.wikipedia.org/wiki/Walls_of_%C3%89vora"
+        },
+        {
+          "name": "Church of São Francisco",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_S%C3%A3o_Francisco,_%C3%89vora"
+        },
+        {
+          "name": "Palace of the Dukes of Cadaval",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_the_Dukes_of_Cadaval"
+        }
+      ],
+      "Funchal": [
+        {
+          "name": "Funchal Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Funchal_Cathedral"
+        },
+        {
+          "name": "São Lourenço Palace",
+          "wikipedia": "https://en.wikipedia.org/wiki/S%C3%A3o_Louren%C3%A7o_Palace"
+        },
+        {
+          "name": "Fortress of São João Baptista do Pico",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fortress_of_S%C3%A3o_Jo%C3%A3o_Baptista_do_Pico"
+        },
+        {
+          "name": "Convent of Santa Clara",
+          "wikipedia": "https://en.wikipedia.org/wiki/Convent_of_Santa_Clara,_Funchal"
+        },
+        {
+          "name": "Church of Nossa Senhora do Monte",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_Nossa_Senhora_do_Monte"
+        }
+      ],
+      "Guimarães": [
+        {
+          "name": "Guimarães Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/Guimar%C3%A3es_Castle"
+        },
+        {
+          "name": "Palace of the Dukes of Braganza",
+          "wikipedia": "https://en.wikipedia.org/wiki/Palace_of_the_Dukes_of_Braganza"
+        },
+        {
+          "name": "Historic Centre of Guimarães",
+          "wikipedia": "https://en.wikipedia.org/wiki/Historic_Centre_of_Guimar%C3%A3es"
+        },
+        {
+          "name": "Church of Nossa Senhora da Oliveira",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_Nossa_Senhora_da_Oliveira"
+        },
+        {
+          "name": "Padrão do Salado",
+          "wikipedia": "https://en.wikipedia.org/wiki/Padr%C3%A3o_do_Salado"
+        }
+      ],
+      "Lisbon": [
+        {
+          "name": "Belém Tower",
+          "wikipedia": "https://en.wikipedia.org/wiki/Bel%C3%A9m_Tower"
+        },
+        {
+          "name": "Jerónimos Monastery",
+          "wikipedia": "https://en.wikipedia.org/wiki/Jer%C3%B3nimos_Monastery"
+        },
+        {
+          "name": "São Jorge Castle",
+          "wikipedia": "https://en.wikipedia.org/wiki/S%C3%A3o_Jorge_Castle"
+        },
+        {
+          "name": "Lisbon Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Lisbon_Cathedral"
+        },
+        {
+          "name": "Carmo Convent",
+          "wikipedia": "https://en.wikipedia.org/wiki/Carmo_Convent"
+        },
+        {
+          "name": "Praça do Comércio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pra%C3%A7a_do_Com%C3%A9rcio"
+        },
+        {
+          "name": "Santa Justa Lift",
+          "wikipedia": "https://en.wikipedia.org/wiki/Santa_Justa_Lift"
+        },
+        {
+          "name": "National Pantheon",
+          "wikipedia": "https://en.wikipedia.org/wiki/National_Pantheon_of_Santa_Engr%C3%A1cia"
+        },
+        {
+          "name": "Águas Livres Aqueduct",
+          "wikipedia": "https://en.wikipedia.org/wiki/%C3%81guas_Livres_Aqueduct"
+        },
+        {
+          "name": "Monument to the Discoveries",
+          "wikipedia": "https://en.wikipedia.org/wiki/Padr%C3%A3o_dos_Descobrimentos"
+        },
+        {
+          "name": "Rossio",
+          "wikipedia": "https://en.wikipedia.org/wiki/Rossio"
+        },
+        {
+          "name": "Church of São Roque",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_S%C3%A3o_Roque"
+        }
+      ],
+      "Peneda-Gerês National Park": [
+        {
+          "name": "Castle of Castro Laboreiro",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Castro_Laboreiro"
+        },
+        {
+          "name": "Castle of Lindoso",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Lindoso"
+        }
+      ],
+      "Porto": [
+        {
+          "name": "Porto Cathedral",
+          "wikipedia": "https://en.wikipedia.org/wiki/Porto_Cathedral"
+        },
+        {
+          "name": "Dom Luís I Bridge",
+          "wikipedia": "https://en.wikipedia.org/wiki/Dom_Lu%C3%ADs_I_Bridge"
+        },
+        {
+          "name": "Clérigos Church",
+          "wikipedia": "https://en.wikipedia.org/wiki/Cl%C3%A9rigos_Church"
+        },
+        {
+          "name": "Palácio da Bolsa",
+          "wikipedia": "https://en.wikipedia.org/wiki/Pal%C3%A1cio_da_Bolsa"
+        },
+        {
+          "name": "Church of São Francisco",
+          "wikipedia": "https://en.wikipedia.org/wiki/Church_of_S%C3%A3o_Francisco,_Porto"
+        },
+        {
+          "name": "São Bento Railway Station",
+          "wikipedia": "https://en.wikipedia.org/wiki/S%C3%A3o_Bento_railway_station"
+        },
+        {
+          "name": "Ribeira Square",
+          "wikipedia": "https://en.wikipedia.org/wiki/Ribeira_Square"
+        },
+        {
+          "name": "Fernandine Walls",
+          "wikipedia": "https://en.wikipedia.org/wiki/Fernandine_Walls"
+        },
+        {
+          "name": "Episcopal Palace of Porto",
+          "wikipedia": "https://en.wikipedia.org/wiki/Episcopal_Palace_of_Porto"
+        }
+      ],
+      "Prehistoric Rock Art Sites in the Côa Valley": [
+        {
+          "name": "Prehistoric Rock Art Sites in the Côa Valley",
+          "wikipedia": "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_Sites_in_the_C%C3%B4a_Valley"
+        },
+        {
+          "name": "Castle of Castelo Melhor",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Castelo_Melhor"
+        }
+      ],
+      "Serra da Estrela Natural Park": [
+        {
+          "name": "Castle of Linhares",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Linhares"
+        },
+        {
+          "name": "Castle of Belmonte",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Belmonte"
+        },
+        {
+          "name": "Castle of Sortelha",
+          "wikipedia": "https://en.wikipedia.org/wiki/Castle_of_Sortelha"
+        }
+      ]
+    }
+  }
+  }
