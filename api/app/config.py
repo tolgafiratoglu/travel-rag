@@ -27,10 +27,12 @@ class Settings(BaseSettings):
     qwen_llm: Literal["1b", "8b"] = "1b"
     qwen8b: str = "qwen3:8b"
     qwen1b: str = "qwen3:1.7b-q4_K_M"
-    ollama_embed_model: str = "nomic-embed-text"
+    ollama_embed_model: str = "bge-m3"
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "travel_chunks"
+    qdrant_collection_museums: str = "travel_museums"
+    qdrant_collection_historical: str = "travel_historical_sites"
 
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"

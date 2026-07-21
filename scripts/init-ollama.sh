@@ -59,4 +59,4 @@ docker exec "$CONTAINER" ollama list
 
 echo
 echo "Done."
-echo "Note: API/ingest still default to nomic until wiring; re-run ingest after switching embed model (bge-m3 is 1024-dim)."
+echo "Note: Defaults use bge-m3 (1024-dim). Re-ingest all Qdrant collections after first pull or model change."

@@ -4,7 +4,7 @@ from app.config import settings
 
 
 async def embed(text: str) -> list[float]:
-    """Embed a text string using nomic-embed-text via Ollama."""
+    """Embed a text string using bge-m3 via Ollama."""
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.ollama_base_url}/api/embed",

@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-"""Ingest Wikivoyage wikitext from MariaDB into Qdrant.
+"""Ingest Wikivoyage wikitext from MariaDB into Qdrant (bge-m3).
 
 Parses listing templates (see/do/go/eat/sleep/marker/listing) into dedicated
 chunks, then section prose into separate chunks. Excludes drink, stay_safe,
 stay_healthy at ingestion.
 
-Usage:
-    .venv/bin/pip install pymysql httpx qdrant-client
+By default recreates the target collection (wipe) so embeddings stay on one
+model/dimension. Use --no-wipe for incremental city upserts.
 
+Usage:
     MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wikivoyage-qdrant.py \\
         --page Bordeaux --dry-run
 
     MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \\
     OLLAMA_BASE_URL=http://localhost:11434 \\
-    .venv/bin/python scripts/ingest-wikivoyage-qdrant.py --page Bordeaux
-
-    MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wikivoyage-qdrant.py
+    .venv/bin/python scripts/ingest-wikivoyage-qdrant.py
 """
 
 from __future__ import annotations
@@ -49,7 +48,7 @@ from lib.wv_chunks import build_chunks, make_point_id
 from lib.wv_db import load_cities
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 
@@ -61,6 +60,18 @@ async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
     )
     resp.raise_for_status()
     return resp.json()["embeddings"][0]
+
+
+def recreate_collection(client: QdrantClient, dim: int) -> None:
+    names = {c.name for c in client.get_collections().collections}
+    if QDRANT_COLLECTION in names:
+        print(f"  wiping collection {QDRANT_COLLECTION!r}")
+        client.delete_collection(QDRANT_COLLECTION)
+    client.create_collection(
+        collection_name=QDRANT_COLLECTION,
+        vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+    )
+    print(f"  created {QDRANT_COLLECTION!r} dim={dim}")
 
 
 def ensure_collection(client: QdrantClient, dim: int) -> None:
@@ -82,8 +93,7 @@ def delete_city_points(client: QdrantClient, source_url: str) -> None:
 
 
 def qdrant_payload(chunk: dict) -> dict:
-    skip = {"chunk_index"}
-    return {k: v for k, v in chunk.items() if v is not None and k not in skip}
+    return {k: v for k, v in chunk.items() if v is not None}
 
 
 async def ingest_city(
@@ -91,6 +101,8 @@ async def ingest_city(
     http: httpx.AsyncClient,
     row: dict,
     dry_run: bool,
+    *,
+    wiped: bool,
 ) -> tuple[int, int, int]:
     chunks = build_chunks(row)
     listing_n = sum(1 for c in chunks if c["chunk_kind"] == "listing")
@@ -106,7 +118,8 @@ async def ingest_city(
             print(f"    ... +{len(chunks) - 5} more")
         return listing_n, section_n, len(chunks)
 
-    delete_city_points(qdrant, row["source_url"])
+    if not wiped:
+        delete_city_points(qdrant, row["source_url"])
 
     points: list[PointStruct] = []
     for i, chunk in enumerate(chunks):
@@ -127,22 +140,29 @@ async def ingest_city(
     return listing_n, section_n, len(chunks)
 
 
-async def main_async(page: str | None, dry_run: bool) -> None:
+async def main_async(page: str | None, dry_run: bool, wipe: bool) -> None:
     rows = load_cities(page)
     if not rows:
         print("No rows in wv_cities (run parse-wikivoyage.py first)")
         sys.exit(1)
 
     print(f"Loaded {len(rows)} city/cities from wv_cities")
+    print(f"Embed model: {OLLAMA_EMBED_MODEL}")
     qdrant = QdrantClient(url=QDRANT_URL)
     totals = {"listing": 0, "section": 0, "all": 0}
+    wiped = False
 
     async with httpx.AsyncClient(timeout=120.0) as http:
+        if wipe and not dry_run:
+            probe = await embed_text(http, "dimension probe")
+            recreate_collection(qdrant, len(probe))
+            wiped = True
+
         for i, row in enumerate(rows, 1):
             print(f"[{i}/{len(rows)}] {row['country']} / {row['page_name']}")
             try:
                 listing_n, section_n, all_n = await ingest_city(
-                    qdrant, http, row, dry_run
+                    qdrant, http, row, dry_run, wiped=wiped
                 )
                 totals["listing"] += listing_n
                 totals["section"] += section_n
@@ -162,9 +182,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Ingest wv_cities into Qdrant")
     parser.add_argument("--page", help="Single city (page_name or wiki title)")
     parser.add_argument("--dry-run", action="store_true", help="Parse only, no embed")
+    parser.add_argument(
+        "--wipe",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Recreate collection before ingest (default: true)",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(main_async(args.page, args.dry_run))
+    asyncio.run(main_async(args.page, args.dry_run, args.wipe))
