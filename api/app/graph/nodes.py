@@ -9,6 +9,8 @@ from app.models.planner import cities_from_intents, parse_planner_output, planne
 from app.services import graph_store
 from app.services import llm
 from app.services import vector_store
+from app.config import settings
+from app.services.guard import REJECT_MESSAGE, get_guard_client
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +33,15 @@ Schema:
   "plan": {{
     "summary": "One short active sentence in the user's language describing what you will do next",
     "steps": [
-      {{ "id": "s1", "label": "descriptive action in the user's language", "kind": "vector|graph|external|synthesize", "status": "idle" }}
+      {{ "id": "s1", "label": "descriptive action in the user's language", "kind": "vector|graph|museums|artifacts|external|synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": ["retrieval-optimized phrase 1", "phrase 2"],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
@@ -52,9 +59,18 @@ Rules:
   cities: cities relevant to that specific intent (empty list if none).
   If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
   When primary_intent is a task intent (not chitchat/meta), include a matching entry in intents[].
-- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/source retrieval, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
-- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], neo4j_data to {{}}, is_hotel_search and is_flight_search to false.
-- search_queries: 1-3 short English phrases optimized for vector search over travel guide content (empty for chitchat/meta). These are separate from hotel/flight URLs.
+- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
+- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], neo4j_data to {{}}, deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
+- search_queries: 1-3 short English phrases optimized for vector search over travel guide (Wikivoyage) content (empty for chitchat/meta). Separate from hotel/flight URLs and from museum/artifact queries.
+
+Deep POI search (museums + historical sites):
+- deep_search: true when museum or historical-site detail would materially help (sights, museums, ruins, castles, temples, UNESCO sites, "what to see", "tarihi yerler", "müzeler").
+- search_museums: true for museums, galleries, collections.
+- search_artifacts: true for historical sites, ruins, monuments, archaeological places, castles, temples.
+- deep_search must be true iff search_museums or search_artifacts is true.
+- museum_search_queries: when search_museums is true, 1-3 short English phrases for the museums collection (include city and museum names when known). When false, [].
+- artifact_search_queries: when search_artifacts is true, 1-3 short English phrases for the historical-sites collection. When false, [].
+- Pure hotel/flight or chitchat/meta: deep_search, search_museums, search_artifacts all false; both query lists [].
 
 Hotel search (Booking.com):
 - is_hotel_search: true only when the user asks for accommodation, hotels, or lodging.
@@ -97,6 +113,11 @@ Example — question: "Where can I go with my family in Antalya?"
     ]
   }},
   "search_queries": ["Antalya family friendly places", "Antalya kid friendly beach activities"],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
@@ -120,11 +141,44 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
     ]
   }},
   "search_queries": ["Antalya 5 day itinerary", "Bodrum vs Antalya"],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
   "neo4j_data": {{ "Antalya": "City", "Bodrum": "City" }}
+}}
+
+Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
+{{
+  "primary_intent": "recommendation",
+  "intents": [
+    {{ "intent": "recommendation", "cities": ["İstanbul"] }}
+  ],
+  "prompt_language": "tr",
+  "plan": {{
+    "summary": "İstanbul müzelerini araştırıyorum.",
+    "steps": [
+      {{ "id": "s1", "label": "İstanbul müzelerini tara", "kind": "museums", "status": "idle" }},
+      {{ "id": "s2", "label": "Rehber özetini getir", "kind": "vector", "status": "idle" }},
+      {{ "id": "s3", "label": "Müze önerilerini sentezle", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": ["Istanbul museums overview", "Istanbul top attractions"],
+  "deep_search": true,
+  "search_museums": true,
+  "search_artifacts": false,
+  "museum_search_queries": ["Istanbul best museums", "Istanbul archaeology museums"],
+  "artifact_search_queries": [],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "neo4j_data": {{ "İstanbul": "City" }}
 }}
 
 Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
@@ -144,6 +198,11 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
     ]
   }},
   "search_queries": ["Istanbul 5 day itinerary", "Istanbul top attractions"],
+  "deep_search": true,
+  "search_museums": true,
+  "search_artifacts": true,
+  "museum_search_queries": ["Istanbul museums"],
+  "artifact_search_queries": ["Istanbul historical sites monuments"],
   "is_hotel_search": true,
   "hotel_search_query": "https://www.booking.com/searchresults.html?ss=İstanbul",
   "is_flight_search": true,
@@ -163,6 +222,11 @@ Example — question: "Hello, what can you do?"
     ]
   }},
   "search_queries": [],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
@@ -177,7 +241,7 @@ Example — question: "Hello, what can you do?"
 """
 
 GROUNDING_POLICY = """Grounding and partial-answer policy:
-Use only the provided sources for factual claims. Vector sources [S] and graph profiles [G] both count as sources.
+Use only the provided sources for factual claims. Vector sources [S], museum sources [M], historical-site sources [H], and graph profiles [G] all count as sources.
 
 First identify the user's core request and any modifiers or constraints.
 
@@ -202,18 +266,28 @@ Reject completely only when no source supports any material part of the user's c
 
 SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
-Reference vector sources as [S1], [S2], etc. Reference graph profiles as [G1], [G2], etc.
+Reference guide sources as [S1], [S2], etc. Reference museum sources as [M1], [M2], etc. Reference historical-site sources as [H1], [H2], etc. Reference graph profiles as [G1], [G2], etc.
 
 {grounding_policy}
 
-{vector_section}{graph_section}### Question
+{museum_section}{artifact_section}{vector_section}{graph_section}### Question
 {question}
 
 ### Answer
 """
 
-SYNTHESIZE_VECTOR_SECTION = """### Vector sources
+SYNTHESIZE_VECTOR_SECTION = """### Guide sources (Wikivoyage)
 {vector_sources}
+
+"""
+
+SYNTHESIZE_MUSEUM_SECTION = """### Museum sources
+{museum_sources}
+
+"""
+
+SYNTHESIZE_ARTIFACT_SECTION = """### Historical site sources
+{artifact_sources}
 
 """
 
@@ -263,6 +337,36 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
+async def _collect_query_chunks(
+    queries: list[str],
+    *,
+    collection: str | None = None,
+    top_k: int = 5,
+    limit: int = 10,
+) -> list[dict]:
+    all_chunks: list[dict] = []
+    seen: set[tuple] = set()
+    for q in queries:
+        try:
+            results = await vector_store.search(q, top_k=top_k, collection=collection)
+        except Exception as e:
+            logger.warning("Vector search failed for %r (%s): %s", q, collection, e)
+            continue
+        for chunk in results:
+            key = (
+                chunk.get("source_url", ""),
+                chunk.get("name", ""),
+                chunk.get("city_name", ""),
+                chunk.get("section", ""),
+                chunk.get("text", "")[:100],
+            )
+            if key not in seen:
+                seen.add(key)
+                all_chunks.append(chunk)
+    all_chunks.sort(key=lambda c: c.get("score", 0), reverse=True)
+    return all_chunks[:limit]
+
+
 # ---------------------------------------------------------------------------
 # Nodes
 # ---------------------------------------------------------------------------
@@ -275,6 +379,40 @@ async def intake_node(state: GraphState) -> GraphState:
     return {
         "question": question,
         "history": state.get("history") or [],
+    }
+
+
+async def safety_guard_node(state: GraphState) -> GraphState:
+    """First model node: Qwen3Guard. Only Safety: Safe continues."""
+    if state.get("error"):
+        return {}
+
+    question = state.get("question") or ""
+    try:
+        result = await get_guard_client().check_prompt(question)
+    except Exception as e:
+        logger.warning("Safety guard failed: %s", e)
+        return {
+            "error": REJECT_MESSAGE,
+            "guard_label": None,
+            "guard_raw": str(e),
+        }
+
+    logger.info(
+        "Safety guard label=%s categories=%s allowed=%s",
+        result.label,
+        result.categories,
+        result.allowed,
+    )
+    if not result.allowed:
+        return {
+            "error": REJECT_MESSAGE,
+            "guard_label": result.label,
+            "guard_raw": result.raw,
+        }
+    return {
+        "guard_label": result.label or "Safe",
+        "guard_raw": result.raw,
     }
 
 
@@ -302,29 +440,35 @@ async def planner_json_node(state: GraphState) -> GraphState:
     return planner_state_update(planner, raw)
 
 
+async def deep_retrieval_node(state: GraphState) -> GraphState:
+    """Search museum / historical-site collections using planner query lists."""
+    museum_chunks: list[dict] = []
+    artifact_chunks: list[dict] = []
+
+    if state.get("search_museums"):
+        museum_chunks = await _collect_query_chunks(
+            state.get("museum_search_queries") or [],
+            collection=settings.qdrant_collection_museums,
+        )
+
+    if state.get("search_artifacts"):
+        artifact_chunks = await _collect_query_chunks(
+            state.get("artifact_search_queries") or [],
+            collection=settings.qdrant_collection_historical,
+        )
+
+    return {
+        "museum_chunks": museum_chunks,
+        "artifact_chunks": artifact_chunks,
+    }
+
+
 async def vector_retrieval_node(state: GraphState) -> GraphState:
     queries = state.get("search_queries") or []
     if not queries:
         return {"vector_chunks": [], "sources": []}
 
-    all_chunks: list[dict] = []
-    seen: set[tuple] = set()
-
-    for q in queries:
-        try:
-            results = await vector_store.search(q, top_k=5)
-        except Exception as e:
-            logger.warning("Vector search failed for %r: %s", q, e)
-            continue
-        for chunk in results:
-            key = (chunk["city_name"], chunk["section"], chunk["text"][:100])
-            if key not in seen:
-                seen.add(key)
-                all_chunks.append(chunk)
-
-    all_chunks.sort(key=lambda c: c.get("score", 0), reverse=True)
-    all_chunks = all_chunks[:10]
-
+    all_chunks = await _collect_query_chunks(queries)
     return {
         "vector_chunks": all_chunks,
         "sources": all_chunks,
@@ -367,13 +511,38 @@ def _build_external_links_section(state: GraphState) -> str:
     return SYNTHESIZE_EXTERNAL_SECTION.format(external_links="\n".join(links))
 
 
+def _chunk_label(chunk: dict) -> str:
+    name = chunk.get("name") or ""
+    city = chunk.get("city_name") or ""
+    section = chunk.get("section") or ""
+    if name and city:
+        return f"{name} / {city}"
+    if city and section:
+        return f"{city} / {section}"
+    return name or city or section or "source"
+
+
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
+    museum_chunks = state.get("museum_chunks") or []
+    artifact_chunks = state.get("artifact_chunks") or []
     contexts = state.get("graph_contexts") or []
     external_section = _build_external_links_section(state)
-    has_external_only = bool(external_section) and not chunks and not contexts
+    has_external_only = (
+        bool(external_section)
+        and not chunks
+        and not museum_chunks
+        and not artifact_chunks
+        and not contexts
+    )
 
-    if not chunks and not contexts and not has_external_only:
+    if (
+        not chunks
+        and not museum_chunks
+        and not artifact_chunks
+        and not contexts
+        and not has_external_only
+    ):
         answer = (
             "I couldn't find relevant information in my sources. "
             "Try rephrasing your question or asking about a specific city."
@@ -383,6 +552,24 @@ async def synthesize_node(state: GraphState) -> GraphState:
             if planner_raw:
                 answer += f"\n\n----- planner response -----\n{planner_raw}"
         return {"answer": answer}
+
+    museum_section = ""
+    if museum_chunks:
+        museum_sources = "\n\n".join(
+            f"[M{i + 1}] ({_chunk_label(c)}): {c['text']}"
+            for i, c in enumerate(museum_chunks)
+        )
+        museum_section = SYNTHESIZE_MUSEUM_SECTION.format(museum_sources=museum_sources)
+
+    artifact_section = ""
+    if artifact_chunks:
+        artifact_sources = "\n\n".join(
+            f"[H{i + 1}] ({_chunk_label(c)}): {c['text']}"
+            for i, c in enumerate(artifact_chunks)
+        )
+        artifact_section = SYNTHESIZE_ARTIFACT_SECTION.format(
+            artifact_sources=artifact_sources
+        )
 
     vector_section = ""
     if chunks:
@@ -402,13 +589,20 @@ async def synthesize_node(state: GraphState) -> GraphState:
 
     prompt = SYNTHESIZE_PROMPT.format(
         grounding_policy=GROUNDING_POLICY,
+        museum_section=museum_section,
+        artifact_section=artifact_section,
         vector_section=vector_section,
         graph_section=graph_section,
         question=state["question"],
     )
     prompt = external_section + prompt
     answer = await llm.generate(prompt)
-    return {"answer": _append_debug_footer(answer, state, prompt)}
+
+    sources = list(museum_chunks) + list(artifact_chunks) + list(chunks)
+    return {
+        "answer": _append_debug_footer(answer, state, prompt),
+        "sources": sources,
+    }
 
 
 async def format_node(state: GraphState) -> GraphState:

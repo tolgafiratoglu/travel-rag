@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     qwen8b: str = "qwen3:8b"
     qwen1b: str = "qwen3:1.7b-q4_K_M"
     ollama_embed_model: str = "bge-m3"
+    ollama_guard_model: str = "sileader/qwen3guard:0.6b"
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "travel_chunks"
@@ -37,6 +38,11 @@ class Settings(BaseSettings):
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "changeme"
+
+    rate_limit_enabled: bool = True
+    rate_limit_burst: int = 5
+    rate_limit_burst_window_seconds: int = 60
+    rate_limit_hourly: int = 30
 
     @field_validator("llm_provider", mode="before")
     @classmethod

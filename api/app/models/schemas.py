@@ -35,6 +35,11 @@ class ChatResponse(BaseModel):
     prompt_language: str | None = None
     plan: Plan | None = None
     search_queries: list[str] = Field(default_factory=list)
+    deep_search: bool = False
+    search_museums: bool = False
+    search_artifacts: bool = False
+    museum_search_queries: list[str] = Field(default_factory=list)
+    artifact_search_queries: list[str] = Field(default_factory=list)
     is_hotel_search: bool = False
     hotel_search_query: str = ""
     is_flight_search: bool = False

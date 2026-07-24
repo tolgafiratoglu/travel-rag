@@ -86,6 +86,11 @@ class PlannerOutput(BaseModel):
     prompt_language: str = "en"
     plan: Plan
     search_queries: list[str] = Field(default_factory=list)
+    deep_search: bool = False
+    search_museums: bool = False
+    search_artifacts: bool = False
+    museum_search_queries: list[str] = Field(default_factory=list)
+    artifact_search_queries: list[str] = Field(default_factory=list)
     is_hotel_search: bool = False
     hotel_search_query: str = ""
     is_flight_search: bool = False
@@ -102,6 +107,22 @@ class PlannerOutput(BaseModel):
                 IntentSlot(intent=self.primary_intent, cities=[]),  # type: ignore[arg-type]
                 *self.intents,
             ]
+        return self
+
+    @model_validator(mode="after")
+    def _align_deep_search_flags(self) -> PlannerOutput:
+        if self.primary_intent in ("chitchat", "meta"):
+            self.deep_search = False
+            self.search_museums = False
+            self.search_artifacts = False
+            self.museum_search_queries = []
+            self.artifact_search_queries = []
+            return self
+        if not self.search_museums:
+            self.museum_search_queries = []
+        if not self.search_artifacts:
+            self.artifact_search_queries = []
+        self.deep_search = bool(self.search_museums or self.search_artifacts)
         return self
 
 
@@ -169,6 +190,10 @@ def parse_planner_output(data: dict[str, Any]) -> PlannerOutput:
         sanitized["hotel_search_query"] = ""
     if not sanitized.get("is_flight_search"):
         sanitized["flight_search_query"] = ""
+    if not sanitized.get("search_museums"):
+        sanitized["museum_search_queries"] = []
+    if not sanitized.get("search_artifacts"):
+        sanitized["artifact_search_queries"] = []
     return PlannerOutput.model_validate(sanitized)
 
 
@@ -206,6 +231,11 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
         "prompt_language": planner.prompt_language,
         "plan": dump["plan"],
         "search_queries": planner.search_queries,
+        "deep_search": planner.deep_search,
+        "search_museums": planner.search_museums,
+        "search_artifacts": planner.search_artifacts,
+        "museum_search_queries": planner.museum_search_queries,
+        "artifact_search_queries": planner.artifact_search_queries,
         "is_hotel_search": planner.is_hotel_search,
         "hotel_search_query": planner.hotel_search_query,
         "is_flight_search": planner.is_flight_search,

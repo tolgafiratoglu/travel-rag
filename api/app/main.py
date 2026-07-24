@@ -10,6 +10,7 @@ from app.config import settings
 from app.routes.health import router as health_router
 from app.routes.chat import router as chat_router
 from app.routes.ws import router as ws_router
+from app.services.guard import get_guard_client
 from app.services.llm import warmup
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,9 @@ async def lifespan(app: FastAPI):
     await wait_for_qdrant(settings.qdrant_url)
     logger.info("Warming up LLM provider=%s...", settings.llm_provider)
     await warmup()
-    logger.info("LLM warm-up complete.")
+    logger.info("Warming up safety guard (%s)...", settings.ollama_guard_model)
+    await get_guard_client().warmup()
+    logger.info("Warm-up complete.")
     yield
 
 

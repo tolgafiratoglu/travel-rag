@@ -4,7 +4,7 @@
 # Models:
 #   - Qwen 8B / 1.7B (optional local LLM)
 #   - bge-m3 (embeddings; replaces nomic-embed-text)
-#   - Qwen3Guard-Gen 0.6B (prompt safety; load only for now)
+#   - Qwen3Guard-Gen 0.6B (prompt safety; keep_alive in API)
 #
 # Run from project root (host), with Docker services up:
 #   ./scripts/init-ollama.sh
