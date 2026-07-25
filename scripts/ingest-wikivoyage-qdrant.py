@@ -37,6 +37,7 @@ try:
         FieldCondition,
         Filter,
         MatchValue,
+        PayloadSchemaType,
         PointStruct,
         VectorParams,
     )
@@ -62,6 +63,19 @@ async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
     return resp.json()["embeddings"][0]
 
 
+def ensure_city_name_index(client: QdrantClient) -> None:
+    try:
+        client.create_payload_index(
+            collection_name=QDRANT_COLLECTION,
+            field_name="city_name",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+        print(f"  payload index city_name on {QDRANT_COLLECTION!r}")
+    except Exception as exc:
+        # Already exists or server variant — safe to continue
+        print(f"  payload index city_name: {exc}")
+
+
 def recreate_collection(client: QdrantClient, dim: int) -> None:
     names = {c.name for c in client.get_collections().collections}
     if QDRANT_COLLECTION in names:
@@ -72,6 +86,7 @@ def recreate_collection(client: QdrantClient, dim: int) -> None:
         vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
     )
     print(f"  created {QDRANT_COLLECTION!r} dim={dim}")
+    ensure_city_name_index(client)
 
 
 def ensure_collection(client: QdrantClient, dim: int) -> None:
@@ -81,6 +96,9 @@ def ensure_collection(client: QdrantClient, dim: int) -> None:
             collection_name=QDRANT_COLLECTION,
             vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
         )
+        ensure_city_name_index(client)
+    else:
+        ensure_city_name_index(client)
 
 
 def delete_city_points(client: QdrantClient, source_url: str) -> None:

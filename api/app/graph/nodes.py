@@ -36,7 +36,10 @@ Schema:
       {{ "id": "s1", "label": "descriptive action in the user's language", "kind": "vector|graph|museums|artifacts|external|synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["retrieval-optimized phrase 1", "phrase 2"],
+  "search_queries": [
+    {{ "q": "retrieval-optimized phrase 1", "city": "Antalya" }},
+    {{ "q": "optional global phrase", "city": "ANY" }}
+  ],
   "deep_search": false,
   "search_museums": false,
   "search_artifacts": false,
@@ -61,15 +64,19 @@ Rules:
   When primary_intent is a task intent (not chitchat/meta), include a matching entry in intents[].
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
 - For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], neo4j_data to {{}}, deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
-- search_queries: 1-3 short English phrases optimized for vector search over travel guide (Wikivoyage) content (empty for chitchat/meta). Separate from hotel/flight URLs and from museum/artifact queries.
+- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
+  q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
+  city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
+  For multi-city questions, prefer one query object per city (same or different q) rather than a single unfiltered query.
 
 Deep POI search (museums + historical sites):
 - deep_search: true when museum or historical-site detail would materially help (sights, museums, ruins, castles, temples, UNESCO sites, "what to see", "tarihi yerler", "müzeler").
 - search_museums: true for museums, galleries, collections.
 - search_artifacts: true for historical sites, ruins, monuments, archaeological places, castles, temples.
 - deep_search must be true iff search_museums or search_artifacts is true.
-- museum_search_queries: when search_museums is true, 1-3 short English phrases for the museums collection (include city and museum names when known). When false, [].
-- artifact_search_queries: when search_artifacts is true, 1-3 short English phrases for the historical-sites collection. When false, [].
+- museum_search_queries: when search_museums is true, 1-3 {{ "q", "city" }} objects for the museums collection. When false, [].
+- artifact_search_queries: when search_artifacts is true, 1-3 {{ "q", "city" }} objects for the historical-sites collection. When false, [].
+- Same city rules as search_queries (CityName or ANY).
 - Pure hotel/flight or chitchat/meta: deep_search, search_museums, search_artifacts all false; both query lists [].
 
 Hotel search (Booking.com):
@@ -112,7 +119,10 @@ Example — question: "Where can I go with my family in Antalya?"
       {{ "id": "s2", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Antalya family friendly places", "Antalya kid friendly beach activities"],
+  "search_queries": [
+    {{ "q": "family friendly places", "city": "Antalya" }},
+    {{ "q": "kid friendly beach activities", "city": "Antalya" }}
+  ],
   "deep_search": false,
   "search_museums": false,
   "search_artifacts": false,
@@ -140,7 +150,11 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
       {{ "id": "s2", "label": "Plan ve karşılaştırmayı sentezle", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Antalya 5 day itinerary", "Bodrum vs Antalya"],
+  "search_queries": [
+    {{ "q": "5 day itinerary", "city": "Antalya" }},
+    {{ "q": "top attractions", "city": "Bodrum" }},
+    {{ "q": "Antalya vs Bodrum travel", "city": "ANY" }}
+  ],
   "deep_search": false,
   "search_museums": false,
   "search_artifacts": false,
@@ -168,11 +182,17 @@ Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
       {{ "id": "s3", "label": "Müze önerilerini sentezle", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Istanbul museums overview", "Istanbul top attractions"],
+  "search_queries": [
+    {{ "q": "museums overview", "city": "Istanbul" }},
+    {{ "q": "top attractions", "city": "Istanbul" }}
+  ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": false,
-  "museum_search_queries": ["Istanbul best museums", "Istanbul archaeology museums"],
+  "museum_search_queries": [
+    {{ "q": "best museums", "city": "Istanbul" }},
+    {{ "q": "archaeology museums", "city": "Istanbul" }}
+  ],
   "artifact_search_queries": [],
   "is_hotel_search": false,
   "hotel_search_query": "",
@@ -197,12 +217,19 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
       {{ "id": "s3", "label": "Rota önerisini sentezle", "kind": "synthesize", "status": "idle" }}
     ]
   }},
-  "search_queries": ["Istanbul 5 day itinerary", "Istanbul top attractions"],
+  "search_queries": [
+    {{ "q": "5 day itinerary", "city": "Istanbul" }},
+    {{ "q": "top attractions", "city": "Istanbul" }}
+  ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": true,
-  "museum_search_queries": ["Istanbul museums"],
-  "artifact_search_queries": ["Istanbul historical sites monuments"],
+  "museum_search_queries": [
+    {{ "q": "museums", "city": "Istanbul" }}
+  ],
+  "artifact_search_queries": [
+    {{ "q": "historical sites monuments", "city": "Istanbul" }}
+  ],
   "is_hotel_search": true,
   "hotel_search_query": "https://www.booking.com/searchresults.html?ss=İstanbul",
   "is_flight_search": true,
@@ -355,7 +382,7 @@ def _extract_json(text: str) -> dict:
 
 
 async def _collect_query_chunks(
-    queries: list[str],
+    queries: list,
     *,
     collection: str | None = None,
     top_k: int = 5,
@@ -363,11 +390,36 @@ async def _collect_query_chunks(
 ) -> list[dict]:
     all_chunks: list[dict] = []
     seen: set[tuple] = set()
-    for q in queries:
+    for item in queries:
+        if isinstance(item, str):
+            q, city = item.strip(), None
+        elif isinstance(item, dict):
+            q = (item.get("q") or item.get("query") or "").strip()
+            city = item.get("city")
+            if isinstance(city, str) and city.strip().upper() == "ANY":
+                city = None
+            elif isinstance(city, str):
+                city = city.strip() or None
+            else:
+                city = None
+        else:
+            q = getattr(item, "q", "") or ""
+            city = getattr(item, "city", None)
+            q = q.strip() if isinstance(q, str) else ""
+        if not q:
+            continue
         try:
-            results = await vector_store.search(q, top_k=top_k, collection=collection)
+            results = await vector_store.search(
+                q, top_k=top_k, collection=collection, city=city
+            )
         except Exception as e:
-            logger.warning("Vector search failed for %r (%s): %s", q, collection, e)
+            logger.warning(
+                "Vector search failed for %r city=%r (%s): %s",
+                q,
+                city,
+                collection,
+                e,
+            )
             continue
         for chunk in results:
             key = (

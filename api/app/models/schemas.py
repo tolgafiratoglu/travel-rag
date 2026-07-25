@@ -27,6 +27,11 @@ class Plan(BaseModel):
     steps: list[PlanStep]
 
 
+class SearchQueryRef(BaseModel):
+    q: str
+    city: str | None = None
+
+
 class ChatResponse(BaseModel):
     answer: str = ""
     sources: list[Source] = Field(default_factory=list)
@@ -34,12 +39,12 @@ class ChatResponse(BaseModel):
     intents: list[dict[str, Any]] = Field(default_factory=list)
     prompt_language: str | None = None
     plan: Plan | None = None
-    search_queries: list[str] = Field(default_factory=list)
+    search_queries: list[SearchQueryRef] = Field(default_factory=list)
     deep_search: bool = False
     search_museums: bool = False
     search_artifacts: bool = False
-    museum_search_queries: list[str] = Field(default_factory=list)
-    artifact_search_queries: list[str] = Field(default_factory=list)
+    museum_search_queries: list[SearchQueryRef] = Field(default_factory=list)
+    artifact_search_queries: list[SearchQueryRef] = Field(default_factory=list)
     is_hotel_search: bool = False
     hotel_search_query: str = ""
     is_flight_search: bool = False

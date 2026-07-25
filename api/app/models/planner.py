@@ -78,6 +78,37 @@ class IntentSlot(BaseModel):
         return out
 
 
+class SearchQuery(BaseModel):
+    """Vector search phrase with optional city payload filter.
+
+    city=None / omitted / \"ANY\" means no city filter (global top-k).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    q: str
+    city: str | None = None
+
+    @field_validator("q", mode="before")
+    @classmethod
+    def _clean_q(cls, value: Any) -> str:
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
+
+    @field_validator("city", mode="before")
+    @classmethod
+    def _clean_city(cls, value: Any) -> str | None:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return None
+        name = value.strip()
+        if not name or name.upper() == "ANY":
+            return None
+        return name
+
+
 class PlannerOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -85,12 +116,12 @@ class PlannerOutput(BaseModel):
     intents: list[IntentSlot] = Field(default_factory=list)
     prompt_language: str = "en"
     plan: Plan
-    search_queries: list[str] = Field(default_factory=list)
+    search_queries: list[SearchQuery] = Field(default_factory=list)
     deep_search: bool = False
     search_museums: bool = False
     search_artifacts: bool = False
-    museum_search_queries: list[str] = Field(default_factory=list)
-    artifact_search_queries: list[str] = Field(default_factory=list)
+    museum_search_queries: list[SearchQuery] = Field(default_factory=list)
+    artifact_search_queries: list[SearchQuery] = Field(default_factory=list)
     is_hotel_search: bool = False
     hotel_search_query: str = ""
     is_flight_search: bool = False
@@ -123,6 +154,15 @@ class PlannerOutput(BaseModel):
         if not self.search_artifacts:
             self.artifact_search_queries = []
         self.deep_search = bool(self.search_museums or self.search_artifacts)
+        return self
+
+    @model_validator(mode="after")
+    def _drop_empty_queries(self) -> PlannerOutput:
+        self.search_queries = [item for item in self.search_queries if item.q]
+        self.museum_search_queries = [item for item in self.museum_search_queries if item.q]
+        self.artifact_search_queries = [
+            item for item in self.artifact_search_queries if item.q
+        ]
         return self
 
 
@@ -173,6 +213,30 @@ def _sanitize_primary_intent(raw: Any, intents: list[dict[str, Any]]) -> str:
     return "factoid"
 
 
+def _sanitize_search_queries(raw: Any) -> list[dict[str, Any]]:
+    """Accept legacy string lists or {q, city} objects."""
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, str):
+            q = item.strip()
+            if q:
+                out.append({"q": q, "city": None})
+            continue
+        if not isinstance(item, dict):
+            continue
+        q = item.get("q")
+        if not isinstance(q, str) or not q.strip():
+            # legacy {query: "..."} fallback
+            q = item.get("query") if isinstance(item.get("query"), str) else ""
+        if not isinstance(q, str) or not q.strip():
+            continue
+        city = item.get("city")
+        out.append({"q": q.strip(), "city": city})
+    return out
+
+
 def parse_planner_output(data: dict[str, Any]) -> PlannerOutput:
     intents = _sanitize_intents(data.get("intents"))
     primary = data.get("primary_intent")
@@ -185,6 +249,13 @@ def parse_planner_output(data: dict[str, Any]) -> PlannerOutput:
         "primary_intent": primary_intent,
         "intents": intents,
         "neo4j_data": _sanitize_neo4j_data(data.get("neo4j_data")),
+        "search_queries": _sanitize_search_queries(data.get("search_queries")),
+        "museum_search_queries": _sanitize_search_queries(
+            data.get("museum_search_queries")
+        ),
+        "artifact_search_queries": _sanitize_search_queries(
+            data.get("artifact_search_queries")
+        ),
     }
     if not sanitized.get("is_hotel_search"):
         sanitized["hotel_search_query"] = ""
@@ -230,12 +301,12 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
         "intents": dump["intents"],
         "prompt_language": planner.prompt_language,
         "plan": dump["plan"],
-        "search_queries": planner.search_queries,
+        "search_queries": dump["search_queries"],
         "deep_search": planner.deep_search,
         "search_museums": planner.search_museums,
         "search_artifacts": planner.search_artifacts,
-        "museum_search_queries": planner.museum_search_queries,
-        "artifact_search_queries": planner.artifact_search_queries,
+        "museum_search_queries": dump["museum_search_queries"],
+        "artifact_search_queries": dump["artifact_search_queries"],
         "is_hotel_search": planner.is_hotel_search,
         "hotel_search_query": planner.hotel_search_query,
         "is_flight_search": planner.is_flight_search,

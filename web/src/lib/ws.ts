@@ -17,12 +17,12 @@ export type WsEvent =
       primary_intent?: string;
       intents?: { intent: string; cities: string[] }[];
       prompt_language?: string;
-      search_queries?: string[];
+      search_queries?: { q: string; city?: string | null }[];
       deep_search?: boolean;
       search_museums?: boolean;
       search_artifacts?: boolean;
-      museum_search_queries?: string[];
-      artifact_search_queries?: string[];
+      museum_search_queries?: { q: string; city?: string | null }[];
+      artifact_search_queries?: { q: string; city?: string | null }[];
       is_hotel_search?: boolean;
       hotel_search_query?: string;
       is_flight_search?: boolean;
