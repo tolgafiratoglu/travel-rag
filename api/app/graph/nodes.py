@@ -264,13 +264,30 @@ Do not infer labels such as family-friendly, cheap, safe, romantic, accessible, 
 
 Reject completely only when no source supports any material part of the user's core request."""
 
+INTENT_INSTRUCTIONS: dict[str, str] = {
+    "factoid": """### Task focus: factoid
+Answer with concrete facts from the sources. Prefer short, cited statements.""",
+    "recommendation": """### Task focus: recommendation
+Suggest options only when the sources support them. Explain brief tradeoffs with citations.""",
+    "planning": """### Task focus: planning
+Structure the answer as a sequenced plan (e.g. day-by-day). Note gaps instead of inventing times or logistics.""",
+    "comparison": """### Task focus: comparison
+Compare along dimensions explicitly supported by the sources.
+Include one markdown comparison table:
+- Do not put the table at the very start of the answer; write a short intro first, then the table, then closing notes if needed.
+- The table body must have at most 5 data rows (header row does not count).
+- Keep columns few and readable; leave cells empty or say "not in sources" rather than inventing values.""",
+    "logistics": """### Task focus: logistics
+Focus on how to get around, timing, transport, and practical constraints grounded in the sources.""",
+}
+
 SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
 Reference guide sources as [S1], [S2], etc. Reference museum sources as [M1], [M2], etc. Reference historical-site sources as [H1], [H2], etc. Reference graph profiles as [G1], [G2], etc.
 
 {grounding_policy}
 
-{museum_section}{artifact_section}{vector_section}{graph_section}### Question
+{intent_section}{museum_section}{artifact_section}{vector_section}{graph_section}### Question
 {question}
 
 ### Answer
@@ -511,6 +528,50 @@ def _build_external_links_section(state: GraphState) -> str:
     return SYNTHESIZE_EXTERNAL_SECTION.format(external_links="\n".join(links))
 
 
+def _build_intent_section(state: GraphState) -> str:
+    """Compose task-focus blocks from intents[] (primary first)."""
+    slots = state.get("intents") or []
+    names: list[str] = []
+    for slot in slots:
+        if not isinstance(slot, dict):
+            continue
+        name = slot.get("intent")
+        if isinstance(name, str) and name in INTENT_INSTRUCTIONS and name not in names:
+            names.append(name)
+
+    primary = state.get("primary_intent") or ""
+    if primary in INTENT_INSTRUCTIONS and primary not in names:
+        names.insert(0, primary)
+
+    ordered: list[str] = []
+    if primary in names:
+        ordered.append(primary)
+    ordered.extend(name for name in names if name not in ordered)
+
+    if not ordered:
+        return ""
+
+    bullet_lines: list[str] = []
+    for name in ordered:
+        cities: list[str] = []
+        for slot in slots:
+            if isinstance(slot, dict) and slot.get("intent") == name:
+                raw_cities = slot.get("cities") or []
+                if isinstance(raw_cities, list):
+                    cities = [c for c in raw_cities if isinstance(c, str) and c.strip()]
+                break
+        if cities:
+            bullet_lines.append(f"- {name} ({', '.join(cities)})")
+        else:
+            bullet_lines.append(f"- {name}")
+
+    blocks = [
+        "### Active intents\n" + "\n".join(bullet_lines),
+        *(INTENT_INSTRUCTIONS[name] for name in ordered),
+    ]
+    return "\n\n".join(blocks) + "\n\n"
+
+
 def _chunk_label(chunk: dict) -> str:
     name = chunk.get("name") or ""
     city = chunk.get("city_name") or ""
@@ -587,8 +648,11 @@ async def synthesize_node(state: GraphState) -> GraphState:
         )
         graph_section = SYNTHESIZE_GRAPH_SECTION.format(graph_sources=graph_sources)
 
+    intent_section = _build_intent_section(state)
+
     prompt = SYNTHESIZE_PROMPT.format(
         grounding_policy=GROUNDING_POLICY,
+        intent_section=intent_section,
         museum_section=museum_section,
         artifact_section=artifact_section,
         vector_section=vector_section,
