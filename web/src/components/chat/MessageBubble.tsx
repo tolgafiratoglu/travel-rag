@@ -1,3 +1,7 @@
+import type { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 import type { Message, Source } from "./types";
 
 type MessageBubbleProps = Pick<Message, "role" | "content" | "status" | "sources">;
@@ -13,6 +17,42 @@ function uniqueSources(sources: Source[]): Source[] {
   }
   return out;
 }
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-3 leading-relaxed last:mb-0">{children}</p>,
+  strong: ({ children }) => (
+    <strong className="font-semibold text-gray-900">{children}</strong>
+  ),
+  ul: ({ children }) => (
+    <ul className="mb-3 list-disc space-y-2 pl-5 last:mb-0">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mb-3 list-decimal space-y-2 pl-5 last:mb-0">{children}</ol>
+  ),
+  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      className="text-blue-600 underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+  table: ({ children }) => (
+    <div className="my-4 overflow-x-auto">
+      <table className="w-full border-collapse text-left text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="border-b border-gray-200 bg-gray-50">{children}</thead>
+  ),
+  th: ({ children }) => <th className="px-3 py-2 font-semibold">{children}</th>,
+  td: ({ children }) => (
+    <td className="border-b border-gray-100 px-3 py-2 align-top">{children}</td>
+  ),
+};
 
 export function MessageBubble({ role, content, status, sources }: MessageBubbleProps) {
   const isUser = role === "user";
@@ -34,7 +74,11 @@ export function MessageBubble({ role, content, status, sources }: MessageBubbleP
         <p className="text-sm text-gray-400 animate-pulse">{status}</p>
       )}
       {content && (
-        <div className="text-sm whitespace-pre-wrap text-gray-900">{content}</div>
+        <div className="text-sm text-gray-900">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {content}
+          </ReactMarkdown>
+        </div>
       )}
       {citationSources.length > 0 && (
         <div className="mt-3 border-t border-gray-100 pt-2">
