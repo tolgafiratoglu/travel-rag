@@ -620,36 +620,80 @@ def _chunk_label(chunk: dict) -> str:
     return name or city or section or "source"
 
 
+def _source_dedupe_key(source: dict) -> str:
+    """Same page URL + same section → one citation; different sections stay distinct."""
+    url = (source.get("source_url") or "").strip().rstrip("/")
+    section = (source.get("section") or "").strip().casefold()
+    if url:
+        return f"{url}#{section}"
+    city = (source.get("city_name") or "").strip().casefold()
+    name = (source.get("name") or "").strip().casefold()
+    return f"{city}:{section}:{name}"
+
+
+def _merge_deduped_source(
+    existing: tuple[str, str, dict],
+    label: str,
+    text: str,
+    source: dict,
+) -> tuple[str, str, dict]:
+    prev_label, prev_text, prev_source = existing
+    new_text = (text or "").strip()
+    merged_text = prev_text
+    if new_text and new_text not in prev_text:
+        merged_text = f"{prev_text}\n\n{new_text}" if prev_text else new_text
+
+    merged = dict(prev_source)
+    try:
+        prev_score = float(prev_source.get("score") or 0)
+        new_score = float(source.get("score") or 0)
+    except (TypeError, ValueError):
+        prev_score, new_score = 0.0, 0.0
+    if new_score > prev_score:
+        merged["score"] = new_score
+        for key in ("name", "city_name", "section", "source_url", "source", "poi_type"):
+            if source.get(key):
+                merged[key] = source[key]
+    merged["text"] = merged_text
+    return prev_label or label, merged_text, merged
+
+
 def _build_unified_sources(
     museum_chunks: list[dict],
     artifact_chunks: list[dict],
     vector_chunks: list[dict],
     graph_contexts: list[dict],
 ) -> tuple[str, list[dict]]:
-    """Number all retrieval hits as [S1]…[Sn]; return prompt block + FE sources list.
+    """Dedupe by (url, section), then number as [S1]…[Sn].
 
     Order: museum → historical → guide → graph.
     """
-    entries: list[tuple[str, str, dict]] = []
+    # key → (label, text, source); insertion order preserved.
+    merged: dict[str, tuple[str, str, dict]] = {}
+
+    def add(label: str, text: str, source: dict) -> None:
+        key = _source_dedupe_key(source)
+        if key in merged:
+            merged[key] = _merge_deduped_source(merged[key], label, text, source)
+        else:
+            payload = dict(source)
+            payload["text"] = text
+            merged[key] = (label, text, payload)
 
     for chunk in museum_chunks:
-        label = f"museum · {_chunk_label(chunk)}"
-        entries.append((label, chunk.get("text") or "", chunk))
+        add(f"museum · {_chunk_label(chunk)}", chunk.get("text") or "", chunk)
 
     for chunk in artifact_chunks:
-        label = f"historical · {_chunk_label(chunk)}"
-        entries.append((label, chunk.get("text") or "", chunk))
+        add(f"historical · {_chunk_label(chunk)}", chunk.get("text") or "", chunk)
 
     for chunk in vector_chunks:
         city = chunk.get("city_name") or ""
         section = chunk.get("section") or ""
         place = f"{city} / {section}".strip(" /") or _chunk_label(chunk)
-        label = f"guide · {place}"
-        entries.append((label, chunk.get("text") or "", chunk))
+        add(f"guide · {place}", chunk.get("text") or "", chunk)
 
     for ctx in graph_contexts:
         city = (ctx.get("city") or "graph").strip() or "graph"
-        label = f"graph · {city}"
         graph_as_source = {
             "text": ctx.get("text") or "",
             "city_name": city,
@@ -660,14 +704,14 @@ def _build_unified_sources(
             "poi_type": "",
             "score": 0.0,
         }
-        entries.append((label, ctx.get("text") or "", graph_as_source))
+        add(f"graph · {city}", ctx.get("text") or "", graph_as_source)
 
-    if not entries:
+    if not merged:
         return "", []
 
     lines: list[str] = []
     sources: list[dict] = []
-    for i, (label, text, source) in enumerate(entries, start=1):
+    for i, (label, text, source) in enumerate(merged.values(), start=1):
         lines.append(f"[S{i}] ({label}):\n{text}")
         sources.append(source)
 
