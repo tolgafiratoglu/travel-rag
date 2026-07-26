@@ -268,7 +268,7 @@ Example — question: "Hello, what can you do?"
 """
 
 GROUNDING_POLICY = """Grounding and partial-answer policy:
-Use only the provided sources for factual claims. Vector sources [S], museum sources [M], historical-site sources [H], and graph profiles [G] all count as sources.
+Use only the provided sources for factual claims. All sources are cited as [S1], [S2], etc. (guide, museum, historical-site, and graph profiles).
 
 First identify the user's core request and any modifiers or constraints.
 
@@ -310,33 +310,18 @@ Focus on how to get around, timing, transport, and practical constraints grounde
 
 SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
-Reference guide sources as [S1], [S2], etc. Reference museum sources as [M1], [M2], etc. Reference historical-site sources as [H1], [H2], etc. Reference graph profiles as [G1], [G2], etc.
+Cite sources as [S1], [S2], etc. Each source line is tagged with its kind (museum, historical, guide, or graph).
 
 {grounding_policy}
 
-{intent_section}{museum_section}{artifact_section}{vector_section}{graph_section}### Question
+{intent_section}{sources_section}### Question
 {question}
 
 ### Answer
 """
 
-SYNTHESIZE_VECTOR_SECTION = """### Guide sources (Wikivoyage)
-{vector_sources}
-
-"""
-
-SYNTHESIZE_MUSEUM_SECTION = """### Museum sources
-{museum_sources}
-
-"""
-
-SYNTHESIZE_ARTIFACT_SECTION = """### Historical site sources
-{artifact_sources}
-
-"""
-
-SYNTHESIZE_GRAPH_SECTION = """### Graph knowledge
-{graph_sources}
+SYNTHESIZE_SOURCES_SECTION = """### Sources
+{sources}
 
 """
 
@@ -635,6 +620,61 @@ def _chunk_label(chunk: dict) -> str:
     return name or city or section or "source"
 
 
+def _build_unified_sources(
+    museum_chunks: list[dict],
+    artifact_chunks: list[dict],
+    vector_chunks: list[dict],
+    graph_contexts: list[dict],
+) -> tuple[str, list[dict]]:
+    """Number all retrieval hits as [S1]…[Sn]; return prompt block + FE sources list.
+
+    Order: museum → historical → guide → graph.
+    """
+    entries: list[tuple[str, str, dict]] = []
+
+    for chunk in museum_chunks:
+        label = f"museum · {_chunk_label(chunk)}"
+        entries.append((label, chunk.get("text") or "", chunk))
+
+    for chunk in artifact_chunks:
+        label = f"historical · {_chunk_label(chunk)}"
+        entries.append((label, chunk.get("text") or "", chunk))
+
+    for chunk in vector_chunks:
+        city = chunk.get("city_name") or ""
+        section = chunk.get("section") or ""
+        place = f"{city} / {section}".strip(" /") or _chunk_label(chunk)
+        label = f"guide · {place}"
+        entries.append((label, chunk.get("text") or "", chunk))
+
+    for ctx in graph_contexts:
+        city = (ctx.get("city") or "graph").strip() or "graph"
+        label = f"graph · {city}"
+        graph_as_source = {
+            "text": ctx.get("text") or "",
+            "city_name": city,
+            "section": "graph",
+            "source_url": (ctx.get("source_url") or "").strip(),
+            "source": "neo4j",
+            "name": city,
+            "poi_type": "",
+            "score": 0.0,
+        }
+        entries.append((label, ctx.get("text") or "", graph_as_source))
+
+    if not entries:
+        return "", []
+
+    lines: list[str] = []
+    sources: list[dict] = []
+    for i, (label, text, source) in enumerate(entries, start=1):
+        lines.append(f"[S{i}] ({label}):\n{text}")
+        sources.append(source)
+
+    section = SYNTHESIZE_SOURCES_SECTION.format(sources="\n\n".join(lines))
+    return section, sources
+
+
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
     museum_chunks = state.get("museum_chunks") or []
@@ -666,55 +706,20 @@ async def synthesize_node(state: GraphState) -> GraphState:
                 answer += f"\n\n----- planner response -----\n{planner_raw}"
         return {"answer": answer}
 
-    museum_section = ""
-    if museum_chunks:
-        museum_sources = "\n\n".join(
-            f"[M{i + 1}] ({_chunk_label(c)}): {c['text']}"
-            for i, c in enumerate(museum_chunks)
-        )
-        museum_section = SYNTHESIZE_MUSEUM_SECTION.format(museum_sources=museum_sources)
-
-    artifact_section = ""
-    if artifact_chunks:
-        artifact_sources = "\n\n".join(
-            f"[H{i + 1}] ({_chunk_label(c)}): {c['text']}"
-            for i, c in enumerate(artifact_chunks)
-        )
-        artifact_section = SYNTHESIZE_ARTIFACT_SECTION.format(
-            artifact_sources=artifact_sources
-        )
-
-    vector_section = ""
-    if chunks:
-        vector_sources = "\n\n".join(
-            f"[S{i + 1}] ({c['city_name']} / {c['section']}): {c['text']}"
-            for i, c in enumerate(chunks)
-        )
-        vector_section = SYNTHESIZE_VECTOR_SECTION.format(vector_sources=vector_sources)
-
-    graph_section = ""
-    if contexts:
-        graph_sources = "\n\n".join(
-            f"[G{i + 1}] ({ctx['city']}):\n{ctx['text']}"
-            for i, ctx in enumerate(contexts)
-        )
-        graph_section = SYNTHESIZE_GRAPH_SECTION.format(graph_sources=graph_sources)
-
+    sources_section, sources = _build_unified_sources(
+        museum_chunks, artifact_chunks, chunks, contexts
+    )
     intent_section = _build_intent_section(state)
 
     prompt = SYNTHESIZE_PROMPT.format(
         grounding_policy=GROUNDING_POLICY,
         intent_section=intent_section,
-        museum_section=museum_section,
-        artifact_section=artifact_section,
-        vector_section=vector_section,
-        graph_section=graph_section,
+        sources_section=sources_section,
         question=state["question"],
     )
     prompt = external_section + prompt
     answer = await llm.generate(prompt)
 
-    sources = list(museum_chunks) + list(artifact_chunks) + list(chunks)
     return {
         "answer": _append_debug_footer(answer, state, prompt),
         "sources": sources,

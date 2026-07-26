@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Ingest Wikivoyage wikitext from MariaDB into Qdrant (bge-m3).
 
-Parses listing templates (see/do/go/eat/sleep/marker/listing) into dedicated
-chunks, then section prose into separate chunks. Excludes drink, stay_safe,
-stay_healthy at ingestion.
+Parses see/do/go listing templates into dedicated chunks, then allowed-section
+prose into separate chunks. Section allowlist (see/do/get_in/districts/go_next,
+understand history/climate, get_around transit/walk/bike only) excludes sleep,
+eat, drink, stay_safe, taxi/car commentary, and similar high-risk topics.
 
 By default recreates the target collection (wipe) so embeddings stay on one
 model/dimension. Use --no-wipe for incremental city upserts.

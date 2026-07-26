@@ -12,7 +12,8 @@ from lib.wv_parse import (
     strip_remaining_templates,
 )
 
-LISTING_TYPES = frozenset({"see", "do", "go", "eat", "sleep", "marker", "listing"})
+LISTING_TYPES = frozenset({"see", "do", "go"})
+
 
 MAX_SECTION_CHARS = int(os.getenv("WV_MAX_CHUNK_CHARS", "1800"))
 SECTION_OVERLAP = int(os.getenv("WV_CHUNK_OVERLAP", "200"))
