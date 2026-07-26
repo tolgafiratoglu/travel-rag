@@ -1,4 +1,8 @@
-"""Shared Neo4j node labels, relationship types, and graph_id helpers."""
+"""Neo4j v1 schema — see neo4j.md.
+
+Nodes: Country, City, Place, Airport
+Rels: IN_COUNTRY, IN_CITY, SERVED_BY_AIRPORT, CONNECTED_BY, DAY_TRIP_FROM
+"""
 
 from __future__ import annotations
 
@@ -9,89 +13,59 @@ from typing import Literal
 
 NEO4J_NODE_LABELS: tuple[str, ...] = (
     "Country",
-    "Region",
     "City",
-    "District",
-    "Attraction",
-    "Activity",
+    "Place",
     "Airport",
-    "TransportHub",
-    "Route",
-    "TravelTheme",
-    "Season",
-    "Budget",
 )
 
-Neo4jNodeLabel = Literal[
-    "Country",
-    "Region",
-    "City",
-    "District",
-    "Attraction",
-    "Activity",
-    "Airport",
-    "TransportHub",
-    "Route",
-    "TravelTheme",
-    "Season",
-    "Budget",
-]
+Neo4jNodeLabel = Literal["Country", "City", "Place", "Airport"]
 
 NEO4J_NODE_LABELS_FROZEN = frozenset(NEO4J_NODE_LABELS)
 
 GRAPH_ID_PREFIX: dict[str, str] = {
     "Country": "country",
-    "Region": "region",
     "City": "city",
-    "District": "district",
-    "Attraction": "attraction",
-    "Activity": "activity",
+    "Place": "place",
     "Airport": "airport",
-    "TransportHub": "hub",
-    "Route": "route",
-    "TravelTheme": "theme",
-    "Season": "season",
-    "Budget": "budget",
 }
 
-# Relationship semantics (direction: from -> to):
-# - PART_OF: entity is part of a larger place/admin/conceptual whole
-# - IN_SAME_AREA: two peers share the same area / district / destination
-# - GOOD_BASE_FOR: city/destination is a suitable base for an activity / route / region
-# - ACCESSIBLE_BY: place is reachable via a transport node (Airport, TransportHub, Route)
-# - SEASONAL_FOR: entity is particularly relevant during a Season
 NEO4J_REL_TYPES: tuple[str, ...] = (
-    "PART_OF",
-    "IN_SAME_AREA",
-    "GOOD_BASE_FOR",
-    "ACCESSIBLE_BY",
-    "SEASONAL_FOR",
+    "IN_COUNTRY",
+    "IN_CITY",
+    "SERVED_BY_AIRPORT",
+    "CONNECTED_BY",
+    "DAY_TRIP_FROM",
 )
 
 Neo4jRelType = Literal[
-    "PART_OF",
-    "IN_SAME_AREA",
-    "GOOD_BASE_FOR",
-    "ACCESSIBLE_BY",
-    "SEASONAL_FOR",
+    "IN_COUNTRY",
+    "IN_CITY",
+    "SERVED_BY_AIRPORT",
+    "CONNECTED_BY",
+    "DAY_TRIP_FROM",
 ]
 
 NEO4J_REL_TYPES_FROZEN = frozenset(NEO4J_REL_TYPES)
 
-BudgetLevel = Literal["low", "mid", "high", "luxury"]
-BUDGET_LEVELS: tuple[str, ...] = ("low", "mid", "high", "luxury")
+# LLM may emit these; anchors are written deterministically.
+LLM_NODE_LABELS = frozenset({"Place", "Airport", "City"})
+LLM_REL_TYPES = frozenset(
+    {"SERVED_BY_AIRPORT", "CONNECTED_BY", "DAY_TRIP_FROM"}
+)
 
-GLOBAL_SEASON_IDS: tuple[str, ...] = (
-    "season:spring",
-    "season:summer",
-    "season:autumn",
-    "season:winter",
+PLACE_TYPES: tuple[str, ...] = (
+    "museum",
+    "historical_site",
+    "attraction",
+    "natural_site",
+    "religious_site",
+    "archaeological_site",
 )
 
 NEO4J_MERGE_KEY = "graph_id"
 
-# Deterministic City -> Country edge; protected on city re-ingest delete.
-ANCHOR_REL_TYPE: Neo4jRelType = "PART_OF"
+# Deterministic City -> Country; protected on city re-ingest delete.
+ANCHOR_REL_TYPE: Neo4jRelType = "IN_COUNTRY"
 
 
 class ManagedScope(str, Enum):
@@ -100,13 +74,9 @@ class ManagedScope(str, Enum):
     CITY = "city"
 
 
-GLOBAL_NODE_LABELS = frozenset({"Country", "Season", "Budget", "TravelTheme"})
+GLOBAL_NODE_LABELS = frozenset({"Country"})
 ANCHOR_NODE_LABELS = frozenset({"City"})
-CITY_SCOPED_LABELS = frozenset(
-    label
-    for label in NEO4J_NODE_LABELS
-    if label not in GLOBAL_NODE_LABELS and label not in ANCHOR_NODE_LABELS
-)
+CITY_SCOPED_LABELS = frozenset({"Place", "Airport"})
 
 V1_DISABLED_REL_TYPES = frozenset()
 
@@ -140,15 +110,17 @@ def country_graph_id(country_name: str) -> str:
     return f"country:{slugify(country_name)}"
 
 
-def budget_graph_id(level: str) -> str:
-    level = level.strip().lower()
-    if level not in BUDGET_LEVELS:
-        level = "mid"
-    return f"budget:{level}"
+def place_graph_id(wikidata_qid: str | None, source_url: str) -> str:
+    qid = normalize_qid(wikidata_qid)
+    if qid:
+        return f"place:{qid}"
+    return f"place:url-{stable_hash(source_url)}"
 
 
-def season_graph_id(season_name: str) -> str:
-    return f"season:{slugify(season_name)}"
+def airport_graph_id(*, iata: str | None = None, name: str, source_url: str = "") -> str:
+    if iata and iata.strip():
+        return f"airport:{iata.strip().upper()}"
+    return f"airport:slug-{slugify(name)}" if name else f"airport:url-{stable_hash(source_url)}"
 
 
 def managed_scope_for_label(label: str) -> ManagedScope:

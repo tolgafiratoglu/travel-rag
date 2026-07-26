@@ -139,3 +139,12 @@ Okuma: *Perge is a day trip from Antalya.*
 3. Validate → evidence + confidence; süre yoksa null  
 
 Graph aday kümesini daraltır; Qdrant açıklar.
+
+### Script’ler (import)
+
+| Script | Ne yazar |
+|--------|----------|
+| `scripts/ingest-wikivoyage-neo4j.py` | City, Country, `IN_COUNTRY`; opsiyonel Gemini ilişkileri |
+| `scripts/ingest-neo4j-places.py` | `Place` + `IN_CITY` (`wp_pois`) |
+
+Flags: `--anchors-only`, `--wipe`, `--dry-run`, `--page`.

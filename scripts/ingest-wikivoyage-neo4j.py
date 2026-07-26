@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
-"""Ingest Wikivoyage wikitext from MariaDB into Neo4j via Gemini graph extraction.
+"""Ingest Wikivoyage cities into Neo4j (v1 schema — neo4j.md).
 
-City and Country anchors are deterministic from MariaDB. Gemini extracts
-Attraction, Activity, Airport, Season, Budget links, etc.
+Deterministic: Country, City, IN_COUNTRY.
+Optional Gemini: Airport / Place stubs + SERVED_BY_AIRPORT, CONNECTED_BY, DAY_TRIP_FROM
+from get_in / go_next (and get_around) sections only.
 
-Uses the same LLM stack as the API (app.services.llm → GeminiProvider).
+Places (museums / historical) come from scripts/ingest-neo4j-places.py.
 
 Usage:
-    # Install API deps + script-only driver
-    cd api && pip install -e . && pip install pymysql
-    cd ..
-
     MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
-    .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Bordeaux --dry-run
+    LLM_PROVIDER=gemini \\
+    .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Antalya
 
-    MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
-    .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Bordeaux
+    # Anchors only (no LLM):
+    .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Antalya --anchors-only
 
-    MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wikivoyage-neo4j.py
+    # Wipe all WvEntity nodes first:
+    .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --wipe --page Antalya
 """
 
 from __future__ import annotations
@@ -61,18 +60,11 @@ _require_imports()
 from neo4j import GraphDatabase
 from pydantic import ValidationError
 
-try:
-    from app.services import llm
-except ImportError as exc:
-    print("Missing API deps (google-genai, etc.). Run: cd api && pip install -e .")
-    print(exc)
-    sys.exit(1)
-
 from app.config import settings
 from app.graph.neo4j_schema import (
     ANCHOR_REL_TYPE,
-    NEO4J_NODE_LABELS,
-    NEO4J_REL_TYPES,
+    LLM_NODE_LABELS,
+    LLM_REL_TYPES,
     city_graph_id,
     country_graph_id,
 )
@@ -83,6 +75,7 @@ from lib.neo4j_wv_ingest import (
     build_country_anchor,
     ensure_constraints,
     upsert_city_graph,
+    wipe_all_entities,
 )
 from lib.wv_db import load_cities
 from lib.wv_parse import sections_for_gemini, split_sections
@@ -94,74 +87,96 @@ NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "changeme")
 SLEEP_SECONDS = float(os.getenv("WV_NEO4J_SLEEP", "1.0"))
 
-GRAPH_EXTRACT_PROMPT = """You extract a travel knowledge graph from Wikivoyage section text.
+# Topics useful for airports / connections / day trips.
+RELATION_TOPICS = frozenset({"get_in", "go_next", "get_around", "see"})
+
+GRAPH_EXTRACT_PROMPT = """You extract travel GRAPH RELATIONSHIPS from Wikivoyage text.
 Return ONLY valid JSON (no markdown fences or commentary).
 
 Allowed node labels: {labels}
-
 Allowed relationship types: {rel_types}
+
+Current city graph_id (use EXACTLY this string when referring to this city):
+{city_graph_id}
 
 Output schema:
 {{
   "nodes": [
     {{
-      "label": "Attraction",
-      "graph_id": "attraction:bordeaux:cathedrale-saint-andre",
-      "name": "Cathédrale Saint-André",
-      "properties": {{
-        "description": "short summary",
-        "unesco": false,
-        "type": "cathedral",
-        "section": "see"
-      }}
+      "label": "Airport",
+      "graph_id": "airport:AYT",
+      "name": "Antalya Airport",
+      "properties": {{ "iata": "AYT" }}
+    }},
+    {{
+      "label": "Place",
+      "graph_id": "place:slug-perge",
+      "name": "Perge",
+      "properties": {{ "type": "archaeological_site" }}
+    }},
+    {{
+      "label": "City",
+      "graph_id": "city:slug-yalova",
+      "name": "Yalova",
+      "properties": {{}}
     }}
   ],
   "edges": [
     {{
-      "from_graph_id": "attraction:bordeaux:cathedrale-saint-andre",
-      "to_graph_id": "{city_graph_id}",
-      "type": "PART_OF",
+      "from_graph_id": "{city_graph_id}",
+      "to_graph_id": "airport:AYT",
+      "type": "SERVED_BY_AIRPORT",
       "properties": {{
-        "evidence": "short quote or paraphrase",
-        "section": "see"
+        "evidence_text": "short quote from the text",
+        "confidence": 0.9
+      }}
+    }},
+    {{
+      "from_graph_id": "place:slug-perge",
+      "to_graph_id": "{city_graph_id}",
+      "type": "DAY_TRIP_FROM",
+      "properties": {{
+        "one_way_minutes": 35,
+        "mode": "bus",
+        "evidence_text": "quote",
+        "confidence": 0.85
+      }}
+    }},
+    {{
+      "from_graph_id": "{city_graph_id}",
+      "to_graph_id": "city:slug-yalova",
+      "type": "CONNECTED_BY",
+      "properties": {{
+        "mode": "ferry",
+        "duration_min": 105,
+        "duration_max": null,
+        "direct": true,
+        "evidence_text": "quote",
+        "confidence": 0.8
       }}
     }}
   ]
 }}
 
-Relationship meanings and directions (from_graph_id -> to_graph_id):
-- PART_OF: entity is part of a larger place/admin/whole (Attraction/Activity/District/Airport -> City; City is NOT created by you).
-- IN_SAME_AREA: two peer entities share the same area/district/destination (use sparsely; both ends must be nodes you emit or the city id).
-- GOOD_BASE_FOR: city/destination is a good base for an activity, route, or surrounding region (from city {city_graph_id} -> Activity|Route|Region).
-- ACCESSIBLE_BY: place is reachable via a transport node (from City or place -> Airport|TransportHub|Route). Prefer City -ACCESSIBLE_BY-> Airport when the text says the city is served by that airport.
-- SEASONAL_FOR: entity is recommended/available in a season (from City|Activity|Attraction -> Season).
+Relationship directions:
+- SERVED_BY_AIRPORT: City -> Airport
+- DAY_TRIP_FROM: Place -> City  (Place is a day trip FROM the City)
+- CONNECTED_BY: City -> City (transport between cities)
 
 Rules:
-- Do NOT create City or Country nodes.
-- For every relationship involving the current city, use exactly this graph_id: {city_graph_id}
-- Never construct, normalize, shorten, or modify the city graph_id.
-- Do not invent cross-city travel networks; skip distant cities you cannot ground in these sections.
-- Season nodes must use global ids only: season:spring, season:summer, season:autumn, season:winter
-- Budget nodes are optional metadata only; do not invent budget edges (no budget relationship type).
-- Put city-specific season evidence on SEASONAL_FOR edge properties (months, evidence, section).
-- graph_id format: {{prefix}}:{{city-slug}}:{{entity-slug}} for city-scoped entities; use lowercase ASCII slugs.
-- Derive nodes only from the provided sections; do not invent facts.
-- Omit nodes or edges you cannot support from the text.
-
-Section mapping hints:
-- intro / understand -> Region, TravelTheme, PART_OF / GOOD_BASE_FOR sparingly
-- see -> Attraction PART_OF city
-- do -> Activity PART_OF city; GOOD_BASE_FOR when city is a base for the activity
-- get_in / go / get_around -> Airport, TransportHub, Route with ACCESSIBLE_BY from city
-- climate -> Season via SEASONAL_FOR from city
-- sleep / eat / buy -> optional Activity or skip if insufficient detail
+- Do NOT emit Country nodes.
+- Do NOT emit a City node for the current city; always use {city_graph_id} on edges.
+- Durations are minutes (integers). If the text does not state a duration, omit the field or set null — NEVER invent times.
+- Prefer sparse, high-confidence edges grounded in evidence_text.
+- graph_id for airports: airport:{{IATA}} when known, else airport:slug-{{name}}.
+- graph_id for places: place:slug-{{name}}.
+- graph_id for other cities: city:slug-{{name}}.
+- Place.type one of: museum, historical_site, attraction, natural_site, religious_site, archaeological_site.
 
 City metadata:
 - name: {city_name}
 - country: {country}
-- wikidata_qid: {wikidata_qid}
 - source_url: {source_url}
-- city_graph_id: {city_graph_id}
 
 Sections JSON:
 {sections_json}
@@ -180,18 +195,29 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
-async def extract_graph_gemini(
+def _relation_sections(sections: list[dict]) -> list[dict]:
+    """Keep get_in / go_next / get_around / see for relation extract."""
+    filtered = [
+        s
+        for s in sections
+        if (s.get("topic") or "").casefold() in RELATION_TOPICS
+    ]
+    return sections_for_gemini(filtered)
+
+
+async def extract_relations_gemini(
     row: dict,
     sections_payload: list[dict],
     city_gid: str,
 ) -> GraphExtract:
+    from app.services import llm
+
     prompt = GRAPH_EXTRACT_PROMPT.format(
-        labels=", ".join(NEO4J_NODE_LABELS),
-        rel_types=", ".join(NEO4J_REL_TYPES),
+        labels=", ".join(sorted(LLM_NODE_LABELS)),
+        rel_types=", ".join(sorted(LLM_REL_TYPES)),
         city_graph_id=city_gid,
         city_name=row["page_name"],
         country=row["country"],
-        wikidata_qid=row.get("wikidata_qid") or "",
         source_url=row["source_url"],
         sections_json=json.dumps(sections_payload, ensure_ascii=False, indent=2),
     )
@@ -204,6 +230,7 @@ async def extract_graph_gemini(
         city_graph_id=city_gid,
         country_graph_id=country_gid,
         strict=False,
+        llm_only=True,
     )
 
 
@@ -229,32 +256,45 @@ async def ingest_city(
     row: dict,
     *,
     dry_run: bool,
+    anchors_only: bool,
 ) -> IngestCounts | None:
     sections = split_sections(row["wikitext"] or "")
-    payload = sections_for_gemini(sections)
-    print(f"  {len(sections)} section(s), {len(payload)} sent to Gemini")
+    payload = _relation_sections(sections)
+    print(
+        f"  {len(sections)} section(s), {len(payload)} chunk(s) for relation LLM"
+    )
 
     city_gid = city_graph_id(row.get("wikidata_qid"), row["source_url"])
     country_gid = country_graph_id(row["country"])
     city_anchor = build_city_anchor(row, city_gid)
     country_anchor = build_country_anchor(row["country"], country_gid)
 
-    extract = await extract_graph_gemini(row, payload, city_gid)
-    print(
-        f"  Gemini extracted: {len(extract.nodes)} node(s), "
-        f"{len(extract.edges)} edge(s)"
-    )
+    if anchors_only:
+        extract = GraphExtract()
+        print("  anchors-only: skipping Gemini")
+    else:
+        if not payload:
+            print("  no relation sections; anchors only")
+            extract = GraphExtract()
+        else:
+            extract = await extract_relations_gemini(row, payload, city_gid)
+            print(
+                f"  Gemini: {len(extract.nodes)} node(s), "
+                f"{len(extract.edges)} edge(s)"
+            )
 
     if dry_run:
-        print(json.dumps(
-            {
-                "city_anchor": city_anchor.model_dump(),
-                "country_anchor": country_anchor.model_dump(),
-                "extract": extract.model_dump(),
-            },
-            indent=2,
-            ensure_ascii=False,
-        ))
+        print(
+            json.dumps(
+                {
+                    "city_anchor": city_anchor.model_dump(),
+                    "country_anchor": country_anchor.model_dump(),
+                    "extract": extract.model_dump(),
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
         counts = IngestCounts()
         counts.bump_node("Country")
         counts.bump_node("City")
@@ -276,18 +316,31 @@ async def ingest_city(
     return counts
 
 
-async def main_async(page: str | None, dry_run: bool) -> None:
-    if settings.llm_provider != "gemini":
-        print(
-            f"ERROR: Neo4j ingest requires LLM_PROVIDER=gemini (got {settings.llm_provider!r})"
-        )
-        sys.exit(1)
-    if not settings.gemini_api_key:
-        print(
-            f"ERROR: GEMINI_API_KEY not set. Add it to {settings.secrets_env_path} "
-            "or the environment."
-        )
-        sys.exit(1)
+async def main_async(
+    page: str | None,
+    dry_run: bool,
+    anchors_only: bool,
+    wipe: bool,
+) -> None:
+    if not anchors_only:
+        if settings.llm_provider != "gemini":
+            print(
+                f"ERROR: relation extract needs LLM_PROVIDER=gemini "
+                f"(got {settings.llm_provider!r}). Use --anchors-only to skip LLM."
+            )
+            sys.exit(1)
+        if not settings.gemini_api_key:
+            print(
+                f"ERROR: GEMINI_API_KEY not set. Add it to {settings.secrets_env_path} "
+                "or the environment."
+            )
+            sys.exit(1)
+        try:
+            from app.services import llm  # noqa: F401
+        except ImportError as exc:
+            print("Missing API deps. Run: cd api && pip install -e .")
+            print(exc)
+            sys.exit(1)
 
     rows = load_cities(page, include_coords=True, add_page_slug=True)
     if not rows:
@@ -297,23 +350,34 @@ async def main_async(page: str | None, dry_run: bool) -> None:
     print(f"Loaded {len(rows)} city/cities from wv_cities")
     driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-    if not dry_run:
-        ensure_constraints(driver)
-
-    totals = IngestCounts()
-
     try:
+        if wipe and not dry_run:
+            deleted = wipe_all_entities(driver)
+            print(f"Wiped {deleted} WvEntity node(s)")
+
+        if not dry_run:
+            ensure_constraints(driver)
+
+        totals = IngestCounts()
+
         for i, row in enumerate(rows, 1):
             print(f"[{i}/{len(rows)}] {row['country']} / {row['page_name']}")
             try:
-                counts = await ingest_city(driver, row, dry_run=dry_run)
+                counts = await ingest_city(
+                    driver,
+                    row,
+                    dry_run=dry_run,
+                    anchors_only=anchors_only,
+                )
                 if counts:
                     for label, n in counts.nodes_by_label.items():
                         totals.nodes_by_label[label] = (
                             totals.nodes_by_label.get(label, 0) + n
                         )
                     for rel, n in counts.edges_by_type.items():
-                        totals.edges_by_type[rel] = totals.edges_by_type.get(rel, 0) + n
+                        totals.edges_by_type[rel] = (
+                            totals.edges_by_type.get(rel, 0) + n
+                        )
                     totals.nodes_deleted += counts.nodes_deleted
                     totals.edges_deleted += counts.edges_deleted
             except (ValidationError, ValueError, RuntimeError) as exc:
@@ -330,20 +394,27 @@ async def main_async(page: str | None, dry_run: bool) -> None:
     print(f"  edges written: {totals.edges_written}")
     for rel, n in sorted(totals.edges_by_type.items()):
         print(f"    {rel}: {n}")
-    if totals.nodes_deleted or totals.edges_deleted:
-        print(
-            f"  deleted (re-ingest): {totals.nodes_deleted} node(s), "
-            f"{totals.edges_deleted} edge(s)"
-        )
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Ingest wv_cities into Neo4j")
+    parser = argparse.ArgumentParser(
+        description="Ingest wv_cities into Neo4j (v1 schema)"
+    )
     parser.add_argument("--page", help="Single city (page_name or wiki title)")
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Gemini extract only, no Neo4j writes",
+        help="Print extract JSON, no Neo4j writes",
+    )
+    parser.add_argument(
+        "--anchors-only",
+        action="store_true",
+        help="Write Country/City/IN_COUNTRY only (no Gemini)",
+    )
+    parser.add_argument(
+        "--wipe",
+        action="store_true",
+        help="DETACH DELETE all WvEntity nodes before ingest",
     )
     return parser.parse_args()
 
@@ -351,4 +422,6 @@ def parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
-    asyncio.run(main_async(args.page, args.dry_run))
+    asyncio.run(
+        main_async(args.page, args.dry_run, args.anchors_only, args.wipe)
+    )
