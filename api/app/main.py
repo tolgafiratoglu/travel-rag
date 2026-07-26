@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes.health import router as health_router
-from app.routes.chat import router as chat_router
 from app.routes.ws import router as ws_router
 from app.services.guard import get_guard_client
 from app.services.llm import warmup
@@ -49,7 +48,6 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health_router)
-    app.include_router(chat_router)
     app.include_router(ws_router)
     return app
 

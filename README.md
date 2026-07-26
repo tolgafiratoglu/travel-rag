@@ -122,7 +122,7 @@ travel-rag/
 │   └── app/
 │       ├── main.py
 │       ├── config.py
-│       ├── routes/          # ws.py, chat.py, health
+│       ├── routes/          # ws.py, health
 │       ├── services/        # llm, embeddings, vector_store, graph_store, guard, rate_limit
 │       ├── graph/           # state, nodes, edges, builder
 │       └── models/          # schemas, planner, …
@@ -243,8 +243,7 @@ NEO4J_URI=bolt://neo4j:7687
 
 | Endpoint | Rol |
 |----------|-----|
-| `WS /ws/chat` | Asıl sohbet (plan, step, done, sources) |
-| `POST /chat` | Test / sade LLM (RAG pipeline değil) |
+| `WS /ws/chat` | Sohbet (plan, step, done, sources) |
 | `GET /health/*` | Canlılık |
 
 `done` payload özeti: `answer`, `sources`, `plan`, intent / search flag’leri, hotel/flight query URL’leri.

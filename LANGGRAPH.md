@@ -221,7 +221,6 @@ Rate limit: in-memory per IP (`RATE_LIMIT_*` env).
 - Groundedness / completeness loop
 - LLM-generated Cypher
 - Multi-turn bellek / anaphora resolver
-- `POST /chat` full RAG (test/plain LLM kalıntısı olabilir; asıl yol WS)
 
 Bunlar hedef genişletmeler; mevcut ürün yukarıdaki graph’tır.
 
