@@ -268,7 +268,7 @@ Example — question: "Hello, what can you do?"
 """
 
 GROUNDING_POLICY = """Grounding and partial-answer policy:
-Use only the provided sources for factual claims. All sources are cited as [S1], [S2], etc. (guide, museum, historical-site, and graph profiles).
+Use only the provided sources for factual claims. Cite sources as [1], [2], etc. (guide, museum, historical-site, and graph profiles).
 
 First identify the user's core request and any modifiers or constraints.
 
@@ -310,7 +310,7 @@ Focus on how to get around, timing, transport, and practical constraints grounde
 
 SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
-Cite sources as [S1], [S2], etc. Each source line is tagged with its kind (museum, historical, guide, or graph).
+Cite sources as [1], [2], etc. (digits only inside brackets — never [S1]). Each source line is tagged with its kind (museum, historical, guide, or graph).
 
 {grounding_policy}
 
@@ -664,7 +664,7 @@ def _build_unified_sources(
     vector_chunks: list[dict],
     graph_contexts: list[dict],
 ) -> tuple[str, list[dict]]:
-    """Dedupe by (url, section), then number as [S1]…[Sn].
+    """Dedupe by (url, section), then number as [1]…[n].
 
     Order: museum → historical → guide → graph.
     """
@@ -712,7 +712,7 @@ def _build_unified_sources(
     lines: list[str] = []
     sources: list[dict] = []
     for i, (label, text, source) in enumerate(merged.values(), start=1):
-        lines.append(f"[S{i}] ({label}):\n{text}")
+        lines.append(f"[{i}] ({label}):\n{text}")
         sources.append(source)
 
     section = SYNTHESIZE_SOURCES_SECTION.format(sources="\n\n".join(lines))

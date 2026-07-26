@@ -16,6 +16,8 @@ export type Source = {
   section: string;
   source_url: string;
   score: number;
+  source?: string;
+  name?: string;
 };
 
 export type Message = {

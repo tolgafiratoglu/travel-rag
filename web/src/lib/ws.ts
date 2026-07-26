@@ -12,6 +12,8 @@ export type WsEvent =
         section: string;
         source_url: string;
         score: number;
+        source?: string;
+        name?: string;
       }[];
       plan: Record<string, unknown>;
       primary_intent?: string;

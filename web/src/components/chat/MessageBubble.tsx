@@ -6,22 +6,52 @@ import type { Message, Source } from "./types";
 
 type MessageBubbleProps = Pick<Message, "role" | "content" | "status" | "sources">;
 
-/** Map [Sn] → markdown link using sources[n-1]. Keep original order (no dedupe). */
+/**
+ * Map [n] (and legacy [Sn]) → markdown link using sources[n-1].
+ * Avoid matching words like [3 günlük].
+ */
 function linkifyCitations(text: string, sources: Source[]): string {
-  return text.replace(/\[S(\d+)\]/g, (match, num: string) => {
+  return text.replace(/(?<![\w/])\[S?(\d+)\]/g, (match, num: string) => {
     const i = Number(num) - 1;
     const src = sources[i];
     if (!src) return match;
     if (src.source_url) {
-      return `[[S${num}]](${src.source_url})`;
+      return `[[${num}]](${src.source_url})`;
     }
-    return `[[S${num}]](#src-${num})`;
+    return `[[${num}]](#src-${num})`;
   });
 }
 
-function sourceLabel(source: Source): string {
-  const place = [source.city_name, source.section].filter(Boolean).join(" — ");
-  return place || "source";
+function siteName(source: Source): string {
+  const raw = (source.source || "").toLowerCase();
+  if (raw.includes("wikivoyage")) return "Wikivoyage";
+  if (raw.includes("wikipedia") || raw === "wp") return "Wikipedia";
+  if (raw === "neo4j" || raw === "graph") return "Travel knowledge graph";
+  if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1);
+  if (source.source_url?.includes("wikivoyage")) return "Wikivoyage";
+  if (source.source_url?.includes("wikipedia")) return "Wikipedia";
+  return "Source";
+}
+
+function sectionLabel(section: string): string {
+  if (!section || section === "graph") return "";
+  const leaf = section.split("/").filter(Boolean).pop() || section;
+  return leaf
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Chicago-style web citation (no author). */
+function chicagoCitation(source: Source): { title: string; rest: string } {
+  const title =
+    source.name?.trim() ||
+    source.city_name?.trim() ||
+    "Untitled";
+  const site = siteName(source);
+  const sec = sectionLabel(source.section || "");
+  const parts = [site];
+  if (sec) parts.push(`sec. ${sec}`);
+  return { title, rest: parts.join(", ") };
 }
 
 const markdownComponents: Components = {
@@ -95,30 +125,41 @@ export function MessageBubble({ role, content, status, sources }: MessageBubbleP
         </div>
       )}
       {citationSources.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-2">
-          <p className="mb-1 text-xs font-medium text-gray-500">Kaynaklar</p>
-          <ul className="space-y-1 text-xs">
+        <div className="mt-4 border-t border-gray-100 pt-3">
+          <p className="mb-2 text-xs font-medium tracking-wide text-gray-500 uppercase">
+            References
+          </p>
+          <ol className="list-none space-y-2 text-xs leading-relaxed text-gray-700">
             {citationSources.map((source, i) => {
               const n = i + 1;
-              const label = `[S${n}] ${sourceLabel(source)}`;
+              const { title, rest } = chicagoCitation(source);
+              const body = (
+                <>
+                  <span className="mr-1.5 tabular-nums text-gray-500">{n}.</span>
+                  <span>
+                    “{title}.” <em>{rest}</em>
+                    {source.source_url ? "." : ""}
+                  </span>
+                </>
+              );
               return (
-                <li key={`src-${n}-${source.source_url || sourceLabel(source)}`} id={`src-${n}`}>
+                <li key={`src-${n}-${source.source_url || title}`} id={`src-${n}`}>
                   {source.source_url ? (
                     <a
                       href={source.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-gray-700 hover:text-blue-700"
                     >
-                      {label}
+                      {body}
                     </a>
                   ) : (
-                    <span className="text-gray-600">{label}</span>
+                    <span>{body}</span>
                   )}
                 </li>
               );
             })}
-          </ul>
+          </ol>
         </div>
       )}
     </div>

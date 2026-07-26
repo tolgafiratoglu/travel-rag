@@ -13,6 +13,8 @@ class Source(BaseModel):
     section: str
     source_url: str = ""
     score: float
+    source: str = ""
+    name: str = ""
 
 
 class PlanStep(BaseModel):
