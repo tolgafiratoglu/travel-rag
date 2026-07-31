@@ -2,8 +2,7 @@
 """Ingest Wikivoyage cities into Neo4j (v1 schema — neo4j.md).
 
 Deterministic: Country, City, IN_COUNTRY.
-Optional Gemini: Airport / Place stubs + SERVED_BY_AIRPORT, CONNECTED_BY, DAY_TRIP_FROM
-from get_in / go_next (and get_around) sections only.
+Optional Gemini (3 narrow passes): SERVED_BY_AIRPORT, CONNECTED_BY, DAY_TRIP_FROM.
 
 Places (museums / historical) come from scripts/ingest-neo4j-places.py.
 
@@ -12,10 +11,7 @@ Usage:
     LLM_PROVIDER=gemini \\
     .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Antalya
 
-    # Anchors only (no LLM):
     .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --page Antalya --anchors-only
-
-    # Wipe all WvEntity nodes first:
     .venv/bin/python scripts/ingest-wikivoyage-neo4j.py --wipe --page Antalya
 """
 
@@ -28,6 +24,8 @@ import logging
 import os
 import re
 import sys
+import time
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,12 +61,10 @@ from pydantic import ValidationError
 from app.config import settings
 from app.graph.neo4j_schema import (
     ANCHOR_REL_TYPE,
-    LLM_NODE_LABELS,
-    LLM_REL_TYPES,
     city_graph_id,
     country_graph_id,
 )
-from app.models.graph_extract import GraphExtract, validate_graph_extract
+from app.models.graph_extract import GraphEdge, GraphExtract, GraphNode, validate_graph_extract
 from lib.neo4j_wv_ingest import (
     IngestCounts,
     build_city_anchor,
@@ -86,99 +82,112 @@ NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "changeme")
 SLEEP_SECONDS = float(os.getenv("WV_NEO4J_SLEEP", "1.0"))
+PASS_SLEEP = float(os.getenv("WV_NEO4J_PASS_SLEEP", "0.4"))
+RAW_DUMP_DIR = Path(
+    os.getenv("WV_NEO4J_RAW_DIR", str(ROOT / "tmp" / "neo4j-gemini-raw"))
+)
 
-# Topics useful for airports / connections / day trips.
-RELATION_TOPICS = frozenset({"get_in", "go_next", "get_around", "see"})
+# Narrow passes: one relation family, few topics, small JSON.
+PASS_AIRPORT = "airport"
+PASS_CONNECTED = "connected"
+PASS_DAY_TRIP = "day_trip"
 
-GRAPH_EXTRACT_PROMPT = """You extract travel GRAPH RELATIONSHIPS from Wikivoyage text.
-Return ONLY valid JSON (no markdown fences or commentary).
 
-Allowed node labels: {labels}
-Allowed relationship types: {rel_types}
+@dataclass(frozen=True)
+class RelationPass:
+    key: str
+    topics: frozenset[str]
+    node_labels: tuple[str, ...]
+    rel_type: str
+    max_edges: int
+    max_section_chars: int
+    max_total_chars: int
+    instructions: str
 
-Current city graph_id (use EXACTLY this string when referring to this city):
+
+RELATION_PASSES: tuple[RelationPass, ...] = (
+    RelationPass(
+        key=PASS_AIRPORT,
+        topics=frozenset({"get_in"}),
+        node_labels=("Airport",),
+        rel_type="SERVED_BY_AIRPORT",
+        max_edges=3,
+        max_section_chars=1800,
+        max_total_chars=5000,
+        instructions=(
+            "Extract airports that serve THIS city.\n"
+            "Edges: City -> Airport, type SERVED_BY_AIRPORT only.\n"
+            "Node label: Airport only. graph_id airport:IATA or airport:slug-name.\n"
+            "Max 3 edges. Omit duration fields."
+        ),
+    ),
+    RelationPass(
+        key=PASS_CONNECTED,
+        topics=frozenset({"get_in", "go_next"}),
+        node_labels=("City",),
+        rel_type="CONNECTED_BY",
+        max_edges=5,
+        max_section_chars=1800,
+        max_total_chars=6000,
+        instructions=(
+            "Extract transport links from THIS city to OTHER cities.\n"
+            "Edges: current city -> other City, type CONNECTED_BY only.\n"
+            "Emit other City nodes (not the current city). "
+            "graph_id city:slug-name.\n"
+            "Properties: mode (flight|bus|ferry|train), optional duration_min/"
+            "duration_max (minutes, only if stated), direct, evidence_text, confidence.\n"
+            "NEVER invent durations. Max 5 edges."
+        ),
+    ),
+    RelationPass(
+        key=PASS_DAY_TRIP,
+        topics=frozenset({"see", "go_next", "do"}),
+        node_labels=("Place",),
+        rel_type="DAY_TRIP_FROM",
+        max_edges=5,
+        max_section_chars=1800,
+        max_total_chars=6000,
+        instructions=(
+            "Extract nearby places that are day trips FROM this city.\n"
+            "Edges: Place -> City, type DAY_TRIP_FROM only "
+            "(Place is a day trip from the city).\n"
+            "Node label: Place. graph_id place:slug-name. "
+            "type one of museum|historical_site|attraction|natural_site|"
+            "religious_site|archaeological_site.\n"
+            "Optional one_way_minutes only if stated. Max 5 edges. "
+            "NEVER invent times."
+        ),
+    ),
+)
+
+PASS_PROMPT = """You extract a SMALL travel graph fragment. Return ONLY valid compact JSON.
+No markdown fences, no comments, no trailing commas.
+
+Current city graph_id (use EXACTLY on edges; do NOT emit a City node for it):
 {city_graph_id}
 
-Output schema:
+Allowed node labels: {labels}
+Allowed relationship type: {rel_type} ONLY
+Max edges: {max_edges}
+
+Task:
+{instructions}
+
+JSON shape:
 {{
-  "nodes": [
-    {{
-      "label": "Airport",
-      "graph_id": "airport:AYT",
-      "name": "Antalya Airport",
-      "properties": {{ "iata": "AYT" }}
-    }},
-    {{
-      "label": "Place",
-      "graph_id": "place:slug-perge",
-      "name": "Perge",
-      "properties": {{ "type": "archaeological_site" }}
-    }},
-    {{
-      "label": "City",
-      "graph_id": "city:slug-yalova",
-      "name": "Yalova",
-      "properties": {{}}
-    }}
-  ],
-  "edges": [
-    {{
-      "from_graph_id": "{city_graph_id}",
-      "to_graph_id": "airport:AYT",
-      "type": "SERVED_BY_AIRPORT",
-      "properties": {{
-        "evidence_text": "short quote from the text",
-        "confidence": 0.9
-      }}
-    }},
-    {{
-      "from_graph_id": "place:slug-perge",
-      "to_graph_id": "{city_graph_id}",
-      "type": "DAY_TRIP_FROM",
-      "properties": {{
-        "one_way_minutes": 35,
-        "mode": "bus",
-        "evidence_text": "quote",
-        "confidence": 0.85
-      }}
-    }},
-    {{
-      "from_graph_id": "{city_graph_id}",
-      "to_graph_id": "city:slug-yalova",
-      "type": "CONNECTED_BY",
-      "properties": {{
-        "mode": "ferry",
-        "duration_min": 105,
-        "duration_max": null,
-        "direct": true,
-        "evidence_text": "quote",
-        "confidence": 0.8
-      }}
-    }}
-  ]
+  "nodes": [{{"label":"...","graph_id":"...","name":"...","properties":{{}}}}],
+  "edges": [{{
+    "from_graph_id":"...",
+    "to_graph_id":"...",
+    "type":"{rel_type}",
+    "properties": {{"evidence_text":"short quote <=120 chars","confidence":0.8}}
+  }}]
 }}
 
-Relationship directions:
-- SERVED_BY_AIRPORT: City -> Airport
-- DAY_TRIP_FROM: Place -> City  (Place is a day trip FROM the City)
-- CONNECTED_BY: City -> City (transport between cities)
+City: {city_name} ({country})
+Source: {source_url}
 
-Rules:
-- Do NOT emit Country nodes.
-- Do NOT emit a City node for the current city; always use {city_graph_id} on edges.
-- Durations are minutes (integers). If the text does not state a duration, omit the field or set null — NEVER invent times.
-- Prefer sparse, high-confidence edges grounded in evidence_text.
-- graph_id for airports: airport:{{IATA}} when known, else airport:slug-{{name}}.
-- graph_id for places: place:slug-{{name}}.
-- graph_id for other cities: city:slug-{{name}}.
-- Place.type one of: museum, historical_site, attraction, natural_site, religious_site, archaeological_site.
-
-City metadata:
-- name: {city_name}
-- country: {country}
-- source_url: {source_url}
-
-Sections JSON:
+Sections:
 {sections_json}
 """
 
@@ -188,6 +197,9 @@ def _extract_json(text: str) -> dict:
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
     if fence:
         text = fence.group(1).strip()
+    # Strip // and /* */ style noise sometimes inserted by models.
+    text = re.sub(r",\s*}", "}", text)
+    text = re.sub(r",\s*]", "]", text)
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end == -1:
@@ -195,43 +207,139 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
-def _relation_sections(sections: list[dict]) -> list[dict]:
-    """Keep get_in / go_next / get_around / see for relation extract."""
+def _dump_raw(city_slug: str, pass_key: str, raw: str, err: Exception) -> Path:
+    RAW_DUMP_DIR.mkdir(parents=True, exist_ok=True)
+    path = RAW_DUMP_DIR / f"{city_slug}_{pass_key}_{int(time.time())}.txt"
+    path.write_text(
+        f"ERROR: {err}\n\n----- raw -----\n{raw}\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _sections_for_pass(sections: list[dict], rel_pass: RelationPass) -> list[dict]:
     filtered = [
         s
         for s in sections
-        if (s.get("topic") or "").casefold() in RELATION_TOPICS
+        if (s.get("topic") or "").casefold() in rel_pass.topics
     ]
-    return sections_for_gemini(filtered)
+    return sections_for_gemini(
+        filtered,
+        max_section_chars=rel_pass.max_section_chars,
+        max_total_chars=rel_pass.max_total_chars,
+    )
 
 
-async def extract_relations_gemini(
+def _merge_extracts(parts: list[GraphExtract]) -> GraphExtract:
+    nodes_by_id: dict[str, GraphNode] = {}
+    edges: list[GraphEdge] = []
+    seen_edge: set[tuple[str, str, str]] = set()
+    for part in parts:
+        for node in part.nodes:
+            nodes_by_id[node.graph_id] = node
+        for edge in part.edges:
+            key = (edge.from_graph_id, edge.to_graph_id, edge.type)
+            if key in seen_edge:
+                continue
+            seen_edge.add(key)
+            edges.append(edge)
+    return GraphExtract(nodes=list(nodes_by_id.values()), edges=edges)
+
+
+def _filter_pass_edges(extract: GraphExtract, rel_type: str, max_edges: int) -> GraphExtract:
+    edges = [e for e in extract.edges if e.type == rel_type][:max_edges]
+    needed = {e.from_graph_id for e in edges} | {e.to_graph_id for e in edges}
+    nodes = [n for n in extract.nodes if n.graph_id in needed]
+    return GraphExtract(nodes=nodes, edges=edges)
+
+
+async def _gemini_pass(
     row: dict,
-    sections_payload: list[dict],
     city_gid: str,
+    rel_pass: RelationPass,
+    sections_payload: list[dict],
+    *,
+    retries: int = 1,
 ) -> GraphExtract:
     from app.services import llm
 
-    prompt = GRAPH_EXTRACT_PROMPT.format(
-        labels=", ".join(sorted(LLM_NODE_LABELS)),
-        rel_types=", ".join(sorted(LLM_REL_TYPES)),
+    if not sections_payload:
+        print(f"    pass {rel_pass.key}: no sections, skip")
+        return GraphExtract()
+
+    prompt = PASS_PROMPT.format(
         city_graph_id=city_gid,
+        labels=", ".join(rel_pass.node_labels),
+        rel_type=rel_pass.rel_type,
+        max_edges=rel_pass.max_edges,
+        instructions=rel_pass.instructions,
         city_name=row["page_name"],
         country=row["country"],
         source_url=row["source_url"],
-        sections_json=json.dumps(sections_payload, ensure_ascii=False, indent=2),
+        sections_json=json.dumps(sections_payload, ensure_ascii=False),
     )
-    raw = await llm.generate(prompt)
-    data = _extract_json(raw)
-    extract = GraphExtract.model_validate(data)
     country_gid = country_graph_id(row["country"])
-    return validate_graph_extract(
-        extract,
-        city_graph_id=city_gid,
-        country_graph_id=country_gid,
-        strict=False,
-        llm_only=True,
+    city_slug = (row.get("page_slug") or row["page_name"]).replace("/", "-")
+    last_err: Exception | None = None
+    raw = ""
+
+    for attempt in range(retries + 1):
+        try:
+            raw = await llm.generate(prompt)
+            data = _extract_json(raw)
+            extract = GraphExtract.model_validate(data)
+            extract = validate_graph_extract(
+                extract,
+                city_graph_id=city_gid,
+                country_graph_id=country_gid,
+                strict=False,
+                llm_only=True,
+            )
+            extract = _filter_pass_edges(
+                extract, rel_pass.rel_type, rel_pass.max_edges
+            )
+            print(
+                f"    pass {rel_pass.key}: "
+                f"{len(extract.nodes)} node(s), {len(extract.edges)} edge(s)"
+                + (f" (retry {attempt})" if attempt else "")
+            )
+            return extract
+        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+            last_err = exc
+            dump = _dump_raw(city_slug, rel_pass.key, raw or "", exc)
+            print(
+                f"    pass {rel_pass.key}: parse fail ({exc}); "
+                f"raw → {dump}"
+            )
+            if attempt < retries:
+                await asyncio.sleep(0.5)
+
+    print(f"    pass {rel_pass.key}: giving up ({last_err})")
+    return GraphExtract()
+
+
+async def extract_relations_multipart(
+    row: dict,
+    sections: list[dict],
+    city_gid: str,
+) -> GraphExtract:
+    parts: list[GraphExtract] = []
+    for i, rel_pass in enumerate(RELATION_PASSES):
+        payload = _sections_for_pass(sections, rel_pass)
+        print(
+            f"    pass {rel_pass.key}: {len(payload)} section chunk(s) → "
+            f"{rel_pass.rel_type}"
+        )
+        part = await _gemini_pass(row, city_gid, rel_pass, payload, retries=1)
+        parts.append(part)
+        if i < len(RELATION_PASSES) - 1 and PASS_SLEEP > 0:
+            await asyncio.sleep(PASS_SLEEP)
+    merged = _merge_extracts(parts)
+    print(
+        f"  Gemini merged: {len(merged.nodes)} node(s), "
+        f"{len(merged.edges)} edge(s)"
     )
+    return merged
 
 
 def _print_counts(label: str, counts: IngestCounts) -> None:
@@ -259,29 +367,17 @@ async def ingest_city(
     anchors_only: bool,
 ) -> IngestCounts | None:
     sections = split_sections(row["wikitext"] or "")
-    payload = _relation_sections(sections)
-    print(
-        f"  {len(sections)} section(s), {len(payload)} chunk(s) for relation LLM"
-    )
+    print(f"  {len(sections)} section(s)")
 
     city_gid = city_graph_id(row.get("wikidata_qid"), row["source_url"])
-    country_gid = country_graph_id(row["country"])
     city_anchor = build_city_anchor(row, city_gid)
-    country_anchor = build_country_anchor(row["country"], country_gid)
+    country_anchor = build_country_anchor(row["country"], country_graph_id(row["country"]))
 
     if anchors_only:
         extract = GraphExtract()
         print("  anchors-only: skipping Gemini")
     else:
-        if not payload:
-            print("  no relation sections; anchors only")
-            extract = GraphExtract()
-        else:
-            extract = await extract_relations_gemini(row, payload, city_gid)
-            print(
-                f"  Gemini: {len(extract.nodes)} node(s), "
-                f"{len(extract.edges)} edge(s)"
-            )
+        extract = await extract_relations_multipart(row, sections, city_gid)
 
     if dry_run:
         print(
@@ -380,7 +476,7 @@ async def main_async(
                         )
                     totals.nodes_deleted += counts.nodes_deleted
                     totals.edges_deleted += counts.edges_deleted
-            except (ValidationError, ValueError, RuntimeError) as exc:
+            except (ValidationError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
                 print(f"  ERROR: {exc}")
             if i < len(rows) and SLEEP_SECONDS > 0:
                 await asyncio.sleep(SLEEP_SECONDS)
