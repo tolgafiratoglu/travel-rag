@@ -72,13 +72,15 @@ Rules:
 
 Deep POI search (museums + historical sites):
 - deep_search: true when museum or historical-site detail would materially help (sights, museums, ruins, castles, temples, UNESCO sites, "what to see", "tarihi yerler", "müzeler").
-- search_museums: true for museums, galleries, collections.
-- search_artifacts: true for historical sites, ruins, monuments, archaeological places, castles, temples.
+- Also turn deep_search on for open-ended city sightseeing / places-to-go questions even when museums or ruins are not named explicitly, e.g. "where to go", "what to see", "things to do", "places to visit", "aileyle gidilecek yerler", "gezilecek yerler", "nereler gezilir", family/kid recommendations for a city, or a city itinerary/day plan.
+- search_museums: true for museums, galleries, collections; also true for broad sightseeing questions above (museum POIs often help).
+- search_artifacts: true for historical sites, ruins, monuments, archaeological places, castles, temples; also true for broad sightseeing questions above unless the user clearly wants only museums (or only historical sites).
+- For broad sightseeing / family places / city itinerary: prefer search_museums=true AND search_artifacts=true.
 - deep_search must be true iff search_museums or search_artifacts is true.
 - museum_search_queries: when search_museums is true, 1-3 {{ "q", "city" }} objects for the museums collection. When false, [].
 - artifact_search_queries: when search_artifacts is true, 1-3 {{ "q", "city" }} objects for the historical-sites collection. When false, [].
 - Same city rules as search_queries (CityName or ANY).
-- Pure hotel/flight or chitchat/meta: deep_search, search_museums, search_artifacts all false; both query lists [].
+- Keep deep_search false for: pure hotel/flight, food-only, beach-weather-only, transport-only logistics, chitchat/meta, or asks unrelated to POIs. Then both query lists [].
 
 Hotel search (Booking.com):
 - is_hotel_search: true only when the user asks for accommodation, hotels, or lodging.
@@ -120,18 +122,24 @@ Example — question: "Where can I go with my family in Antalya?"
     "summary": "Searching for family-friendly places in Antalya.",
     "steps": [
       {{ "id": "s1", "label": "Search family-friendly spots in Antalya", "kind": "vector", "status": "idle" }},
-      {{ "id": "s2", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
+      {{ "id": "s2", "label": "Search museums for families", "kind": "museums", "status": "idle" }},
+      {{ "id": "s3", "label": "Search historical sites nearby", "kind": "artifacts", "status": "idle" }},
+      {{ "id": "s4", "label": "Compile and present recommendations", "kind": "synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": [
     {{ "q": "family friendly places", "city": "Antalya" }},
     {{ "q": "kid friendly beach activities", "city": "Antalya" }}
   ],
-  "deep_search": false,
-  "search_museums": false,
-  "search_artifacts": false,
-  "museum_search_queries": [],
-  "artifact_search_queries": [],
+  "deep_search": true,
+  "search_museums": true,
+  "search_artifacts": true,
+  "museum_search_queries": [
+    {{ "q": "family friendly museums", "city": "Antalya" }}
+  ],
+  "artifact_search_queries": [
+    {{ "q": "family friendly historical sites", "city": "Antalya" }}
+  ],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
@@ -152,7 +160,8 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
     "summary": "Antalya planı hazırlayıp Bodrum ile karşılaştırıyorum.",
     "steps": [
       {{ "id": "s1", "label": "Antalya ve Bodrum bilgilerini araştır", "kind": "vector", "status": "idle" }},
-      {{ "id": "s2", "label": "Plan ve karşılaştırmayı sentezle", "kind": "synthesize", "status": "idle" }}
+      {{ "id": "s2", "label": "Müze ve tarihi yerleri tara", "kind": "museums", "status": "idle" }},
+      {{ "id": "s3", "label": "Plan ve karşılaştırmayı sentezle", "kind": "synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": [
@@ -160,11 +169,17 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
     {{ "q": "top attractions", "city": "Bodrum" }},
     {{ "q": "Antalya vs Bodrum travel", "city": "ANY" }}
   ],
-  "deep_search": false,
-  "search_museums": false,
-  "search_artifacts": false,
-  "museum_search_queries": [],
-  "artifact_search_queries": [],
+  "deep_search": true,
+  "search_museums": true,
+  "search_artifacts": true,
+  "museum_search_queries": [
+    {{ "q": "museums", "city": "Antalya" }},
+    {{ "q": "museums", "city": "Bodrum" }}
+  ],
+  "artifact_search_queries": [
+    {{ "q": "historical sites", "city": "Antalya" }},
+    {{ "q": "historical sites", "city": "Bodrum" }}
+  ],
   "is_hotel_search": false,
   "hotel_search_query": "",
   "is_flight_search": false,
@@ -281,7 +296,7 @@ Example — question: "Hello, what can you do?"
 """
 
 GROUNDING_POLICY = """Grounding and partial-answer policy:
-Use only the provided sources for factual claims. Cite sources as [1], [2], etc. (guide, museum, historical-site, and graph profiles).
+Use only the provided sources for factual claims. Cite sources as [1], [2], etc. Place multiple citations as adjacent markers: [1][2] — never [1, 2], [1-3], or [S1].
 
 First identify the user's core request and any modifiers or constraints.
 
@@ -323,7 +338,7 @@ Focus on how to get around, timing, transport, and practical constraints grounde
 
 SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
 
-Cite sources as [1], [2], etc. (digits only inside brackets — never [S1]). Each source line is tagged with its kind (museum, historical, guide, or graph).
+Cite sources as [1], [2], etc. Place multiple citations as adjacent markers: [1][2] — never [1, 2], [1-3], or [S1]. Digits only inside each pair of brackets. Each source line is tagged with its kind (museum, historical, guide, or graph).
 
 {grounding_policy}
 
@@ -730,6 +745,41 @@ def _build_unified_sources(
     return section, sources
 
 
+_CITATION_RE = re.compile(r"(?<![\w/])\[(\d+)\]")
+
+
+def _filter_and_renumber_citations(
+    answer: str,
+    sources: list[dict],
+) -> tuple[str, list[dict]]:
+    """Keep only sources cited as [n] in the answer; renumber densely to [1]…[k].
+
+    Must run before any debug footer is appended (footer may contain [n]).
+    """
+    if not sources:
+        return answer, []
+
+    used = sorted(
+        {
+            int(m.group(1))
+            for m in _CITATION_RE.finditer(answer or "")
+            if 1 <= int(m.group(1)) <= len(sources)
+        }
+    )
+    if not used:
+        return answer, []
+
+    old_to_new = {old: new for new, old in enumerate(used, start=1)}
+    cited = [sources[old - 1] for old in used]
+
+    def repl(match: re.Match[str]) -> str:
+        old = int(match.group(1))
+        new = old_to_new.get(old)
+        return f"[{new}]" if new is not None else match.group(0)
+
+    return _CITATION_RE.sub(repl, answer), cited
+
+
 async def synthesize_node(state: GraphState) -> GraphState:
     chunks = state.get("vector_chunks") or []
     museum_chunks = state.get("museum_chunks") or []
@@ -774,6 +824,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
     )
     prompt = external_section + prompt
     answer = await llm.generate(prompt)
+    answer, sources = _filter_and_renumber_citations(answer, sources)
 
     return {
         "answer": _append_debug_footer(answer, state, prompt),
