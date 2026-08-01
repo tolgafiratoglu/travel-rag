@@ -5,7 +5,7 @@ import re
 from pydantic import ValidationError
 
 from app.graph.state import GraphState
-from app.models.planner import cities_from_intents, parse_planner_output, planner_state_update
+from app.models.planner import parse_planner_output, planner_state_update
 from app.services import graph_store
 from app.services import llm
 from app.services import vector_store
@@ -49,7 +49,8 @@ Schema:
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": {{}}
+  "needs_graph": false,
+  "graph_queries": []
 }}
 
 Rules:
@@ -62,8 +63,8 @@ Rules:
   cities: cities relevant to that specific intent (empty list if none).
   If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
   When primary_intent is a task intent (not chitchat/meta), include a matching entry in intents[].
-- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when neo4j_data is non-empty, "external" when hotel or flight search links are prepared. All steps start with status "idle".
-- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], neo4j_data to {{}}, deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
+- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
+- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
 - search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
   q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
   city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
@@ -97,13 +98,16 @@ Flight search (Kayak):
   No dates: https://www.kayak.com/flights/IST-AYT?sort=bestflight_a
 - When is_flight_search is false, set flight_search_query to "".
 
-neo4j_data:
-- A dict mapping entity names to graph relation types. Use only when graph knowledge would help answer the question.
-- Keys: city, country, or place names mentioned in the question.
-- Values: exactly one of: Country, Region, City, District, Attraction, Activity, Airport, TransportHub, Route, TravelTheme, Season, Budget
-- Examples: {{"Istanbul": "City"}}, {{"Istanbul": "Airport"}}, {{"Cappadocia": "Region", "Goreme": "Season"}}
-- Use "City" for general city profile questions; "Airport" or "TransportHub" for airport/transport access; "Season" for best time to visit; "Attraction" for sights/UNESCO.
-- When graph data is not needed, set neo4j_data to {{}}.
+Neo4j graph (see neo4j.md — constraints / candidates, not prose):
+- needs_graph: true only when structured relationships help (day trips with time, city-to-city transport, airports serving a city, place lists by type in a city).
+- graph_queries: 0-3 objects {{ "template": "...", "params": {{...}} }}. When needs_graph is false, [].
+- Allowed templates ONLY:
+  - places_in_city — params: city_slug (required), place_type (optional: museum|historical_site|attraction|...), limit
+  - day_trips_from_city — params: city_slug, max_one_way_minutes (optional int), place_type (optional), limit
+  - connection_between_cities — params: city_a, city_b
+  - airports_serving_city — params: city_slug
+- city_slug may be a slug or display name (Antalya / antalya). Do NOT invent Cypher.
+- Prefer graph for DAY_TRIP / CONNECTED_BY / airport questions; prefer vector/deep alone for open-ended "what to see" prose.
 
 Example — question: "Where can I go with my family in Antalya?"
 {{
@@ -132,7 +136,8 @@ Example — question: "Where can I go with my family in Antalya?"
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": {{ "Antalya": "City" }}
+  "needs_graph": false,
+  "graph_queries": []
 }}
 
 Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
@@ -164,7 +169,10 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": {{ "Antalya": "City", "Bodrum": "City" }}
+  "needs_graph": true,
+  "graph_queries": [
+    {{ "template": "connection_between_cities", "params": {{ "city_a": "Antalya", "city_b": "Bodrum" }} }}
+  ]
 }}
 
 Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
@@ -198,7 +206,10 @@ Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": {{ "İstanbul": "City" }}
+  "needs_graph": true,
+  "graph_queries": [
+    {{ "template": "places_in_city", "params": {{ "city_slug": "Istanbul", "place_type": "museum" }} }}
+  ]
 }}
 
 Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
@@ -234,7 +245,8 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
   "hotel_search_query": "https://www.booking.com/searchresults.html?ss=İstanbul",
   "is_flight_search": true,
   "flight_search_query": "https://www.kayak.com/flights/IST-IST?sort=bestflight_a",
-  "neo4j_data": {{ "İstanbul": "City" }}
+  "needs_graph": false,
+  "graph_queries": []
 }}
 
 Example — question: "Hello, what can you do?"
@@ -258,7 +270,8 @@ Example — question: "Hello, what can you do?"
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": {{}}
+  "needs_graph": false,
+  "graph_queries": []
 }}
 
 ### Question
@@ -530,17 +543,15 @@ async def vector_retrieval_node(state: GraphState) -> GraphState:
 
 
 async def graph_retrieval_node(state: GraphState) -> GraphState:
-    neo4j_data = state.get("neo4j_data") or {}
-    if neo4j_data:
-        cities = list(neo4j_data.keys())
-    else:
-        cities = cities_from_intents(state.get("intents"))
+    if not state.get("needs_graph"):
+        return {"graph_contexts": []}
 
-    if not cities:
+    queries = state.get("graph_queries") or []
+    if not queries:
         return {"graph_contexts": []}
 
     try:
-        contexts = await graph_store.fetch_contexts_for_cities(cities)
+        contexts = await graph_store.fetch_contexts_for_queries(queries)
     except Exception as e:
         logger.warning("Graph retrieval failed: %s", e)
         contexts = []

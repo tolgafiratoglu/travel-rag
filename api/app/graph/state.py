@@ -19,7 +19,8 @@ class GraphState(TypedDict, total=False):
     hotel_search_query: str
     is_flight_search: bool
     flight_search_query: str
-    neo4j_data: dict[str, str]
+    needs_graph: bool
+    graph_queries: list[dict[str, Any]]
     planner_raw: str
     guard_label: str | None
     guard_raw: str

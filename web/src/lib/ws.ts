@@ -29,7 +29,8 @@ export type WsEvent =
       hotel_search_query?: string;
       is_flight_search?: boolean;
       flight_search_query?: string;
-      neo4j_data?: Record<string, string>;
+      needs_graph?: boolean;
+      graph_queries?: { template: string; params?: Record<string, unknown> }[];
     }
   | { type: "error"; message: string };
 

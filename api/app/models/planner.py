@@ -4,10 +4,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.graph.neo4j_schema import NEO4J_NODE_LABELS_FROZEN
 from app.models.schemas import Plan
-
-NEO4J_RELATION_KEYS = NEO4J_NODE_LABELS_FROZEN
+from app.services.graph_store import ALLOWED_GRAPH_TEMPLATES
 
 PRIMARY_INTENT_VALUES = frozenset(
     {
@@ -21,7 +19,6 @@ PRIMARY_INTENT_VALUES = frozenset(
     }
 )
 
-# Travel/task intents that may appear in intents[]. chitchat/meta are primary-only.
 SLOT_INTENT_VALUES = frozenset(
     {
         "factoid",
@@ -109,6 +106,29 @@ class SearchQuery(BaseModel):
         return name
 
 
+class GraphQuery(BaseModel):
+    """Allowlisted Neo4j template + params (neo4j.md)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    template: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("template", mode="before")
+    @classmethod
+    def _clean_template(cls, value: Any) -> str:
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
+
+    @field_validator("params", mode="before")
+    @classmethod
+    def _clean_params(cls, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            return {}
+        return value
+
+
 class PlannerOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -126,7 +146,8 @@ class PlannerOutput(BaseModel):
     hotel_search_query: str = ""
     is_flight_search: bool = False
     flight_search_query: str = ""
-    neo4j_data: dict[str, str] = Field(default_factory=dict)
+    needs_graph: bool = False
+    graph_queries: list[GraphQuery] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _align_primary_with_slots(self) -> PlannerOutput:
@@ -157,6 +178,22 @@ class PlannerOutput(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def _align_graph_flags(self) -> PlannerOutput:
+        if self.primary_intent in ("chitchat", "meta"):
+            self.needs_graph = False
+            self.graph_queries = []
+            return self
+        # Drop unknown templates.
+        self.graph_queries = [
+            q for q in self.graph_queries if q.template in ALLOWED_GRAPH_TEMPLATES
+        ]
+        if self.graph_queries:
+            self.needs_graph = True
+        if not self.needs_graph:
+            self.graph_queries = []
+        return self
+
+    @model_validator(mode="after")
     def _drop_empty_queries(self) -> PlannerOutput:
         self.search_queries = [item for item in self.search_queries if item.q]
         self.museum_search_queries = [item for item in self.museum_search_queries if item.q]
@@ -166,14 +203,22 @@ class PlannerOutput(BaseModel):
         return self
 
 
-def _sanitize_neo4j_data(raw: Any) -> dict[str, str]:
-    if not isinstance(raw, dict):
-        return {}
-    return {
-        str(key): value
-        for key, value in raw.items()
-        if isinstance(value, str) and value in NEO4J_RELATION_KEYS
-    }
+def _sanitize_graph_queries(raw: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        template = item.get("template")
+        if not isinstance(template, str) or not template.strip():
+            continue
+        name = template.strip()
+        if name not in ALLOWED_GRAPH_TEMPLATES:
+            continue
+        params = item.get("params") if isinstance(item.get("params"), dict) else {}
+        out.append({"template": name, "params": params})
+    return out
 
 
 def _sanitize_intents(raw: Any) -> list[dict[str, Any]]:
@@ -188,7 +233,6 @@ def _sanitize_intents(raw: Any) -> list[dict[str, Any]]:
         if not isinstance(intent, str) or intent not in SLOT_INTENT_VALUES:
             continue
         if intent in seen:
-            # merge cities into existing slot
             for slot in slots:
                 if slot["intent"] == intent:
                     existing = slot.get("cities") or []
@@ -228,7 +272,6 @@ def _sanitize_search_queries(raw: Any) -> list[dict[str, Any]]:
             continue
         q = item.get("q")
         if not isinstance(q, str) or not q.strip():
-            # legacy {query: "..."} fallback
             q = item.get("query") if isinstance(item.get("query"), str) else ""
         if not isinstance(q, str) or not q.strip():
             continue
@@ -244,11 +287,28 @@ def parse_planner_output(data: dict[str, Any]) -> PlannerOutput:
         primary = data["intent"]
     primary_intent = _sanitize_primary_intent(primary, intents)
 
+    needs_graph = bool(data.get("needs_graph"))
+    graph_queries = _sanitize_graph_queries(data.get("graph_queries"))
+    # Legacy neo4j_data → places_in_city fallback (keys only).
+    legacy = data.get("neo4j_data")
+    if not graph_queries and isinstance(legacy, dict) and legacy:
+        for city_name in legacy:
+            if isinstance(city_name, str) and city_name.strip():
+                graph_queries.append(
+                    {
+                        "template": "places_in_city",
+                        "params": {"city_slug": city_name.strip()},
+                    }
+                )
+        if graph_queries:
+            needs_graph = True
+
     sanitized = {
         **data,
         "primary_intent": primary_intent,
         "intents": intents,
-        "neo4j_data": _sanitize_neo4j_data(data.get("neo4j_data")),
+        "needs_graph": needs_graph,
+        "graph_queries": graph_queries,
         "search_queries": _sanitize_search_queries(data.get("search_queries")),
         "museum_search_queries": _sanitize_search_queries(
             data.get("museum_search_queries")
@@ -311,6 +371,7 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
         "hotel_search_query": planner.hotel_search_query,
         "is_flight_search": planner.is_flight_search,
         "flight_search_query": planner.flight_search_query,
-        "neo4j_data": planner.neo4j_data,
+        "needs_graph": planner.needs_graph,
+        "graph_queries": dump["graph_queries"],
         "planner_raw": raw,
     }

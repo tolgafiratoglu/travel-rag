@@ -76,35 +76,25 @@ Mevcut `/chat` akışını gözlemlenebilir ve hata toleranslı hale getir.
 
 ---
 
-## Phase 2 — Neo4j (template Cypher)  *(~4 gün)*
+## Phase 2 — Neo4j (template Cypher)
 
-Neo4j online sorguya dahil — önce **hazır Cypher template'leri**, LLM Cypher generation sonra.
+Kaynak tasarım: **[`neo4j.md`](./neo4j.md)**.
 
-### 2.A Graph service  *(~1 gün)*
+### Yapılan (v1)
 
-- [ ] **2.1** `services/graph_store.py` — Neo4j async driver wrapper *(0.5 gün)*
-- [ ] **2.2** Helper'lar: `cities_near`, `unesco_near_city`, `airport_access` + generic `run_cypher` *(0.5 gün)*
+- [x] Şema: Country / City / Place / Airport + `IN_COUNTRY` / `IN_CITY` / `SERVED_BY_AIRPORT` / `CONNECTED_BY` / `DAY_TRIP_FROM`
+- [x] Ingest: `ingest-wikivoyage-neo4j.py`, `ingest-neo4j-places.py`
+- [x] `graph_store.GRAPH_TEMPLATES` (4 template) + allowlist
+- [x] Planner: `needs_graph` + `graph_queries` (eski `neo4j_data` legacy fallback)
+- [x] Routing: graph-first when `needs_graph`, sonra deep/vector
 
-### 2.B Template Cypher (LLM yok)  *(~1.5 gün)*
+### Kalan
 
-- [ ] **2.3** `graph/nodes.py` — `graph_retrieval_node` intent'e göre hazır template seçer *(0.75 gün)*
-- [ ] **2.4** Cypher validation guard (sadece MATCH/RETURN) *(0.25 gün)*
-- [ ] **2.5** `retrieval_router` edge — simple → vector-only, structured → hybrid *(0.5 gün)*
+- [ ] **2.A** Graph aday → Qdrant enrich (name / `wikidata_qid` filter) *(hibrit köprü)*
+- [ ] **2.B** Synthesize’te süre/kısıt satırlarını daha yapısal göstermek
+- [ ] **2.C** LLM Cypher **yok** (bilerek; template only)
 
-### 2.C Hybrid merge  *(~1.5 gün)*
-
-- [ ] **2.6** `merge_dedupe_node` (vector + graph birleştir) *(0.5 gün)*
-- [ ] **2.7** SourceChunk köprüsünden vector chunk'ları getir *(0.5 gün)*
-- [ ] **2.8** `planner_json` plan steps'e `graph` kind ekle (UNESCO/mesafe soruları) *(0.5 gün)*
-
-**Çıktı:** "İstanbul'a yakın UNESCO yerleri", "Kaş Fethiye'ye mi yakın" gibi yapılandırılmış sorular.
-
-> Ertelenen: LLM Cypher generation (`generate_cypher_node`) → Phase 4; `rerank_node` → Phase 4.
-
-### 2.D LLM Cypher (ileri)  *(~2 gün — Phase 4'e taşınabilir)*
-
-- [ ] **2.9** `generate_cypher_node` (active LLM provider + few-shot) *(1 gün)*
-- [ ] **2.10** Template fallback: LLM Cypher başarısızsa hazır template'e düş *(0.5 gün)*
+> Eski Phase 2 maddeleri (Attraction/PART_OF city-profile, LLM Cypher) iptal — `neo4j.md` esas.
 
 ---
 

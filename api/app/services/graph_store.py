@@ -1,4 +1,4 @@
-"""Neo4j async driver + city profile retrieval."""
+"""Neo4j async driver + v1 template Cypher (neo4j.md)."""
 
 from __future__ import annotations
 
@@ -11,67 +11,79 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-CYPHER_CITY_PROFILE = """
-MATCH (c:City)
-WHERE toLower(c.name) = toLower($city)
-
-OPTIONAL MATCH (c)-[:PART_OF]->(country:Country)
-
-OPTIONAL MATCH (c)-[:SEASONAL_FOR]->(season:Season)
-WITH c, country, collect(DISTINCT {
-  name: season.name,
-  months: season.months
-}) AS seasons
-
-OPTIONAL MATCH (c)-[:ACCESSIBLE_BY]->(access)
-WHERE access:Airport OR access:TransportHub OR access:Route
-WITH c, country, seasons, collect(DISTINCT {
-  name: access.name,
-  label: head([l IN labels(access) WHERE l <> 'WvEntity' | l]),
-  mode: access.mode
-}) AS access_options
-
-OPTIONAL MATCH (c)-[:GOOD_BASE_FOR]->(base_target)
-WITH c, country, seasons, access_options, collect(DISTINCT {
-  name: base_target.name,
-  label: head([l IN labels(base_target) WHERE l <> 'WvEntity' | l])
-}) AS good_base_for
-
-OPTIONAL MATCH (attr)-[:PART_OF]->(c)
-WHERE attr:Attraction
-WITH c, country, seasons, access_options, good_base_for,
-     collect(DISTINCT {
-       name: attr.name,
-       type: attr.type,
-       unesco: attr.unesco,
-       description: attr.description
-     }) AS attractions
-
-OPTIONAL MATCH (act)-[:PART_OF]->(c)
-WHERE act:Activity
-
-OPTIONAL MATCH (peer)-[:IN_SAME_AREA]-(c)
-WHERE peer:Attraction OR peer:Activity OR peer:District OR peer:City
-
-RETURN
-  c.name AS city,
-  c.description AS description,
-  c.population AS population,
-  country.name AS country,
-  seasons,
-  access_options,
-  good_base_for,
-  attractions,
-  collect(DISTINCT {
-    name: act.name,
-    category: act.category,
-    season_dependent: act.season_dependent
-  }) AS activities,
-  collect(DISTINCT {
-    name: peer.name,
-    label: head([l IN labels(peer) WHERE l <> 'WvEntity' | l])
-  }) AS same_area
+# City match: slug, name, or aliases (case-insensitive).
+_CITY_MATCH = """
+OPTIONAL MATCH (c:City)
+WHERE toLower(c.slug) = toLower($city_key)
+   OR toLower(c.name) = toLower($city_key)
+   OR any(a IN coalesce(c.aliases, []) WHERE toLower(a) = toLower($city_key))
+WITH c
+WHERE c IS NOT NULL
 """
+
+GRAPH_TEMPLATES: dict[str, str] = {
+    "places_in_city": f"""
+{_CITY_MATCH}
+MATCH (p:Place)-[:IN_CITY]->(c)
+WHERE $place_type = '' OR p.type = $place_type
+RETURN p.name AS name,
+       p.type AS type,
+       p.wikidata_qid AS wikidata_qid,
+       p.source_url AS source_url,
+       c.name AS city
+ORDER BY p.name
+LIMIT $limit
+""",
+    "day_trips_from_city": f"""
+{_CITY_MATCH}
+MATCH (p:Place)-[r:DAY_TRIP_FROM]->(c)
+WHERE ($max_one_way_minutes < 0 OR r.one_way_minutes IS NULL
+       OR r.one_way_minutes <= $max_one_way_minutes)
+  AND ($place_type = '' OR p.type = $place_type)
+RETURN p.name AS name,
+       p.type AS type,
+       p.wikidata_qid AS wikidata_qid,
+       p.source_url AS source_url,
+       r.one_way_minutes AS one_way_minutes,
+       r.mode AS mode,
+       c.name AS city
+ORDER BY coalesce(r.one_way_minutes, 99999), p.name
+LIMIT $limit
+""",
+    "connection_between_cities": """
+OPTIONAL MATCH (a:City)
+WHERE toLower(a.slug) = toLower($city_a)
+   OR toLower(a.name) = toLower($city_a)
+   OR any(x IN coalesce(a.aliases, []) WHERE toLower(x) = toLower($city_a))
+OPTIONAL MATCH (b:City)
+WHERE toLower(b.slug) = toLower($city_b)
+   OR toLower(b.name) = toLower($city_b)
+   OR any(x IN coalesce(b.aliases, []) WHERE toLower(x) = toLower($city_b))
+WITH a, b
+WHERE a IS NOT NULL AND b IS NOT NULL
+MATCH (a)-[r:CONNECTED_BY]-(b)
+RETURN a.name AS from_city,
+       b.name AS to_city,
+       r.mode AS mode,
+       r.duration_min AS duration_min,
+       r.duration_max AS duration_max,
+       r.direct AS direct,
+       r.evidence_text AS evidence_text
+LIMIT $limit
+""",
+    "airports_serving_city": f"""
+{_CITY_MATCH}
+MATCH (c)-[:SERVED_BY_AIRPORT]->(ap:Airport)
+RETURN ap.name AS name,
+       ap.iata AS iata,
+       ap.source_url AS source_url,
+       c.name AS city
+ORDER BY ap.name
+LIMIT $limit
+""",
+}
+
+ALLOWED_GRAPH_TEMPLATES = frozenset(GRAPH_TEMPLATES)
 
 _driver = None
 
@@ -93,150 +105,123 @@ async def _run_query(cypher: str, params: dict[str, Any]) -> list[dict[str, Any]
         return [dict(record) async for record in result]
 
 
-def _has_values(entry: dict) -> bool:
-    return any(v is not None for v in entry.values())
+def _norm_key(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
 
 
-def city_profile_to_context(row: dict[str, Any]) -> str | None:
-    if not row.get("city"):
+def _template_params(template: str, raw: dict[str, Any] | None) -> dict[str, Any]:
+    raw = raw or {}
+    limit = raw.get("limit", 20)
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 20
+    limit = max(1, min(limit, 50))
+
+    if template == "places_in_city":
+        city = _norm_key(raw.get("city_slug") or raw.get("city") or raw.get("city_name"))
+        place_type = _norm_key(raw.get("place_type") or raw.get("type"))
+        return {"city_key": city, "place_type": place_type, "limit": limit}
+
+    if template == "day_trips_from_city":
+        city = _norm_key(raw.get("city_slug") or raw.get("city") or raw.get("city_name"))
+        place_type = _norm_key(raw.get("place_type") or raw.get("type"))
+        max_m = raw.get("max_one_way_minutes", -1)
+        try:
+            max_m = int(max_m)
+        except (TypeError, ValueError):
+            max_m = -1
+        return {
+            "city_key": city,
+            "place_type": place_type,
+            "max_one_way_minutes": max_m,
+            "limit": limit,
+        }
+
+    if template == "connection_between_cities":
+        city_a = _norm_key(
+            raw.get("city_a")
+            or raw.get("from_city")
+            or raw.get("city_slug_a")
+            or raw.get("city")
+        )
+        city_b = _norm_key(
+            raw.get("city_b") or raw.get("to_city") or raw.get("city_slug_b")
+        )
+        return {"city_a": city_a, "city_b": city_b, "limit": limit}
+
+    if template == "airports_serving_city":
+        city = _norm_key(raw.get("city_slug") or raw.get("city") or raw.get("city_name"))
+        return {"city_key": city, "limit": limit}
+
+    return {"limit": limit}
+
+
+def _rows_to_text(template: str, rows: list[dict[str, Any]]) -> str | None:
+    if not rows:
         return None
-
-    lines = [f"City: {row['city']}"]
-
-    description = row.get("description")
-    if description:
-        lines.append(f"Description: {description}")
-
-    population = row.get("population")
-    if population is not None:
-        lines.append(f"Population: {population}")
-
-    country = row.get("country")
-    if country:
-        lines.append(f"Country: {country}")
-
-    seasons = [s for s in (row.get("seasons") or []) if _has_values(s)]
-    if seasons:
-        lines.append("Seasonal:")
-        for season in seasons:
-            name = season.get("name")
-            if not name:
+    lines = [f"Graph template: {template}"]
+    for row in rows:
+        parts: list[str] = []
+        for key, val in row.items():
+            if val is None or val == "":
                 continue
-            months = season.get("months")
-            if months:
-                lines.append(f" - {name} ({months})")
-            else:
-                lines.append(f" - {name}")
-
-    attractions = [a for a in (row.get("attractions") or []) if _has_values(a)]
-    if attractions:
-        lines.append("Attractions:")
-        for attr in attractions:
-            name = attr.get("name")
-            if not name:
-                continue
-
-            parts = [name]
-            if attr.get("type"):
-                parts.append(f"type: {attr['type']}")
-            if attr.get("unesco") is not None:
-                parts.append(f"UNESCO: {'yes' if attr['unesco'] else 'no'}")
-
-            text = " - " + ", ".join(parts)
-            if attr.get("description"):
-                text += f": {attr['description']}"
-            lines.append(text)
-
-    activities = [a for a in (row.get("activities") or []) if _has_values(a)]
-    if activities:
-        lines.append("Activities:")
-        for act in activities:
-            name = act.get("name")
-            if not name:
-                continue
-
-            parts = [name]
-            if act.get("category"):
-                parts.append(f"category: {act['category']}")
-            if act.get("season_dependent") is not None:
-                parts.append(
-                    f"season-dependent: {'yes' if act['season_dependent'] else 'no'}"
-                )
-            lines.append(" - " + ", ".join(parts))
-
-    access_options = [a for a in (row.get("access_options") or []) if _has_values(a)]
-    if access_options:
-        lines.append("Accessible by:")
-        for access in access_options:
-            name = access.get("name")
-            if not name:
-                continue
-            parts = [name]
-            if access.get("label"):
-                parts.append(f"kind: {access['label']}")
-            if access.get("mode"):
-                parts.append(f"mode: {access['mode']}")
-            lines.append(" - " + ", ".join(parts))
-
-    good_base_for = [g for g in (row.get("good_base_for") or []) if _has_values(g)]
-    if good_base_for:
-        lines.append("Good base for:")
-        for item in good_base_for:
-            name = item.get("name")
-            if not name:
-                continue
-            label = item.get("label")
-            if label:
-                lines.append(f" - {name} ({label})")
-            else:
-                lines.append(f" - {name}")
-
-    same_area = [p for p in (row.get("same_area") or []) if _has_values(p)]
-    if same_area:
-        lines.append("Same area:")
-        for peer in same_area:
-            name = peer.get("name")
-            if not name:
-                continue
-            label = peer.get("label")
-            if label:
-                lines.append(f" - {name} ({label})")
-            else:
-                lines.append(f" - {name}")
-
-    return "\n".join(lines)
+            parts.append(f"{key}={val}")
+        if parts:
+            lines.append(" - " + "; ".join(parts))
+    return "\n".join(lines) if len(lines) > 1 else None
 
 
-async def fetch_city_context(city: str) -> dict[str, str] | None:
-    city = (city or "").strip()
-    if not city:
+async def run_graph_query(
+    template: str,
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Run one allowlisted template; return {template, text, rows} or None."""
+    if template not in ALLOWED_GRAPH_TEMPLATES:
+        logger.warning("Unknown graph template: %s", template)
+        return None
+    cypher = GRAPH_TEMPLATES[template]
+    query_params = _template_params(template, params)
+    if template == "connection_between_cities":
+        if not query_params.get("city_a") or not query_params.get("city_b"):
+            return None
+    elif not query_params.get("city_key"):
         return None
 
     try:
-        rows = await _run_query(CYPHER_CITY_PROFILE, {"city": city})
+        rows = await _run_query(cypher, query_params)
     except Exception as e:
-        logger.warning("Neo4j query failed for city %r: %s", city, e)
+        logger.warning("Neo4j template %s failed: %s", template, e)
         return None
 
-    if not rows:
-        return None
-
-    text = city_profile_to_context(rows[0])
+    text = _rows_to_text(template, rows)
     if not text:
         return None
+    return {"template": template, "text": text, "rows": rows}
 
-    return {"city": rows[0]["city"], "text": text}
 
-
-async def fetch_contexts_for_cities(cities: list[str]) -> list[dict[str, str]]:
-    seen: set[str] = set()
+async def fetch_contexts_for_queries(
+    graph_queries: list[dict[str, Any]],
+) -> list[dict[str, str]]:
+    """Execute planner graph_queries; return synthesize-ready contexts."""
     contexts: list[dict[str, str]] = []
-    for city in cities:
-        key = city.strip().lower()
-        if not key or key in seen:
+    for item in graph_queries or []:
+        if not isinstance(item, dict):
             continue
-        seen.add(key)
-        ctx = await fetch_city_context(city.strip())
-        if ctx:
-            contexts.append(ctx)
+        template = item.get("template")
+        if not isinstance(template, str):
+            continue
+        params = item.get("params") if isinstance(item.get("params"), dict) else {}
+        result = await run_graph_query(template.strip(), params)
+        if not result:
+            continue
+        contexts.append(
+            {
+                "city": result["template"],
+                "text": result["text"],
+                "source_url": "",
+            }
+        )
     return contexts

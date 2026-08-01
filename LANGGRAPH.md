@@ -2,7 +2,7 @@
 
 Bu dosya **şu an çalışan** LangGraph pipeline’ını tanımlar. Kod: `api/app/graph/` (`state.py`, `nodes.py`, `edges.py`, `builder.py`).
 
-Neo4j tarafı burada bilerek **özet** tutulur (şehir profili sidecar). Detaylı graph şeması / Cypher tasarımı ayrı çalışmaya bırakılmıştır.
+Neo4j şema + template’ler: **[`neo4j.md`](./neo4j.md)** (graph = aday/kısıt; Qdrant = anlatım).
 
 ---
 
@@ -16,19 +16,20 @@ START
        └─ planner_json
             → retrieval_router
                  ├─ chitchat | meta → chitchat → format → END
-                 ├─ deep_search → deep_retrieval → vector_retrieval → graph_retrieval → synthesize → format → END
-                 └─ else → vector_retrieval → graph_retrieval → synthesize → format → END
+                 ├─ needs_graph → graph_retrieval → (deep?) → vector → synthesize → format → END
+                 ├─ deep_search → deep_retrieval → vector → synthesize → format → END
+                 └─ else → vector_retrieval → synthesize → format → END
 ```
 
 | Node | LLM? | Rol |
 |------|------|-----|
 | `intake` | Hayır | Soruyu normalize eder |
 | `safety_guard` | Guard model (Ollama) | Prompt injection / unsafe input |
-| `planner_json` | **Evet (#1)** | Intent, plan, arama sorguları (tek JSON) |
+| `planner_json` | **Evet (#1)** | Intent, plan, arama + opsiyonel `graph_queries` |
 | `chitchat` | **Evet** | Retrieval’sız kısa cevap |
+| `graph_retrieval` | Hayır | Neo4j allowlist template Cypher (`needs_graph`) |
 | `deep_retrieval` | Hayır (embed) | Müze + tarihi alan Qdrant koleksiyonları |
 | `vector_retrieval` | Hayır (embed) | Wikivoyage guide chunk’ları |
-| `graph_retrieval` | Hayır | Neo4j şehir profili (özet; bkz. aşağı) |
 | `synthesize` | **Evet (#2)** | Kaynaklara dayalı cevap + citation |
 | `format` | Hayır | Pass-through (ileride post-process) |
 
@@ -72,11 +73,12 @@ is_hotel_search          bool
 hotel_search_query       str   # Booking.com URL
 is_flight_search         bool
 flight_search_query      str   # Kayak URL
-neo4j_data               dict[str, str]        # city → label hint (runtime mostly uses keys)
+needs_graph              bool
+graph_queries            list[{template, params}]  # neo4j.md templates
 museum_chunks            list[dict]
 artifact_chunks          list[dict]
 vector_chunks            list[dict]
-graph_contexts           list[{city, text}]
+graph_contexts           list[{city, text}]  # template sonuç metinleri
 sources                  list[dict]            # synthesize sonrası, [1]…[n] sırası
 answer                   str
 error                    str | None
@@ -94,10 +96,11 @@ planner_raw              str                   # debug
 |--------|--------|
 | `error` set | `format` |
 | `primary_intent ∈ {chitchat, meta}` | `chitchat` |
-| `deep_search == true` | `deep_retrieval` → sonra her zaman `vector_retrieval` |
+| `needs_graph == true` | `graph_retrieval` → sonra `deep` veya `vector` |
+| `deep_search == true` | `deep_retrieval` → `vector_retrieval` |
 | aksi | `vector_retrieval` |
 
-`deep_search` **yalnızca** müze / tarihi Qdrant aramasını açar; Neo4j’i açmaz. Graph retrieval, chitchat dışındaki path’lerde vector’dan sonra çalışır.
+`deep_search` yalnızca müze / tarihi Qdrant aramasını açar. Neo4j yalnızca `needs_graph` + allowlist `graph_queries` ile çalışır (LLM Cypher yok).
 
 ---
 
@@ -134,7 +137,8 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
   "hotel_search_query": "",
   "is_flight_search": false,
   "flight_search_query": "",
-  "neo4j_data": { "Antalya": "City" }
+  "needs_graph": false,
+  "graph_queries": []
 }
 ```
 
@@ -145,14 +149,26 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
 - Guide sorguları İngilizce, kısa, retrieval-optimized.
 - Rota / “ne görülür” / müze-tarih sorularında planner `deep_search` + ilgili POI sorgularını açmaya yönlendirilir.
 
+### Graph sorguları (`neo4j.md`)
+
+- `needs_graph` + `graph_queries: [{ template, params }]`.
+- Template allowlist: `places_in_city`, `day_trips_from_city`, `connection_between_cities`, `airports_serving_city`.
+- LLM Cypher yazmaz; kod `graph_store.GRAPH_TEMPLATES` çalıştırır.
+
 ### Plan `steps[].kind`
 
 `vector | museums | artifacts | graph | external | synthesize`  
-Son adım her zaman `synthesize`. Step listesi **UI/plan kartı** içindir; asıl routing `deep_search` / `primary_intent` flag’lerine bakar.
+Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` / `primary_intent`.
 
 ---
 
 ## Retrieval
+
+### `graph_retrieval_node`
+
+- Yalnızca `needs_graph` ve dolu `graph_queries` iken.
+- Allowlist template Cypher → satırları metne çevirir → `graph_contexts`.
+- Sonra `after_graph_router`: deep varsa `deep_retrieval`, değilse `vector_retrieval`.
 
 ### `deep_retrieval_node`
 
@@ -165,12 +181,6 @@ Son adım her zaman `synthesize`. Step listesi **UI/plan kartı** içindir; ası
 - Koleksiyon: `travel_chunks` (Wikivoyage guide).
 - `search_queries` + city filter.
 - Sonuç: `vector_chunks`.
-
-### `graph_retrieval_node` (özet)
-
-- Şehir listesi: `neo4j_data` keys, yoksa intent city’leri.
-- Tek tip şehir profili metni → `graph_contexts`.
-- Synthesize’te diğer kaynaklarla birlikte numaralanır (`source: neo4j`).
 
 ---
 

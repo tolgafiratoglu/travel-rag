@@ -1,7 +1,7 @@
 # Travel RAG
 
 Seyahat soruları için çok adımlı Retrieval-Augmented Generation sistemi.  
-**LangGraph** ile orkestrasyon, **Qdrant** ile vektör arama, **Neo4j** ile hafif şehir profili (özet), **Next.js** sohbet arayüzü.
+**LangGraph** ile orkestrasyon, **Qdrant** ile vektör arama, **Neo4j** ile yapılandırılmış aday/kısıt (şema: [`neo4j.md`](./neo4j.md)), **Next.js** sohbet arayüzü.
 
 | Rol | Teknoloji |
 |-----|-----------|
@@ -10,11 +10,11 @@ Seyahat soruları için çok adımlı Retrieval-Augmented Generation sistemi.
 | Embeddings | Ollama **`bge-m3`** |
 | Safety guard | Ollama `sileader/qwen3guard:0.6b` |
 | Vector DB | Qdrant (`travel_chunks`, `travel_museums`, `travel_historical_sites`) |
-| Graph DB | Neo4j 5 (şehir profili sidecar — detay bu README’de yok) |
+| Graph DB | Neo4j 5 — `IN_*` / `CONNECTED_BY` / `DAY_TRIP_FROM` (bkz. `neo4j.md`) |
 | API | FastAPI + WebSocket |
 | UI | Next.js App Router + React + Tailwind |
 
-Pipeline tasarımı: **[`LANGGRAPH.md`](./LANGGRAPH.md)**.
+Pipeline: **[`LANGGRAPH.md`](./LANGGRAPH.md)**. Graph şema: **[`neo4j.md`](./neo4j.md)**.
 
 ---
 
@@ -31,11 +31,12 @@ LangGraph
   intake → safety_guard → planner_json
               │
               ├─ chitchat/meta → chitchat → format
-              ├─ deep_search → museums/historical → Wikivoyage → Neo4j profile → synthesize
-              └─ else → Wikivoyage → Neo4j profile → synthesize
+              ├─ needs_graph → Neo4j templates → (± deep) → Wikivoyage → synthesize
+              ├─ deep_search → museums/historical → Wikivoyage → synthesize
+              └─ else → Wikivoyage → synthesize
     │
     ├── Qdrant (guide + optional POI collections)
-    ├── Neo4j (city profile text)
+    ├── Neo4j (aday / kısıt — neo4j.md)
     ├── Gemini veya Ollama/Qwen (generation)
     └── Ollama (embeddings + guard)
 ```
@@ -49,7 +50,8 @@ LangGraph
 - **LangGraph** — tek zincir yerine plan → route → retrieve → synthesize; chitchat ve deep POI ayrı path.
 - **Plan-first WS** — kullanıcı boş ekranda beklemez; sistem ne yapacağını erken gösterir.
 - **City-aware Qdrant filter** — planner `SearchQuery { q, city }` ile şehir metadata’sına pinler (`ANY` = filtresiz).
-- **Deep search** — müze / tarihi alan koleksiyonları; `deep_search` bunları açar (Neo4j’i değil).
+- **Neo4j templates** — günübirlik / bağlantı / havalimanı gibi kısıtlar; LLM Cypher yok (`needs_graph` + allowlist).
+- **Deep search** — müze / tarihi alan koleksiyonları; `deep_search` bunları açar.
 - **Section allowlist (ingest)** — See / Do / Get in vb.; Sleep / Eat gibi ticari gürültü yok.
 - **Ollama Semaphore(1)** — yalnızca local Qwen generation için GPU sırası; Gemini HTTP.
 
@@ -63,11 +65,10 @@ LangGraph
 Wikivoyage dump / API ──▶ MariaDB (wv_cities)
                               │
                               ├─▶ scripts/ingest-wikivoyage-qdrant.py  ──▶ Qdrant travel_chunks
-                              └─▶ scripts/ingest-wikivoyage-neo4j.py   ──▶ Neo4j (özet)
+                              └─▶ scripts/ingest-wikivoyage-neo4j.py   ──▶ Neo4j City/Country + ilişkiler
 
-Wikipedia POI rows   ──▶ scripts/ingest-wikipedia-pois.py
-                              ├─▶ travel_museums
-                              └─▶ travel_historical_sites
+Wikipedia POI rows   ──▶ scripts/ingest-wikipedia-pois.py ──▶ Qdrant museums/historical
+                     └─▶ scripts/ingest-neo4j-places.py   ──▶ Neo4j Place + IN_CITY
 ```
 
 **Wikivoyage section politikası** (`scripts/lib/wv_parse.py`):
@@ -81,13 +82,13 @@ Qdrant’a şehir eklerken: ilk yüklemede wipe varsayılan; ek şehir için `--
 
 ### Query (online)
 
-1. Guard → planner JSON  
-2. Gerekirse müze/tarihi arama  
-3. Wikivoyage guide arama (şehir filtresi)  
-4. Neo4j şehir profili (varsa)  
-5. Synthesize: kaynak dedupe (`url` + `section`), `[n]` citation, intent odaklı prompt  
+1. Guard → planner JSON (`needs_graph` / `graph_queries` / deep / vector)  
+2. İsteğe bağlı Neo4j template’ler (aday + kısıt)  
+3. İsteğe bağlı müze/tarihi Qdrant  
+4. Wikivoyage guide Qdrant  
+5. Synthesize: kaynak dedupe, `[n]` citation  
 
-Detay: `LANGGRAPH.md`.
+Detay: `LANGGRAPH.md`, `neo4j.md`.
 
 ---
 
@@ -257,14 +258,15 @@ FE: markdown cevap, `[n]` → kaynak linki, References listesi.
 **Var**
 
 - Guard + planner + deep/guide retrieval + synthesize  
+- Neo4j v1: şema + ingest + `needs_graph` / template Cypher (`neo4j.md`)  
 - City filter, kaynak dedupe, `[n]` citation + FE References  
-- Wikivoyage allowlist ingest, Wikipedia POI collections  
+- Wikivoyage allowlist ingest, Wikipedia POI → Qdrant + Place nodes  
 - Rate limit, Docker Compose stack  
 
-**Bilerek sade / sonraki iş**
+**Sonraki / zayıf halkalar**
 
-- Neo4j: city-profile sidecar (çok-hop / label-routed Cypher yok)  
+- Graph aday → Qdrant name/QID ile sıkı enrich (hibrit köprü)  
 - Rerank, groundedness loop, multi-turn bellek yok  
 - Web henüz compose servisi değil  
 
-LangGraph node/edge detayı → **`LANGGRAPH.md`**.
+LangGraph → **`LANGGRAPH.md`**. Neo4j → **`neo4j.md`**.

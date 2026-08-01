@@ -91,11 +91,31 @@ async def ws_chat(ws: WebSocket):
                     primary_intent = update.get("primary_intent", "")
                     if primary_intent in ("chitchat", "meta"):
                         first_kind = "synthesize"
+                    elif update.get("needs_graph"):
+                        first_kind = "graph"
                     elif update.get("deep_search"):
                         first_kind = "museums"
                     else:
                         first_kind = "vector"
                     await _send(ws, {"type": "step", "kind": first_kind, "status": "running"})
+
+                elif node_name == "graph_retrieval":
+                    count = len(update.get("graph_contexts") or [])
+                    await _send(ws, {
+                        "type": "step",
+                        "kind": "graph",
+                        "status": "done",
+                        "detail": f"{count} graph result(s)",
+                    })
+                    deep = bool(result.get("deep_search"))
+                    await _send(
+                        ws,
+                        {
+                            "type": "step",
+                            "kind": "museums" if deep else "vector",
+                            "status": "running",
+                        },
+                    )
 
                 elif node_name == "deep_retrieval":
                     m_count = len(update.get("museum_chunks") or [])
@@ -115,16 +135,6 @@ async def ws_chat(ws: WebSocket):
                         "kind": "vector",
                         "status": "done",
                         "detail": f"{count} sources found",
-                    })
-                    await _send(ws, {"type": "step", "kind": "graph", "status": "running"})
-
-                elif node_name == "graph_retrieval":
-                    count = len(update.get("graph_contexts") or [])
-                    await _send(ws, {
-                        "type": "step",
-                        "kind": "graph",
-                        "status": "done",
-                        "detail": f"{count} city profiles found",
                     })
                     await _send(ws, {"type": "step", "kind": "synthesize", "status": "running"})
 
@@ -154,7 +164,8 @@ async def ws_chat(ws: WebSocket):
             "hotel_search_query": result.get("hotel_search_query", ""),
             "is_flight_search": result.get("is_flight_search", False),
             "flight_search_query": result.get("flight_search_query", ""),
-            "neo4j_data": result.get("neo4j_data") or {},
+            "needs_graph": result.get("needs_graph", False),
+            "graph_queries": result.get("graph_queries") or [],
         })
         await ws.close()
 
