@@ -6,3 +6,17 @@ html,
 body {
   @apply h-dvh overflow-hidden bg-gray-50 text-gray-900 antialiased;
 }
+
+@keyframes cite-flash {
+  0%,
+  12% {
+    background-color: #ffedd5; /* orange-100 */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.cite-flash {
+  animation: cite-flash 18s ease-out;
+}
