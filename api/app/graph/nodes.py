@@ -310,10 +310,11 @@ If the sources support a material part of the core request but do not fully answ
 
 If the sources support related information but not the exact requested attribute, present it as limited context, not as a direct answer.
 
-Use phrasing in the user's language, for example:
+Write hedging and gap phrases in {language_name} (prompt_language={prompt_language}), for example in English:
 "Sources do not fully answer this question, but they support the following..."
 or
 "X is not explicitly stated in the sources, but Y is available..."
+(Adapt these examples to {language_name}.)
 
 Do not infer labels such as family-friendly, cheap, safe, romantic, accessible, best, or suitable unless the sources explicitly support them.
 
@@ -336,7 +337,8 @@ Include one markdown comparison table:
 Focus on how to get around, timing, transport, and practical constraints grounded in the sources.""",
 }
 
-SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources. Reply in the user's language.
+SYNTHESIZE_PROMPT = """You are a travel assistant. Answer the user's question using the provided sources.
+Reply entirely in {language_name} (ISO 639-1: {prompt_language}). Do not switch languages except for proper nouns.
 
 Cite sources as [1], [2], etc. Place multiple citations as adjacent markers: [1][2] — never [1, 2], [1-3], or [S1]. Digits only inside each pair of brackets. Each source line is tagged with its kind (museum, historical, guide, or graph).
 
@@ -354,18 +356,57 @@ SYNTHESIZE_SOURCES_SECTION = """### Sources
 """
 
 SYNTHESIZE_EXTERNAL_SECTION = """### External booking links
-Include these links in your answer when relevant (use markdown links with descriptive labels in the user's language):
+Include these links in your answer when relevant (use markdown links with descriptive labels in {language_name}):
 {external_links}
 
 """
 
-CHITCHAT_PROMPT = """You are a friendly travel assistant. The user is making casual conversation or asking about your capabilities. Reply naturally in the user's language. Keep it brief and warm.
+CHITCHAT_PROMPT = """You are a friendly travel assistant. The user is making casual conversation or asking about your capabilities.
+Reply naturally and entirely in {language_name} (ISO 639-1: {prompt_language}). Keep it brief and warm.
 
 ### Message
 {question}
 
 ### Reply
 """
+
+# ISO 639-1 → English language name for LLM instructions
+_LANGUAGE_NAMES: dict[str, str] = {
+    "tr": "Turkish",
+    "en": "English",
+    "de": "German",
+    "fr": "French",
+    "es": "Spanish",
+    "it": "Italian",
+    "nl": "Dutch",
+    "pt": "Portuguese",
+    "ru": "Russian",
+    "ar": "Arabic",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "el": "Greek",
+    "pl": "Polish",
+    "sv": "Swedish",
+    "no": "Norwegian",
+    "da": "Danish",
+    "fi": "Finnish",
+    "hu": "Hungarian",
+    "cs": "Czech",
+    "ro": "Romanian",
+    "uk": "Ukrainian",
+    "he": "Hebrew",
+    "hi": "Hindi",
+}
+
+
+def _prompt_language_fields(state: GraphState) -> dict[str, str]:
+    raw = state.get("prompt_language") or "en"
+    code = str(raw).strip().lower().replace("_", "-").split("-", 1)[0] or "en"
+    if len(code) > 3:
+        code = code[:2]
+    name = _LANGUAGE_NAMES.get(code, code)
+    return {"prompt_language": code, "language_name": name}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -575,7 +616,8 @@ async def graph_retrieval_node(state: GraphState) -> GraphState:
 
 
 async def chitchat_node(state: GraphState) -> GraphState:
-    prompt = CHITCHAT_PROMPT.format(question=state["question"])
+    lang = _prompt_language_fields(state)
+    prompt = CHITCHAT_PROMPT.format(question=state["question"], **lang)
     answer = await llm.generate(prompt)
     return {"answer": _append_debug_footer(answer, state, prompt), "sources": []}
 
@@ -588,7 +630,11 @@ def _build_external_links_section(state: GraphState) -> str:
         links.append(f"Flights: {state['flight_search_query']}")
     if not links:
         return ""
-    return SYNTHESIZE_EXTERNAL_SECTION.format(external_links="\n".join(links))
+    lang = _prompt_language_fields(state)
+    return SYNTHESIZE_EXTERNAL_SECTION.format(
+        external_links="\n".join(links),
+        **lang,
+    )
 
 
 def _build_intent_section(state: GraphState) -> str:
@@ -815,12 +861,14 @@ async def synthesize_node(state: GraphState) -> GraphState:
         museum_chunks, artifact_chunks, chunks, contexts
     )
     intent_section = _build_intent_section(state)
+    lang = _prompt_language_fields(state)
 
     prompt = SYNTHESIZE_PROMPT.format(
-        grounding_policy=GROUNDING_POLICY,
+        grounding_policy=GROUNDING_POLICY.format(**lang),
         intent_section=intent_section,
         sources_section=sources_section,
         question=state["question"],
+        **lang,
     )
     prompt = external_section + prompt
     answer = await llm.generate(prompt)
