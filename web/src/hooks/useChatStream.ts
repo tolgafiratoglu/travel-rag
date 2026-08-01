@@ -69,6 +69,21 @@ export function useChatStream() {
             break;
           }
 
+          case "token":
+            setMessages((prev) => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last?.role === "assistant") {
+                updated[updated.length - 1] = {
+                  ...last,
+                  content: (last.content || "") + event.delta,
+                  status: undefined,
+                };
+              }
+              return updated;
+            });
+            break;
+
           case "done":
             setMessages((prev) => {
               const updated = [...prev];

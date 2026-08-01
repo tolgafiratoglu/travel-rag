@@ -2,6 +2,7 @@ import json
 import logging
 import re
 
+from langgraph.config import get_stream_writer
 from pydantic import ValidationError
 
 from app.graph.state import GraphState
@@ -615,10 +616,25 @@ async def graph_retrieval_node(state: GraphState) -> GraphState:
     return {"graph_contexts": contexts}
 
 
+async def _stream_answer(prompt: str) -> str:
+    """Generate answer while emitting token deltas via LangGraph custom stream."""
+    parts: list[str] = []
+    try:
+        writer = get_stream_writer()
+    except RuntimeError:
+        writer = None
+
+    async for delta in llm.stream_generate(prompt):
+        parts.append(delta)
+        if writer is not None:
+            writer({"type": "token", "delta": delta})
+    return "".join(parts)
+
+
 async def chitchat_node(state: GraphState) -> GraphState:
     lang = _prompt_language_fields(state)
     prompt = CHITCHAT_PROMPT.format(question=state["question"], **lang)
-    answer = await llm.generate(prompt)
+    answer = await _stream_answer(prompt)
     return {"answer": _append_debug_footer(answer, state, prompt), "sources": []}
 
 
@@ -871,7 +887,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
         **lang,
     )
     prompt = external_section + prompt
-    answer = await llm.generate(prompt)
+    answer = await _stream_answer(prompt)
     answer, sources = _filter_and_renumber_citations(answer, sources)
 
     return {

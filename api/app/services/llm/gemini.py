@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 from google import genai
 from google.genai import types
 
@@ -35,30 +37,45 @@ class GeminiProvider:
         stream: bool = False,
         model: str | None = None,
     ) -> str:
+        if stream:
+            parts: list[str] = []
+            async for delta in self.stream_generate(prompt, model=model):
+                parts.append(delta)
+            return "".join(parts)
+
         client = _get_client()
         config = types.GenerateContentConfig(
             temperature=0.3,
             top_p=0.9,
             max_output_tokens=2048,
         )
-
-        if stream:
-            parts: list[str] = []
-            async for chunk in await client.aio.models.generate_content_stream(
-                model=settings.gemini_model,
-                contents=prompt,
-                config=config,
-            ):
-                if chunk.text:
-                    parts.append(chunk.text)
-            return "".join(parts)
-
         response = await client.aio.models.generate_content(
-            model=settings.gemini_model,
+            model=model or settings.gemini_model,
             contents=prompt,
             config=config,
         )
         return _extract_text(response)
+
+    async def stream_generate(
+        self,
+        prompt: str,
+        *,
+        model: str | None = None,
+    ) -> AsyncIterator[str]:
+        client = _get_client()
+        config = types.GenerateContentConfig(
+            temperature=0.3,
+            top_p=0.9,
+            max_output_tokens=2048,
+        )
+        async for chunk in await client.aio.models.generate_content_stream(
+            model=model or settings.gemini_model,
+            contents=prompt,
+            config=config,
+        ):
+            text = getattr(chunk, "text", None)
+            if text:
+                yield text
 
     async def warmup(self) -> None:
         pass

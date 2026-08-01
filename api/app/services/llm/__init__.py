@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 from app.config import settings
 from app.services.llm.gemini import GeminiProvider
 from app.services.llm.ollama import OllamaProvider
@@ -24,6 +26,15 @@ async def generate(
     model: str | None = None,
 ) -> str:
     return await _get_provider().generate(prompt, stream=stream, model=model)
+
+
+async def stream_generate(
+    prompt: str,
+    *,
+    model: str | None = None,
+) -> AsyncIterator[str]:
+    async for delta in _get_provider().stream_generate(prompt, model=model):
+        yield delta
 
 
 async def warmup() -> None:

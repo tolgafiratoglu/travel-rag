@@ -60,10 +60,20 @@ async def ws_chat(ws: WebSocket):
 
         result: dict = {}
 
-        async for chunk in _graph.astream(
+        async for mode, chunk in _graph.astream(
             {"question": question, "history": history},
-            stream_mode="updates",
+            stream_mode=["updates", "custom"],
         ):
+            if mode == "custom":
+                if isinstance(chunk, dict) and chunk.get("type") == "token":
+                    delta = chunk.get("delta") or ""
+                    if delta:
+                        await _send(ws, {"type": "token", "delta": delta})
+                continue
+
+            if mode != "updates" or not isinstance(chunk, dict):
+                continue
+
             for node_name, update in chunk.items():
                 if not update:
                     continue
