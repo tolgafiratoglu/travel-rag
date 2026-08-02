@@ -500,6 +500,14 @@ async def intake_node(state: GraphState) -> GraphState:
     question = (state.get("question") or "").strip()
     if not question:
         return {"error": "Empty question"}
+    max_chars = settings.max_question_chars
+    if max_chars > 0 and len(question) > max_chars:
+        logger.info(
+            "Truncating question from %d to %d chars",
+            len(question),
+            max_chars,
+        )
+        question = question[:max_chars]
     return {
         "question": question,
         "history": state.get("history") or [],

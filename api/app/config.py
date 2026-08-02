@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     rate_limit_burst_window_seconds: int = 60
     rate_limit_hourly: int = 30
 
+    # Hard cap on the current user message (chars), applied in intake.
+    max_question_chars: int = 8000
+
     @field_validator("llm_provider", mode="before")
     @classmethod
     def _normalize_llm_provider(cls, value: str) -> str:
