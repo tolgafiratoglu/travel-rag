@@ -14,6 +14,22 @@ export function useChatStream() {
     const q = question.trim();
     if (!q || loading) return;
 
+    const history = messages
+      .filter(
+        (m) =>
+          (m.role === "user" || m.role === "assistant") &&
+          (m.content || "").trim().length > 0,
+      )
+      .slice(-6)
+      .map((m) => {
+        const content = m.content.trim();
+        const cut = content.search(/\n\n----- (?:prompt|planner response) -----\n/i);
+        return {
+          role: m.role,
+          content: cut >= 0 ? content.slice(0, cut).trim() : content,
+        };
+      });
+
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setLoading(true);
 
@@ -123,10 +139,11 @@ export function useChatStream() {
         setLoading(false);
         cleanupRef.current = null;
       },
+      history,
     );
 
     cleanupRef.current = cleanup;
-  }, [loading]);
+  }, [loading, messages]);
 
   return { messages, loading, send };
 }

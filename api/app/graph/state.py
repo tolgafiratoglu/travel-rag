@@ -4,8 +4,10 @@ from typing import Any, TypedDict
 class GraphState(TypedDict, total=False):
     question: str
     history: list[dict[str, str]]
+    include_history: bool
     planner: dict[str, Any]
     primary_intent: str
+    in_scope: bool
     intents: list[dict[str, Any]]
     prompt_language: str
     plan: dict[str, Any]

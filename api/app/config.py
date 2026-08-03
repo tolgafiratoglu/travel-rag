@@ -46,6 +46,10 @@ class Settings(BaseSettings):
 
     # Hard cap on the current user message (chars), applied in intake.
     max_question_chars: int = 8000
+    # Client chat history (attached under the question when include_history).
+    max_history_turns: int = 6
+    max_history_message_chars: int = 1000
+    max_history_total_chars: int = 4000
 
     @field_validator("llm_provider", mode="before")
     @classmethod

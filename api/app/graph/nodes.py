@@ -6,6 +6,11 @@ from langgraph.config import get_stream_writer
 from pydantic import ValidationError
 
 from app.graph.state import GraphState
+from app.graph.history_context import (
+    decide_include_history,
+    question_block,
+    sanitize_history,
+)
 from app.models.planner import parse_planner_output, planner_state_update
 from app.services import graph_store
 from app.services import llm
@@ -27,6 +32,7 @@ PLANNER_PROMPT = """You are a travel assistant planner. Analyze the user's quest
 Schema:
 {{
   "primary_intent": "chitchat|factoid|recommendation|planning|comparison|logistics|meta",
+  "in_scope": true,
   "intents": [
     {{ "intent": "planning", "cities": ["Antalya"] }}
   ],
@@ -57,16 +63,18 @@ Schema:
 Rules:
 - prompt_language: detect the language of the user's message; use ISO 639-1 (tr, en, de, fr, ...).
 - summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
-- primary_intent: the single main goal of the question.
+- in_scope: true when the user's request (resolving references via Recent conversation if present) is about travel, tourism, cities, places, destinations, attractions, museums, itineraries, lodging, or trip flights. Questions about a specific city or place count as in-scope.
+- in_scope: false for weather-only forecasts, coding, medical advice, crime, unrelated trivia, gibberish, or anything not about travel/places — even if history mentioned a city. Then set primary_intent to "meta", intents to [], all query lists to [], and needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false. Do NOT classify off-topic refusals as chitchat.
+- primary_intent: the single main goal of the question. Use chitchat only for greetings or questions about this assistant's capabilities (those stay in_scope true).
 - intents: zero or more task slots. Order does not matter. Each item is {{ "intent": "...", "cities": [...] }}.
   Allowed intents[].intent values: factoid, recommendation, planning, comparison, logistics.
   Do NOT put chitchat or meta inside intents[]; those are primary_intent only (use intents: []).
-  cities: cities relevant to that specific intent (empty list if none).
+  cities: cities relevant to that specific intent (empty list if none). Do not invent cities that are not in the question or Recent conversation.
   If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
-  When primary_intent is a task intent (not chitchat/meta), include a matching entry in intents[].
+  When primary_intent is a task intent (not chitchat/meta) and in_scope is true, include a matching entry in intents[].
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
-- For chitchat or meta primary_intent: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
-- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
+- For chitchat, meta, or in_scope false: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
+- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta/out-of-scope). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
   q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
   city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
   For multi-city questions, prefer one query object per city (same or different q) rather than a single unfiltered query.
@@ -115,6 +123,7 @@ Neo4j graph (see neo4j.md — constraints / candidates, not prose):
 Example — question: "Where can I go with my family in Antalya?"
 {{
   "primary_intent": "recommendation",
+  "in_scope": true,
   "intents": [
     {{ "intent": "recommendation", "cities": ["Antalya"] }}
   ],
@@ -152,6 +161,7 @@ Example — question: "Where can I go with my family in Antalya?"
 Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
 {{
   "primary_intent": "planning",
+  "in_scope": true,
   "intents": [
     {{ "intent": "planning", "cities": ["Antalya"] }},
     {{ "intent": "comparison", "cities": ["Antalya", "Bodrum"] }}
@@ -194,6 +204,7 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
 Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
 {{
   "primary_intent": "recommendation",
+  "in_scope": true,
   "intents": [
     {{ "intent": "recommendation", "cities": ["İstanbul"] }}
   ],
@@ -231,6 +242,7 @@ Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
 Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
 {{
   "primary_intent": "planning",
+  "in_scope": true,
   "intents": [
     {{ "intent": "planning", "cities": ["İstanbul"] }},
     {{ "intent": "logistics", "cities": ["İstanbul"] }}
@@ -268,12 +280,39 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
 Example — question: "Hello, what can you do?"
 {{
   "primary_intent": "chitchat",
+  "in_scope": true,
   "intents": [],
   "prompt_language": "en",
   "plan": {{
     "summary": "Answering your question.",
     "steps": [
       {{ "id": "s1", "label": "Reply to your message", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": [],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "needs_graph": false,
+  "graph_queries": []
+}}
+
+Example — question: "Peki yağmur yağar mı?"
+{{
+  "primary_intent": "meta",
+  "in_scope": false,
+  "intents": [],
+  "prompt_language": "tr",
+  "plan": {{
+    "summary": "Kapsam dışı soruyu kibarca yönlendiriyorum.",
+    "steps": [
+      {{ "id": "s1", "label": "Seyahat kapsamını hatırlat", "kind": "synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": [],
@@ -409,6 +448,15 @@ def _prompt_language_fields(state: GraphState) -> dict[str, str]:
     name = _LANGUAGE_NAMES.get(code, code)
     return {"prompt_language": code, "language_name": name}
 
+
+def _prompt_question(state: GraphState) -> str:
+    """Question for LLM prompts; history only when intake set include_history."""
+    return question_block(
+        state.get("question") or "",
+        state.get("history") or [],
+        include_history=bool(state.get("include_history")),
+    )
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -508,9 +556,16 @@ async def intake_node(state: GraphState) -> GraphState:
             max_chars,
         )
         question = question[:max_chars]
+
+    history = sanitize_history(state.get("history"))
+    include_history = decide_include_history(question, history)
+    if include_history:
+        logger.info("include_history=true (%d turn(s))", len(history))
+
     return {
         "question": question,
-        "history": state.get("history") or [],
+        "history": history,
+        "include_history": include_history,
     }
 
 
@@ -552,7 +607,7 @@ async def planner_json_node(state: GraphState) -> GraphState:
     if state.get("error"):
         return {}
 
-    prompt = PLANNER_PROMPT.format(question=state["question"])
+    prompt = PLANNER_PROMPT.format(question=_prompt_question(state))
     raw = await llm.generate(prompt)
 
     try:
@@ -641,9 +696,42 @@ async def _stream_answer(prompt: str) -> str:
 
 async def chitchat_node(state: GraphState) -> GraphState:
     lang = _prompt_language_fields(state)
-    prompt = CHITCHAT_PROMPT.format(question=state["question"], **lang)
+    prompt = CHITCHAT_PROMPT.format(question=_prompt_question(state), **lang)
     answer = await _stream_answer(prompt)
     return {"answer": _append_debug_footer(answer, state, prompt), "sources": []}
+
+
+_OUT_OF_SCOPE_MESSAGES: dict[str, str] = {
+    "en": (
+        "I'm a travel assistant for cities, places, and trip planning. "
+        "I can help with destinations, itineraries, museums, sights, lodging, or getting around — "
+        "ask me about a place or trip."
+    ),
+    "tr": (
+        "Ben şehirler, gezilecek yerler ve seyahat planı konusunda yardımcı olan bir asistanım. "
+        "Destinasyonlar, rotalar, müzeler, gezilecek yerler, konaklama veya ulaşım hakkında "
+        "sorabilirsin — bir yer veya gezi sorusuyla devam edebilirsin."
+    ),
+    "de": (
+        "Ich bin ein Reiseassistent für Städte, Orte und Reiseplanung. "
+        "Fragen Sie mich nach Zielen, Routen, Museen, Sehenswürdigkeiten, Unterkunft oder Anreise."
+    ),
+}
+
+
+async def out_of_scope_node(state: GraphState) -> GraphState:
+    """Polite refusal that reminds the user of the travel/cities scope (not chitchat)."""
+    lang = _prompt_language_fields(state)
+    code = lang["prompt_language"]
+    answer = _OUT_OF_SCOPE_MESSAGES.get(code) or _OUT_OF_SCOPE_MESSAGES["en"]
+    debug_prompt = (
+        f"out_of_scope in_scope={state.get('in_scope')}\n\n"
+        f"### Question\n{_prompt_question(state)}"
+    )
+    return {
+        "answer": _append_debug_footer(answer, state, debug_prompt),
+        "sources": [],
+    }
 
 
 def _build_external_links_section(state: GraphState) -> str:
@@ -876,9 +964,12 @@ async def synthesize_node(state: GraphState) -> GraphState:
             "Try rephrasing your question or asking about a specific city."
         )
         if DEBUG_APPEND_PROMPT:
-            planner_raw = state.get("planner_raw")
-            if planner_raw:
-                answer += f"\n\n----- planner response -----\n{planner_raw}"
+            debug_prompt = (
+                f"include_history={bool(state.get('include_history'))}\n"
+                f"history_turns={len(state.get('history') or [])}\n\n"
+                f"### Question\n{_prompt_question(state)}"
+            )
+            answer = _append_debug_footer(answer, state, debug_prompt)
         return {"answer": answer}
 
     sources_section, sources = _build_unified_sources(
@@ -891,7 +982,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
         grounding_policy=GROUNDING_POLICY.format(**lang),
         intent_section=intent_section,
         sources_section=sources_section,
-        question=state["question"],
+        question=_prompt_question(state),
         **lang,
     )
     prompt = external_section + prompt

@@ -133,6 +133,7 @@ class PlannerOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     primary_intent: PrimaryIntent = "factoid"
+    in_scope: bool = True
     intents: list[IntentSlot] = Field(default_factory=list)
     prompt_language: str = "en"
     plan: Plan
@@ -150,8 +151,28 @@ class PlannerOutput(BaseModel):
     graph_queries: list[GraphQuery] = Field(default_factory=list)
 
     @model_validator(mode="after")
+    def _align_out_of_scope(self) -> PlannerOutput:
+        if self.in_scope:
+            return self
+        self.primary_intent = "meta"
+        self.intents = []
+        self.search_queries = []
+        self.deep_search = False
+        self.search_museums = False
+        self.search_artifacts = False
+        self.museum_search_queries = []
+        self.artifact_search_queries = []
+        self.is_hotel_search = False
+        self.hotel_search_query = ""
+        self.is_flight_search = False
+        self.flight_search_query = ""
+        self.needs_graph = False
+        self.graph_queries = []
+        return self
+
+    @model_validator(mode="after")
     def _align_primary_with_slots(self) -> PlannerOutput:
-        if self.primary_intent in ("chitchat", "meta"):
+        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
             return self
         slot_names = {slot.intent for slot in self.intents}
         if self.primary_intent not in slot_names:
@@ -163,7 +184,7 @@ class PlannerOutput(BaseModel):
 
     @model_validator(mode="after")
     def _align_deep_search_flags(self) -> PlannerOutput:
-        if self.primary_intent in ("chitchat", "meta"):
+        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
             self.deep_search = False
             self.search_museums = False
             self.search_artifacts = False
@@ -179,7 +200,7 @@ class PlannerOutput(BaseModel):
 
     @model_validator(mode="after")
     def _align_graph_flags(self) -> PlannerOutput:
-        if self.primary_intent in ("chitchat", "meta"):
+        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
             self.needs_graph = False
             self.graph_queries = []
             return self
@@ -358,6 +379,7 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
     return {
         "planner": dump,
         "primary_intent": planner.primary_intent,
+        "in_scope": planner.in_scope,
         "intents": dump["intents"],
         "prompt_language": planner.prompt_language,
         "plan": dump["plan"],

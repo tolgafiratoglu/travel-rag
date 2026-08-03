@@ -11,9 +11,11 @@ def after_guard_router(state: GraphState) -> str:
 
 
 def retrieval_router(state: GraphState) -> str:
-    """Route after planner: chitchat | graph-first | deep | vector."""
+    """Route after planner: out_of_scope | chitchat | graph-first | deep | vector."""
     if state.get("error"):
         return "format"
+    if state.get("in_scope") is False:
+        return "out_of_scope"
     if state.get("primary_intent", "") in _SKIP_RETRIEVAL_INTENTS:
         return "chitchat"
     if state.get("needs_graph"):

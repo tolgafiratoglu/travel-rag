@@ -17,6 +17,7 @@ export type WsEvent =
       }[];
       plan: Record<string, unknown>;
       primary_intent?: string;
+      in_scope?: boolean;
       intents?: { intent: string; cities: string[] }[];
       prompt_language?: string;
       search_queries?: { q: string; city?: string | null }[];
@@ -42,11 +43,18 @@ export function connectChat(
   question: string,
   onEvent: (event: WsEvent) => void,
   onClose?: () => void,
+  history: { role: string; content: string }[] = [],
 ): () => void {
   const ws = new WebSocket(`${WS_BASE}/ws/chat`);
 
   ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "message", content: question }));
+    ws.send(
+      JSON.stringify({
+        type: "message",
+        content: question,
+        history,
+      }),
+    );
   };
 
   ws.onmessage = (e) => {
