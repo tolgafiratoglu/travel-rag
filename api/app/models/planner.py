@@ -129,11 +129,51 @@ class GraphQuery(BaseModel):
         return value
 
 
+class Clarification(BaseModel):
+    """Follow-up chips when the user question is too broad (LLM-authored)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    prompt: str = ""
+    suggestions: list[str] = Field(default_factory=list)
+
+    @field_validator("prompt", mode="before")
+    @classmethod
+    def _clean_prompt(cls, value: Any) -> str:
+        if not isinstance(value, str):
+            return ""
+        return value.strip()
+
+    @field_validator("suggestions", mode="before")
+    @classmethod
+    def _clean_suggestions(cls, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            text = item.strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(text)
+            if len(out) >= 5:
+                break
+        return out
+
+
 class PlannerOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     primary_intent: PrimaryIntent = "factoid"
     in_scope: bool = True
+    needs_clarification: bool = False
+    clarification: Clarification = Field(default_factory=Clarification)
     intents: list[IntentSlot] = Field(default_factory=list)
     prompt_language: str = "en"
     plan: Plan
@@ -150,12 +190,7 @@ class PlannerOutput(BaseModel):
     needs_graph: bool = False
     graph_queries: list[GraphQuery] = Field(default_factory=list)
 
-    @model_validator(mode="after")
-    def _align_out_of_scope(self) -> PlannerOutput:
-        if self.in_scope:
-            return self
-        self.primary_intent = "meta"
-        self.intents = []
+    def _clear_retrieval(self) -> None:
         self.search_queries = []
         self.deep_search = False
         self.search_museums = False
@@ -168,11 +203,35 @@ class PlannerOutput(BaseModel):
         self.flight_search_query = ""
         self.needs_graph = False
         self.graph_queries = []
+
+    @model_validator(mode="after")
+    def _align_out_of_scope(self) -> PlannerOutput:
+        if self.in_scope:
+            return self
+        self.needs_clarification = False
+        self.clarification = Clarification()
+        self.primary_intent = "meta"
+        self.intents = []
+        self._clear_retrieval()
+        return self
+
+    @model_validator(mode="after")
+    def _align_clarification(self) -> PlannerOutput:
+        if not self.needs_clarification:
+            self.clarification = Clarification()
+            return self
+        self._clear_retrieval()
+        if not self.clarification.prompt:
+            self.clarification.prompt = "What would you like to know?"
         return self
 
     @model_validator(mode="after")
     def _align_primary_with_slots(self) -> PlannerOutput:
-        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
+        if (
+            not self.in_scope
+            or self.needs_clarification
+            or self.primary_intent in ("chitchat", "meta")
+        ):
             return self
         slot_names = {slot.intent for slot in self.intents}
         if self.primary_intent not in slot_names:
@@ -184,7 +243,11 @@ class PlannerOutput(BaseModel):
 
     @model_validator(mode="after")
     def _align_deep_search_flags(self) -> PlannerOutput:
-        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
+        if (
+            not self.in_scope
+            or self.needs_clarification
+            or self.primary_intent in ("chitchat", "meta")
+        ):
             self.deep_search = False
             self.search_museums = False
             self.search_artifacts = False
@@ -200,7 +263,11 @@ class PlannerOutput(BaseModel):
 
     @model_validator(mode="after")
     def _align_graph_flags(self) -> PlannerOutput:
-        if not self.in_scope or self.primary_intent in ("chitchat", "meta"):
+        if (
+            not self.in_scope
+            or self.needs_clarification
+            or self.primary_intent in ("chitchat", "meta")
+        ):
             self.needs_graph = False
             self.graph_queries = []
             return self
@@ -380,6 +447,8 @@ def planner_state_update(planner: PlannerOutput, raw: str) -> dict[str, Any]:
         "planner": dump,
         "primary_intent": planner.primary_intent,
         "in_scope": planner.in_scope,
+        "needs_clarification": planner.needs_clarification,
+        "clarification": dump["clarification"],
         "intents": dump["intents"],
         "prompt_language": planner.prompt_language,
         "plan": dump["plan"],

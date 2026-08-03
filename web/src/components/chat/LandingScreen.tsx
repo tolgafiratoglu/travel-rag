@@ -38,8 +38,8 @@ export function LandingScreen({
         </div>
       </main>
 
-      <footer className="shrink-0 pb-10 pt-4">
-        <SuggestionChips onSelect={onSuggestionSelect} />
+      <footer className="shrink-0 px-4 pb-10 pt-4">
+        <SuggestionChips onSelect={onSuggestionSelect} disabled={disabled} />
       </footer>
     </div>
   );

@@ -7,9 +7,15 @@ import type { Message } from "./types";
 
 type MessageListProps = {
   messages: Message[];
+  onSuggestionSelect?: (text: string) => void;
+  suggestionsDisabled?: boolean;
 };
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({
+  messages,
+  onSuggestionSelect,
+  suggestionsDisabled = false,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +31,9 @@ export function MessageList({ messages }: MessageListProps) {
           content={msg.content}
           status={msg.status}
           sources={msg.sources}
+          suggestions={msg.suggestions}
+          onSuggestionSelect={onSuggestionSelect}
+          suggestionsDisabled={suggestionsDisabled}
         />
       ))}
       <div ref={bottomRef} />

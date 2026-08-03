@@ -26,6 +26,7 @@ export type Message = {
   plan?: Plan;
   status?: string;
   sources?: Source[];
+  suggestions?: string[];
 };
 
 export const SUGGESTIONS = [

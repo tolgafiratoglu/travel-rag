@@ -33,6 +33,11 @@ Schema:
 {{
   "primary_intent": "chitchat|factoid|recommendation|planning|comparison|logistics|meta",
   "in_scope": true,
+  "needs_clarification": false,
+  "clarification": {{
+    "prompt": "",
+    "suggestions": []
+  }},
   "intents": [
     {{ "intent": "planning", "cities": ["Antalya"] }}
   ],
@@ -64,17 +69,19 @@ Rules:
 - prompt_language: detect the language of the user's message; use ISO 639-1 (tr, en, de, fr, ...).
 - summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
 - in_scope: true when the user's request (resolving references via Recent conversation if present) is about travel, tourism, cities, places, destinations, attractions, museums, itineraries, lodging, or trip flights. Questions about a specific city or place count as in-scope.
-- in_scope: false for weather-only forecasts, coding, medical advice, crime, unrelated trivia, gibberish, or anything not about travel/places — even if history mentioned a city. Then set primary_intent to "meta", intents to [], all query lists to [], and needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false. Do NOT classify off-topic refusals as chitchat.
+- in_scope: false for weather-only forecasts, coding, medical advice, crime, unrelated trivia, gibberish, or anything not about travel/places — even if history mentioned a city. Then set primary_intent to "meta", intents to [], needs_clarification to false, clarification to {{ "prompt": "", "suggestions": [] }}, all query lists to [], and needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false. Do NOT classify off-topic refusals as chitchat.
+- needs_clarification: true when in_scope is true, a city/place is clear, but the ask is too broad to retrieve well (e.g. "I want to visit Antalya", "Antalya'yı gezmek istiyorum", "tell me about Istanbul", bare city name). Then YOU write clarification.prompt (short question in the user's language) and 3-5 clarification.suggestions — each suggestion must be a full ready-to-send follow-up question including the city name. Clear all search/query lists and search flags. Do NOT retrieve yet.
+- needs_clarification: false when the question is already specific (museums, N-day plan, hotels, compare, logistics, named POI, etc.). Then set clarification to {{ "prompt": "", "suggestions": [] }}.
 - primary_intent: the single main goal of the question. Use chitchat only for greetings or questions about this assistant's capabilities (those stay in_scope true).
 - intents: zero or more task slots. Order does not matter. Each item is {{ "intent": "...", "cities": [...] }}.
   Allowed intents[].intent values: factoid, recommendation, planning, comparison, logistics.
   Do NOT put chitchat or meta inside intents[]; those are primary_intent only (use intents: []).
   cities: cities relevant to that specific intent (empty list if none). Do not invent cities that are not in the question or Recent conversation.
   If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
-  When primary_intent is a task intent (not chitchat/meta) and in_scope is true, include a matching entry in intents[].
+  When primary_intent is a task intent (not chitchat/meta), in_scope is true, and needs_clarification is false, include a matching entry in intents[].
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
-- For chitchat, meta, or in_scope false: use a single synthesize step and set intents to [], search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
-- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta/out-of-scope). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
+- For chitchat, meta, in_scope false, or needs_clarification: use a single synthesize step and set search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
+- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta/out-of-scope/clarification). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
   q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
   city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
   For multi-city questions, prefer one query object per city (same or different q) rather than a single unfiltered query.
@@ -119,6 +126,44 @@ Neo4j graph (see neo4j.md — constraints / candidates, not prose):
   - airports_serving_city — params: city_slug
 - city_slug may be a slug or display name (Antalya / antalya). Do NOT invent Cypher.
 - Prefer graph for DAY_TRIP / CONNECTED_BY / airport questions; prefer vector/deep alone for open-ended "what to see" prose.
+
+Example — question: "Antalya'yı gezmek istiyorum"
+{{
+  "primary_intent": "recommendation",
+  "in_scope": true,
+  "needs_clarification": true,
+  "clarification": {{
+    "prompt": "Antalya hakkında ne bilmek istersiniz?",
+    "suggestions": [
+      "Antalya'nın müzelerini sırala",
+      "Antalya'da tarihi yerler neler?",
+      "Antalya'da 2 günlük rota öner",
+      "Antalya'da aileyle gidilecek yerler"
+    ]
+  }},
+  "intents": [
+    {{ "intent": "recommendation", "cities": ["Antalya"] }}
+  ],
+  "prompt_language": "tr",
+  "plan": {{
+    "summary": "Antalya için net seçenekler sunuyorum.",
+    "steps": [
+      {{ "id": "s1", "label": "Seçenekleri sun", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": [],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "needs_graph": false,
+  "graph_queries": []
+}}
 
 Example — question: "Where can I go with my family in Antalya?"
 {{
@@ -692,6 +737,32 @@ async def _stream_answer(prompt: str) -> str:
         if writer is not None:
             writer({"type": "token", "delta": delta})
     return "".join(parts)
+
+
+async def clarify_node(state: GraphState) -> GraphState:
+    """Broad city ask → show LLM-authored follow-up chips (no retrieval)."""
+    clar = state.get("clarification") or {}
+    prompt = ""
+    suggestions: list[str] = []
+    if isinstance(clar, dict):
+        raw_prompt = clar.get("prompt")
+        if isinstance(raw_prompt, str):
+            prompt = raw_prompt.strip()
+        raw_sugs = clar.get("suggestions")
+        if isinstance(raw_sugs, list):
+            suggestions = [s.strip() for s in raw_sugs if isinstance(s, str) and s.strip()]
+    if not prompt:
+        prompt = "What would you like to know?"
+    debug = (
+        f"clarify needs_clarification={state.get('needs_clarification')}\n"
+        f"suggestions={suggestions!r}\n\n"
+        f"### Question\n{_prompt_question(state)}"
+    )
+    return {
+        "answer": _append_debug_footer(prompt, state, debug),
+        "suggestions": suggestions,
+        "sources": [],
+    }
 
 
 async def chitchat_node(state: GraphState) -> GraphState:

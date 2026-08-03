@@ -7,6 +7,7 @@ type ConversationScreenProps = {
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: () => void;
+  onSuggestionSelect?: (text: string) => void;
   disabled?: boolean;
 };
 
@@ -15,12 +16,17 @@ export function ConversationScreen({
   input,
   onInputChange,
   onSubmit,
+  onSuggestionSelect,
   disabled = false,
 }: ConversationScreenProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          onSuggestionSelect={onSuggestionSelect}
+          suggestionsDisabled={disabled}
+        />
       </div>
       <div className="shrink-0 border-t border-gray-200 bg-gray-50/80 px-4 py-4 backdrop-blur">
         <div className="mx-auto w-full max-w-3xl">

@@ -8,7 +8,10 @@ class GraphState(TypedDict, total=False):
     planner: dict[str, Any]
     primary_intent: str
     in_scope: bool
+    needs_clarification: bool
+    clarification: dict[str, Any]
     intents: list[dict[str, Any]]
+    suggestions: list[str]
     prompt_language: str
     plan: dict[str, Any]
     search_queries: list[str]

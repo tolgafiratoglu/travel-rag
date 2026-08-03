@@ -49,6 +49,7 @@ export function ChatApp() {
         input={input}
         onInputChange={setInput}
         onSubmit={handleSubmit}
+        onSuggestionSelect={handleSuggestionSelect}
         disabled={loading}
       />
     </div>

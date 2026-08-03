@@ -18,6 +18,8 @@ export type WsEvent =
       plan: Record<string, unknown>;
       primary_intent?: string;
       in_scope?: boolean;
+      needs_clarification?: boolean;
+      suggestions?: string[];
       intents?: { intent: string; cities: string[] }[];
       prompt_language?: string;
       search_queries?: { q: string; city?: string | null }[];

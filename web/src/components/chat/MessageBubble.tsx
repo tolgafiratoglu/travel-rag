@@ -6,8 +6,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import type { Message, Source } from "./types";
+import { SuggestionChips } from "./SuggestionChips";
 
-type MessageBubbleProps = Pick<Message, "role" | "content" | "status" | "sources">;
+type MessageBubbleProps = Pick<
+  Message,
+  "role" | "content" | "status" | "sources" | "suggestions"
+> & {
+  onSuggestionSelect?: (text: string) => void;
+  suggestionsDisabled?: boolean;
+};
 
 const FLASH_MS = 18_000;
 
@@ -72,7 +79,15 @@ function scrollToReference(id: string) {
   flashReference(el);
 }
 
-export function MessageBubble({ role, content, status, sources }: MessageBubbleProps) {
+export function MessageBubble({
+  role,
+  content,
+  status,
+  sources,
+  suggestions,
+  onSuggestionSelect,
+  suggestionsDisabled = false,
+}: MessageBubbleProps) {
   const isUser = role === "user";
   const reactId = useId();
   // useId includes colons; strip for valid HTML id / hash href.
@@ -202,6 +217,15 @@ export function MessageBubble({ role, content, status, sources }: MessageBubbleP
               );
             })}
           </ol>
+        </div>
+      )}
+      {suggestions && suggestions.length > 0 && onSuggestionSelect && (
+        <div className="mt-3">
+          <SuggestionChips
+            suggestions={suggestions}
+            onSelect={onSuggestionSelect}
+            disabled={suggestionsDisabled}
+          />
         </div>
       )}
     </div>

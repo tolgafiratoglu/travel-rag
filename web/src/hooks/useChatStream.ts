@@ -111,6 +111,9 @@ export function useChatStream() {
                   plan: plan ?? last.plan,
                   status: undefined,
                   sources: event.sources ?? [],
+                  suggestions: event.suggestions?.length
+                    ? event.suggestions
+                    : undefined,
                 };
               }
               return updated;

@@ -101,6 +101,8 @@ async def ws_chat(ws: WebSocket):
                     primary_intent = update.get("primary_intent", "")
                     if update.get("in_scope") is False:
                         first_kind = "synthesize"
+                    elif update.get("needs_clarification"):
+                        first_kind = "synthesize"
                     elif primary_intent in ("chitchat", "meta"):
                         first_kind = "synthesize"
                     elif update.get("needs_graph"):
@@ -150,7 +152,7 @@ async def ws_chat(ws: WebSocket):
                     })
                     await _send(ws, {"type": "step", "kind": "synthesize", "status": "running"})
 
-                elif node_name in ("synthesize", "chitchat", "out_of_scope"):
+                elif node_name in ("synthesize", "chitchat", "out_of_scope", "clarify"):
                     await _send(ws, {"type": "step", "kind": "synthesize", "status": "done"})
 
         if result.get("error"):
@@ -165,6 +167,8 @@ async def ws_chat(ws: WebSocket):
             "plan": result.get("plan") or {},
             "primary_intent": result.get("primary_intent"),
             "in_scope": result.get("in_scope", True),
+            "needs_clarification": result.get("needs_clarification", False),
+            "suggestions": result.get("suggestions") or [],
             "intents": result.get("intents") or [],
             "prompt_language": result.get("prompt_language"),
             "search_queries": result.get("search_queries") or [],
