@@ -229,44 +229,73 @@
     }
   },
   "Greece": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Greece",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Greece",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Greece",
     "pages": {
-      "Athens": "https://en.wikivoyage.org/wiki/Athens",
-      "Chania": "https://en.wikivoyage.org/wiki/Chania",
-      "Chersonissos": "https://en.wikivoyage.org/wiki/Chersonissos",
-      "Corfu": "https://en.wikivoyage.org/wiki/Corfu",
-      "Crete": "https://en.wikivoyage.org/wiki/Crete",
-      "Delphi": "https://en.wikivoyage.org/wiki/Delphi",
-      "Heraklion": "https://en.wikivoyage.org/wiki/Heraklion",
-      "Kavala": "https://en.wikivoyage.org/wiki/Kavala",
-      "Meteora": "https://en.wikivoyage.org/wiki/Meteora",
-      "Mount Athos": "https://en.wikivoyage.org/wiki/Mount_Athos",
-      "Mykonos": "https://en.wikivoyage.org/wiki/Mykonos",
-      "Olympia": "https://en.wikivoyage.org/wiki/Olympia",
-      "Patras": "https://en.wikivoyage.org/wiki/Patras",
-      "Rhodes": "https://en.wikivoyage.org/wiki/Rhodes",
-      "Santorini": "https://en.wikivoyage.org/wiki/Santorini",
-      "Thessaloniki": "https://en.wikivoyage.org/wiki/Thessaloniki",
-      "Volos": "https://en.wikivoyage.org/wiki/Volos"
+      "Athens": "https://en.wikipedia.org/wiki/Athens",
+      "Chania": "https://en.wikipedia.org/wiki/Chania",
+      "Hersonissos": "https://en.wikipedia.org/wiki/Hersonissos",
+      "Corfu": "https://en.wikipedia.org/wiki/Corfu",
+      "Crete": "https://en.wikipedia.org/wiki/Crete",
+      "Delphi": "https://en.wikipedia.org/wiki/Delphi",
+      "Heraklion": "https://en.wikipedia.org/wiki/Heraklion",
+      "Kavala": "https://en.wikipedia.org/wiki/Kavala",
+      "Meteora": "https://en.wikipedia.org/wiki/Meteora",
+      "Mount Athos": "https://en.wikipedia.org/wiki/Mount_Athos",
+      "Mykonos": "https://en.wikipedia.org/wiki/Mykonos",
+      "Olympia": "https://en.wikipedia.org/wiki/Olympia,_Greece",
+      "Patras": "https://en.wikipedia.org/wiki/Patras",
+      "Rhodes": "https://en.wikipedia.org/wiki/Rhodes",
+      "Santorini": "https://en.wikipedia.org/wiki/Santorini",
+      "Thessaloniki": "https://en.wikipedia.org/wiki/Thessaloniki",
+      "Volos": "https://en.wikipedia.org/wiki/Volos"
+    },
+    "tourism_sections": {
+      "Hersonissos": "https://en.wikipedia.org/wiki/Hersonissos#Tourism",
+      "Corfu": "https://en.wikipedia.org/wiki/Corfu#Tourism",
+      "Crete": "https://en.wikipedia.org/wiki/Crete#Tourism",
+      "Rhodes": "https://en.wikipedia.org/wiki/Rhodes#Tourism",
+      "Santorini": "https://en.wikipedia.org/wiki/Santorini#Tourism",
+      "Thessaloniki": "https://en.wikipedia.org/wiki/Thessaloniki#Tourism"
+    },
+    "attraction_sections": {
+      "Chania": "https://en.wikipedia.org/wiki/Chania#The_old_town",
+      "Meteora": "https://en.wikipedia.org/wiki/Meteora#The_monasteries_of_Meteora",
+      "Olympia": "https://en.wikipedia.org/wiki/Olympia,_Greece#Ancient_site"
     }
-  },
+    },
   "Portugal": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Portugal",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Portugal",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Portugal",
     "pages": {
-      "Alto Douro Wine Region": "https://en.wikivoyage.org/wiki/Alto_Douro_Wine_Region",
-      "Angra do Heroísmo": "https://en.wikivoyage.org/wiki/Angra_do_Heroísmo",
-      "Aveiro": "https://en.wikivoyage.org/wiki/Aveiro",
-      "Braga": "https://en.wikivoyage.org/wiki/Braga",
-      "Cabo da Roca": "https://en.wikivoyage.org/wiki/Cabo_da_Roca",
-      "Coimbra": "https://en.wikivoyage.org/wiki/Coimbra",
-      "Évora": "https://en.wikivoyage.org/wiki/Évora",
-      "Funchal": "https://en.wikivoyage.org/wiki/Funchal",
-      "Guimarães": "https://en.wikivoyage.org/wiki/Guimarães",
-      "Laurisilva of Madeira": "https://en.wikivoyage.org/wiki/Laurisilva_of_Madeira",
-      "Peneda-Gerês National Park": "https://en.wikivoyage.org/wiki/Peneda-Gerês_National_Park",
-      "Porto": "https://en.wikivoyage.org/wiki/Porto",
-      "Prehistoric Rock Art Sites in the Côa Valley": "https://en.wikivoyage.org/wiki/Prehistoric_Rock_Art_Sites_in_the_Côa_Valley",
-      "Serra da Estrela Natural Park": "https://en.wikivoyage.org/wiki/Serra_da_Estrela_Natural_Park"
+      "Alto Douro Wine Region": "https://en.wikipedia.org/wiki/Douro_DOC",
+      "Angra do Heroísmo": "https://en.wikipedia.org/wiki/Angra_do_Hero%C3%ADsmo",
+      "Aveiro": "https://en.wikipedia.org/wiki/Aveiro,_Portugal",
+      "Braga": "https://en.wikipedia.org/wiki/Braga",
+      "Cabo da Roca": "https://en.wikipedia.org/wiki/Cabo_da_Roca",
+      "Coimbra": "https://en.wikipedia.org/wiki/Coimbra",
+      "Évora": "https://en.wikipedia.org/wiki/%C3%89vora",
+      "Funchal": "https://en.wikipedia.org/wiki/Funchal",
+      "Guimarães": "https://en.wikipedia.org/wiki/Guimar%C3%A3es",
+      "Laurisilva of Madeira": "https://en.wikipedia.org/wiki/Madeira_evergreen_forests",
+      "Peneda-Gerês National Park": "https://en.wikipedia.org/wiki/Peneda-Ger%C3%AAs_National_Park",
+      "Porto": "https://en.wikipedia.org/wiki/Porto",
+      "Prehistoric Rock Art Sites in the Côa Valley": "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_Sites_in_the_C%C3%B4a_Valley_and_Siega_Verde",
+      "Serra da Estrela Natural Park": "https://en.wikipedia.org/wiki/Serra_da_Estrela_Natural_Park"
+    },
+    "tourism_sections": {
+      "Aveiro": "https://en.wikipedia.org/wiki/Aveiro,_Portugal#Tourism",
+      "Funchal": "https://en.wikipedia.org/wiki/Funchal#Tourism",
+      "Porto": "https://en.wikipedia.org/wiki/Porto#Tourism"
+    },
+    "attraction_sections": {
+      "Angra do Heroísmo": "https://en.wikipedia.org/wiki/Angra_do_Hero%C3%ADsmo#Architecture",
+      "Braga": "https://en.wikipedia.org/wiki/Braga#Architecture",
+      "Coimbra": "https://en.wikipedia.org/wiki/Coimbra#Architecture",
+      "Évora": "https://en.wikipedia.org/wiki/%C3%89vora#Architecture",
+      "Guimarães": "https://en.wikipedia.org/wiki/Guimar%C3%A3es#Museums,_cultural_spaces_and_art_galleries",
+      "Laurisilva of Madeira": "https://en.wikipedia.org/wiki/Madeira_evergreen_forests#Conservation_and_protected_areas",
+      "Prehistoric Rock Art Sites in the Côa Valley": "https://en.wikipedia.org/wiki/Prehistoric_Rock_Art_Sites_in_the_C%C3%B4a_Valley_and_Siega_Verde#C%C3%B4a_Valley"
     }
   }
 }
