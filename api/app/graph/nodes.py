@@ -948,18 +948,26 @@ def _build_unified_sources(
         add(f"guide · {place}", chunk.get("text") or "", chunk)
 
     for ctx in graph_contexts:
-        city = (ctx.get("city") or "graph").strip() or "graph"
+        label = (ctx.get("name") or ctx.get("city") or "").strip()
+        url = (ctx.get("source_url") or "").strip()
+        source_kind = (ctx.get("source") or "").strip()
+        if not source_kind:
+            if "wikivoyage" in url.lower():
+                source_kind = "wikivoyage"
+            elif "wikipedia" in url.lower():
+                source_kind = "wikipedia"
         graph_as_source = {
             "text": ctx.get("text") or "",
-            "city_name": city,
-            "section": "graph",
-            "source_url": (ctx.get("source_url") or "").strip(),
-            "source": "neo4j",
-            "name": city,
+            "city_name": label,
+            "section": "",
+            "source_url": url,
+            "source": source_kind,
+            "name": label,
             "poi_type": "",
             "score": 0.0,
         }
-        add(f"graph · {city}", ctx.get("text") or "", graph_as_source)
+        display = label or "graph"
+        add(f"graph · {display}", ctx.get("text") or "", graph_as_source)
 
     if not merged:
         return "", []

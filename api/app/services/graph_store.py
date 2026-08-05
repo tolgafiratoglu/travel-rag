@@ -11,6 +11,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Prefer canonical source_url; tolerate legacy wv_source_url until re-ingest.
+_EDGE_SOURCE_URL = "coalesce(r.source_url, r.wv_source_url)"
+
 # City match: slug, name, or aliases (case-insensitive).
 _CITY_MATCH = """
 OPTIONAL MATCH (c:City)
@@ -29,7 +32,7 @@ WHERE $place_type = '' OR p.type = $place_type
 RETURN p.name AS name,
        p.type AS type,
        p.wikidata_qid AS wikidata_qid,
-       p.source_url AS source_url,
+       coalesce(p.source_url, c.source_url) AS source_url,
        c.name AS city
 ORDER BY p.name
 LIMIT $limit
@@ -43,14 +46,14 @@ WHERE ($max_one_way_minutes < 0 OR r.one_way_minutes IS NULL
 RETURN p.name AS name,
        p.type AS type,
        p.wikidata_qid AS wikidata_qid,
-       p.source_url AS source_url,
+       coalesce({_EDGE_SOURCE_URL}, p.source_url, c.source_url) AS source_url,
        r.one_way_minutes AS one_way_minutes,
        r.mode AS mode,
        c.name AS city
 ORDER BY coalesce(r.one_way_minutes, 99999), p.name
 LIMIT $limit
 """,
-    "connection_between_cities": """
+    "connection_between_cities": f"""
 OPTIONAL MATCH (a:City)
 WHERE toLower(a.slug) = toLower($city_a)
    OR toLower(a.name) = toLower($city_a)
@@ -68,7 +71,8 @@ RETURN a.name AS from_city,
        r.duration_min AS duration_min,
        r.duration_max AS duration_max,
        r.direct AS direct,
-       r.evidence_text AS evidence_text
+       r.evidence_text AS evidence_text,
+       coalesce({_EDGE_SOURCE_URL}, a.source_url, b.source_url) AS source_url
 LIMIT $limit
 """,
     "airports_serving_city": f"""
@@ -76,7 +80,7 @@ LIMIT $limit
 MATCH (c)-[:SERVED_BY_AIRPORT]->(ap:Airport)
 RETURN ap.name AS name,
        ap.iata AS iata,
-       ap.source_url AS source_url,
+       coalesce(ap.source_url, c.source_url) AS source_url,
        c.name AS city
 ORDER BY ap.name
 LIMIT $limit
@@ -174,6 +178,43 @@ def _rows_to_text(template: str, rows: list[dict[str, Any]]) -> str | None:
     return "\n".join(lines) if len(lines) > 1 else None
 
 
+def _pick_str(row: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        val = row.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _context_label(template: str, rows: list[dict[str, Any]], params: dict[str, Any]) -> str:
+    """Human label for citations — never the template id."""
+    for row in rows:
+        label = _pick_str(row, "name", "city", "from_city", "to_city")
+        if label:
+            return label
+    for key in ("city_key", "city_a", "city_b"):
+        if params.get(key):
+            return str(params[key])
+    return ""
+
+
+def _primary_source_url(rows: list[dict[str, Any]]) -> str:
+    for row in rows:
+        url = _pick_str(row, "source_url")
+        if url:
+            return url
+    return ""
+
+
+def _infer_source_kind(url: str) -> str:
+    lower = url.lower()
+    if "wikivoyage" in lower:
+        return "wikivoyage"
+    if "wikipedia" in lower:
+        return "wikipedia"
+    return "wikivoyage" if url else ""
+
+
 async def run_graph_query(
     template: str,
     params: dict[str, Any] | None = None,
@@ -199,7 +240,7 @@ async def run_graph_query(
     text = _rows_to_text(template, rows)
     if not text:
         return None
-    return {"template": template, "text": text, "rows": rows}
+    return {"template": template, "text": text, "rows": rows, "params": query_params}
 
 
 async def fetch_contexts_for_queries(
@@ -217,11 +258,16 @@ async def fetch_contexts_for_queries(
         result = await run_graph_query(template.strip(), params)
         if not result:
             continue
+        rows = result.get("rows") or []
+        url = _primary_source_url(rows)
+        label = _context_label(result["template"], rows, result.get("params") or {})
         contexts.append(
             {
-                "city": result["template"],
+                "city": label,
+                "name": label,
                 "text": result["text"],
-                "source_url": "",
+                "source_url": url,
+                "source": _infer_source_kind(url),
             }
         )
     return contexts

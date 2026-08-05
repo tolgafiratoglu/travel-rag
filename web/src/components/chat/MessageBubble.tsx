@@ -31,13 +31,15 @@ function linkifyCitations(text: string, sources: Source[], anchorPrefix: string)
 }
 
 function siteName(source: Source): string {
+  const url = (source.source_url || "").toLowerCase();
+  if (url.includes("wikivoyage")) return "Wikivoyage";
+  if (url.includes("wikipedia")) return "Wikipedia";
   const raw = (source.source || "").toLowerCase();
   if (raw.includes("wikivoyage")) return "Wikivoyage";
   if (raw.includes("wikipedia") || raw === "wp") return "Wikipedia";
-  if (raw === "neo4j" || raw === "graph") return "Travel knowledge graph";
-  if (raw) return raw.charAt(0).toUpperCase() + raw.slice(1);
-  if (source.source_url?.includes("wikivoyage")) return "Wikivoyage";
-  if (source.source_url?.includes("wikipedia")) return "Wikipedia";
+  if (raw && raw !== "neo4j" && raw !== "graph") {
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+  }
   return "Source";
 }
 
@@ -49,12 +51,20 @@ function sectionLabel(section: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Chicago-style web citation (no author). */
+/** True for planner template ids accidentally used as titles. */
+function isTemplateLikeTitle(title: string): boolean {
+  return (
+    /_/.test(title) ||
+    /^(places_in_city|day_trips_from_city|connection_between_cities|airports_serving_city)$/i.test(
+      title
+    )
+  );
+}
+
+/** Chicago-style web citation (no author). Empty title → site name only. */
 function chicagoCitation(source: Source): { title: string; rest: string } {
-  const title =
-    source.name?.trim() ||
-    source.city_name?.trim() ||
-    "Untitled";
+  const rawTitle = (source.name?.trim() || source.city_name?.trim() || "").trim();
+  const title = rawTitle && !isTemplateLikeTitle(rawTitle) ? rawTitle : "";
   const site = siteName(source);
   const sec = sectionLabel(source.section || "");
   const parts = [site];
@@ -198,7 +208,15 @@ export function MessageBubble({
                 >
                   <span className="mr-1.5 tabular-nums text-gray-500">{n}.</span>
                   <span>
-                    “{title}.” <em>{rest}</em>.
+                    {title ? (
+                      <>
+                        “{title}.” <em>{rest}</em>.
+                      </>
+                    ) : (
+                      <>
+                        <em>{rest}</em>.
+                      </>
+                    )}
                   </span>
                   {source.source_url ? (
                     <>

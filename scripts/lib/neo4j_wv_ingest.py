@@ -214,15 +214,16 @@ def merge_node(
     }
     if scope == ManagedScope.CITY:
         props.setdefault("source_city_graph_id", city_gid)
-        props["wv_source_url"] = source_url
+        props.setdefault("source_url", source_url)
     if scope == ManagedScope.ANCHOR:
-        props["wv_source_url"] = source_url
+        props.setdefault("source_url", source_url)
 
     labels = ":".join([node.label, "WvEntity"])
     session.run(
         f"""
         MERGE (n:{labels} {{graph_id: $graph_id}})
         SET n += $props
+        REMOVE n.wv_source_url
         """,
         graph_id=node.graph_id,
         props=_clean_props(props),
@@ -232,7 +233,7 @@ def merge_node(
 def merge_edge(session, edge: GraphEdge, *, source_url: str, source: str = "wikivoyage") -> None:
     rel_props = {
         **edge.properties,
-        "wv_source_url": source_url,
+        "source_url": source_url,
         "source": source,
     }
     session.run(
@@ -241,6 +242,7 @@ def merge_edge(session, edge: GraphEdge, *, source_url: str, source: str = "wiki
         MATCH (b:WvEntity {{graph_id: $to_id}})
         MERGE (a)-[r:{edge.type}]->(b)
         SET r += $props
+        REMOVE r.wv_source_url
         """,
         from_id=edge.from_graph_id,
         to_id=edge.to_graph_id,
