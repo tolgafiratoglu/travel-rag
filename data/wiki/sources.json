@@ -5,20 +5,14 @@
     "pages": {
       "Ankara": "https://en.wikipedia.org/wiki/Ankara",
       "Antalya": "https://en.wikipedia.org/wiki/Antalya",
-      "Aphrodisias": "https://en.wikipedia.org/wiki/Aphrodisias",
       "Bodrum": "https://en.wikipedia.org/wiki/Bodrum",
       "Cappadocia": "https://en.wikipedia.org/wiki/Cappadocia",
       "Edirne": "https://en.wikipedia.org/wiki/Edirne",
-      "Ephesus": "https://en.wikipedia.org/wiki/Ephesus",
       "Gallipoli": "https://en.wikipedia.org/wiki/Gallipoli",
       "Istanbul": "https://en.wikipedia.org/wiki/Istanbul",
       "Izmir": "https://en.wikipedia.org/wiki/%C4%B0zmir",
       "Konya": "https://en.wikipedia.org/wiki/Konya",
-      "Mount Nemrut": "https://en.wikipedia.org/wiki/Mount_Nemrut",
-      "Pamukkale": "https://en.wikipedia.org/wiki/Pamukkale",
-      "Safranbolu": "https://en.wikipedia.org/wiki/Safranbolu",
       "Trabzon": "https://en.wikipedia.org/wiki/Trabzon",
-      "Troy": "https://en.wikipedia.org/wiki/Troy",
       "Urfa": "https://en.wikipedia.org/wiki/Urfa"
     },
     "tourism_sections": {
