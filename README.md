@@ -265,8 +265,8 @@ FE: markdown cevap, `[n]` → kaynak linki, References listesi.
 
 **Sonraki / zayıf halkalar**
 
-- Graph aday → Qdrant name/QID ile sıkı enrich (hibrit köprü)  
+- Graph aday → Qdrant name/QID enrich (`neo4j.md` Runtime §4; ROADMAP **2.A**) — şu an graph yalnızca kısıt/metin bağlamı  
 - Rerank, groundedness loop, multi-turn bellek yok  
 - Web henüz compose servisi değil  
 
-LangGraph → **`LANGGRAPH.md`**. Neo4j → **`neo4j.md`**.
+LangGraph → **`LANGGRAPH.md`**. Neo4j şema (tek kaynak) → **`neo4j.md`**.

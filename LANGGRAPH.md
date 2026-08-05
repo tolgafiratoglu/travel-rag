@@ -78,7 +78,7 @@ graph_queries            list[{template, params}]  # neo4j.md templates
 museum_chunks            list[dict]
 artifact_chunks          list[dict]
 vector_chunks            list[dict]
-graph_contexts           list[{city, text}]  # template sonuç metinleri
+graph_contexts           list[{city, name?, text, source_url?, source?}]  # neo4j template sonuçları
 sources                  list[dict]            # synthesize sonrası, [1]…[n] sırası
 answer                   str
 error                    str | None
@@ -151,9 +151,11 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
 
 ### Graph sorguları (`neo4j.md`)
 
+- Şema + ilişki + template listesi: **[`neo4j.md`](./neo4j.md)** (tek referans).
 - `needs_graph` + `graph_queries: [{ template, params }]`.
 - Template allowlist: `places_in_city`, `day_trips_from_city`, `connection_between_cities`, `airports_serving_city`.
 - LLM Cypher yazmaz; kod `graph_store.GRAPH_TEMPLATES` çalıştırır.
+- **Hedef hibrit** (`neo4j.md` Runtime §4): graph aday → Qdrant name/QID enrich. **Şu an yok** — graph metin bağlamı + ayrı vector sorguları; köprü için ROADMAP **2.A**.
 
 ### Plan `steps[].kind`
 
@@ -167,7 +169,8 @@ Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` /
 ### `graph_retrieval_node`
 
 - Yalnızca `needs_graph` ve dolu `graph_queries` iken.
-- Allowlist template Cypher → satırları metne çevirir → `graph_contexts`.
+- Allowlist template Cypher → satırları metne çevirir → `graph_contexts` (`source_url` edge/node’dan; citation için).
+- Graph adaylarıyla Qdrant’ı filtrelemez (bkz. yukarı — `neo4j.md` §4 / 2.A).
 - Sonra `after_graph_router`: deep varsa `deep_retrieval`, değilse `vector_retrieval`.
 
 ### `deep_retrieval_node`

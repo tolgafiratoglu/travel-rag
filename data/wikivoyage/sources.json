@@ -1,132 +1,231 @@
 {
   "Turkey": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Turkey",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Turkey",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Turkey",
     "pages": {
-      "Ankara": "https://en.wikivoyage.org/wiki/Ankara",
-      "Antalya": "https://en.wikivoyage.org/wiki/Antalya",
-      "Aphrodisias": "https://en.wikivoyage.org/wiki/Aphrodisias",
-      "Bodrum": "https://en.wikivoyage.org/wiki/Bodrum",
-      "Cappadocia": "https://en.wikivoyage.org/wiki/Cappadocia",
-      "Edirne": "https://en.wikivoyage.org/wiki/Edirne",
-      "Ephesus": "https://en.wikivoyage.org/wiki/Ephesus",
-      "Gallipoli": "https://en.wikivoyage.org/wiki/Gallipoli",
-      "Istanbul": "https://en.wikivoyage.org/wiki/Istanbul",
-      "Izmir": "https://en.wikivoyage.org/wiki/Izmir",
-      "Konya": "https://en.wikivoyage.org/wiki/Konya",
-      "Mount Nemrut": "https://en.wikivoyage.org/wiki/Mount_Nemrut",
-      "Pamukkale": "https://en.wikivoyage.org/wiki/Pamukkale",
-      "Safranbolu": "https://en.wikivoyage.org/wiki/Safranbolu",
-      "Trabzon": "https://en.wikivoyage.org/wiki/Trabzon",
-      "Troy": "https://en.wikivoyage.org/wiki/Troy",
-      "Urfa": "https://en.wikivoyage.org/wiki/Urfa"
+      "Ankara": "https://en.wikipedia.org/wiki/Ankara",
+      "Antalya": "https://en.wikipedia.org/wiki/Antalya",
+      "Aphrodisias": "https://en.wikipedia.org/wiki/Aphrodisias",
+      "Bodrum": "https://en.wikipedia.org/wiki/Bodrum",
+      "Cappadocia": "https://en.wikipedia.org/wiki/Cappadocia",
+      "Edirne": "https://en.wikipedia.org/wiki/Edirne",
+      "Ephesus": "https://en.wikipedia.org/wiki/Ephesus",
+      "Gallipoli": "https://en.wikipedia.org/wiki/Gallipoli",
+      "Istanbul": "https://en.wikipedia.org/wiki/Istanbul",
+      "Izmir": "https://en.wikipedia.org/wiki/%C4%B0zmir",
+      "Konya": "https://en.wikipedia.org/wiki/Konya",
+      "Mount Nemrut": "https://en.wikipedia.org/wiki/Mount_Nemrut",
+      "Pamukkale": "https://en.wikipedia.org/wiki/Pamukkale",
+      "Safranbolu": "https://en.wikipedia.org/wiki/Safranbolu",
+      "Trabzon": "https://en.wikipedia.org/wiki/Trabzon",
+      "Troy": "https://en.wikipedia.org/wiki/Troy",
+      "Urfa": "https://en.wikipedia.org/wiki/Urfa"
+    },
+    "tourism_sections": {
+      "Cappadocia": "https://en.wikipedia.org/wiki/Cappadocia#Modern_tourism",
+      "Gallipoli": "https://en.wikipedia.org/wiki/Gallipoli#Tourism_significance",
+      "Pamukkale": "https://en.wikipedia.org/wiki/Pamukkale#Tourism_and_conservation"
     }
   },
   "France": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/France",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/France",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_France",
     "pages": {
-      "Bordeaux": "https://en.wikivoyage.org/wiki/Bordeaux",
-      "Lille": "https://en.wikivoyage.org/wiki/Lille",
-      "Lyon": "https://en.wikivoyage.org/wiki/Lyon",
-      "Marseille": "https://en.wikivoyage.org/wiki/Marseille",
-      "Monaco": "https://en.wikivoyage.org/wiki/Monaco",
-      "Nantes": "https://en.wikivoyage.org/wiki/Nantes",
-      "Nice": "https://en.wikivoyage.org/wiki/Nice",
-      "Paris": "https://en.wikivoyage.org/wiki/Paris",
-      "Strasbourg": "https://en.wikivoyage.org/wiki/Strasbourg",
-      "Toulouse": "https://en.wikivoyage.org/wiki/Toulouse"
+      "Bordeaux": "https://en.wikipedia.org/wiki/Bordeaux",
+      "Lille": "https://en.wikipedia.org/wiki/Lille",
+      "Lyon": "https://en.wikipedia.org/wiki/Lyon",
+      "Marseille": "https://en.wikipedia.org/wiki/Marseille",
+      "Nantes": "https://en.wikipedia.org/wiki/Nantes",
+      "Nice": "https://en.wikipedia.org/wiki/Nice",
+      "Paris": "https://en.wikipedia.org/wiki/Paris",
+      "Strasbourg": "https://en.wikipedia.org/wiki/Strasbourg",
+      "Toulouse": "https://en.wikipedia.org/wiki/Toulouse"
+    },
+    "tourism_pages": {
+      "Paris": "https://en.wikipedia.org/wiki/Tourism_in_Paris"
+    },
+    "tourism_sections": {
+      "Bordeaux": "https://en.wikipedia.org/wiki/Bordeaux#Attractions_and_tourism",
+      "Marseille": "https://en.wikipedia.org/wiki/Marseille#Tourism_and_attractions",
+      "Nice": "https://en.wikipedia.org/wiki/Nice#Economy_and_tourism"
     }
   },
   "United States": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/United_States",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/United_States",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_the_United_States",
     "pages": {
-      "Boston": "https://en.wikivoyage.org/wiki/Boston",
-      "Chicago": "https://en.wikivoyage.org/wiki/Chicago",
-      "Los Angeles": "https://en.wikivoyage.org/wiki/Los_Angeles",
-      "Miami": "https://en.wikivoyage.org/wiki/Miami",
-      "New Orleans": "https://en.wikivoyage.org/wiki/New_Orleans",
-      "New York City": "https://en.wikivoyage.org/wiki/New_York_City",
-      "San Francisco": "https://en.wikivoyage.org/wiki/San_Francisco",
-      "Seattle": "https://en.wikivoyage.org/wiki/Seattle",
-      "Washington, D.C.": "https://en.wikivoyage.org/wiki/Washington,_D.C."
+      "Boston": "https://en.wikipedia.org/wiki/Boston",
+      "Chicago": "https://en.wikipedia.org/wiki/Chicago",
+      "Los Angeles": "https://en.wikipedia.org/wiki/Los_Angeles",
+      "Miami": "https://en.wikipedia.org/wiki/Miami",
+      "New York City": "https://en.wikipedia.org/wiki/New_York_City",
+      "San Francisco": "https://en.wikipedia.org/wiki/San_Francisco",
+      "Seattle": "https://en.wikipedia.org/wiki/Seattle",
+      "Washington, D.C.": "https://en.wikipedia.org/wiki/Washington,_D.C."
+    },
+    "tourism_pages": {
+      "Chicago": "https://en.wikipedia.org/wiki/Tourism_in_Chicago",
+      "New York City": "https://en.wikipedia.org/wiki/Tourism_in_New_York_City"
+    },
+    "attraction_pages": {
+      "Boston": "https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Boston",
+      "Los Angeles": "https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Los_Angeles"
+    },
+    "tourism_sections": {
+      "Miami": "https://en.wikipedia.org/wiki/Miami#Tourism_and_conventions",
+      "San Francisco": "https://en.wikipedia.org/wiki/San_Francisco#Tourism_and_conventions",
+      "Seattle": "https://en.wikipedia.org/wiki/Seattle#Tourism",
+      "Washington, D.C.": "https://en.wikipedia.org/wiki/Washington,_D.C.#Tourism"
     }
   },
   "Germany": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Germany",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Germany",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Germany",
     "pages": {
-      "Berlin": "https://en.wikivoyage.org/wiki/Berlin",
-      "Bremen": "https://en.wikivoyage.org/wiki/Bremen",
-      "Cologne": "https://en.wikivoyage.org/wiki/Cologne",
-      "Dresden": "https://en.wikivoyage.org/wiki/Dresden",
-      "Düsseldorf": "https://en.wikivoyage.org/wiki/Düsseldorf",
-      "Frankfurt": "https://en.wikivoyage.org/wiki/Frankfurt",
-      "Hamburg": "https://en.wikivoyage.org/wiki/Hamburg",
-      "Munich": "https://en.wikivoyage.org/wiki/Munich",
-      "Nuremberg": "https://en.wikivoyage.org/wiki/Nuremberg"
+      "Berlin": "https://en.wikipedia.org/wiki/Berlin",
+      "Bremen": "https://en.wikipedia.org/wiki/Bremen",
+      "Cologne": "https://en.wikipedia.org/wiki/Cologne",
+      "Dresden": "https://en.wikipedia.org/wiki/Dresden",
+      "Düsseldorf": "https://en.wikipedia.org/wiki/D%C3%BCsseldorf",
+      "Frankfurt": "https://en.wikipedia.org/wiki/Frankfurt",
+      "Hamburg": "https://en.wikipedia.org/wiki/Hamburg",
+      "Munich": "https://en.wikipedia.org/wiki/Munich",
+      "Nuremberg": "https://en.wikipedia.org/wiki/Nuremberg"
+    },
+    "attraction_pages": {
+      "Berlin": "https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Berlin"
+    },
+    "tourism_sections": {
+      "Berlin": "https://en.wikipedia.org/wiki/Berlin#Tourism_and_conventions",
+      "Cologne": "https://en.wikipedia.org/wiki/Cologne#Tourism",
+      "Frankfurt": "https://en.wikipedia.org/wiki/Frankfurt#Tourism",
+      "Hamburg": "https://en.wikipedia.org/wiki/Hamburg#Tourism",
+      "Nuremberg": "https://en.wikipedia.org/wiki/Nuremberg#Tourism"
     }
   },
   "Spain": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Spain",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Spain",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Spain",
     "pages": {
-      "Barcelona": "https://en.wikivoyage.org/wiki/Barcelona",
-      "Bilbao": "https://en.wikivoyage.org/wiki/Bilbao",
-      "Córdoba": "https://en.wikivoyage.org/wiki/Córdoba_(city,_Spain)",
-      "Granada": "https://en.wikivoyage.org/wiki/Granada",
-      "Madrid": "https://en.wikivoyage.org/wiki/Madrid",
-      "Málaga": "https://en.wikivoyage.org/wiki/Málaga",
-      "Seville": "https://en.wikivoyage.org/wiki/Seville",
-      "Valencia": "https://en.wikivoyage.org/wiki/Valencia",
-      "Zaragoza": "https://en.wikivoyage.org/wiki/Zaragoza"
+      "Barcelona": "https://en.wikipedia.org/wiki/Barcelona",
+      "Bilbao": "https://en.wikipedia.org/wiki/Bilbao",
+      "Córdoba": "https://en.wikipedia.org/wiki/C%C3%B3rdoba,_Spain",
+      "Granada": "https://en.wikipedia.org/wiki/Granada",
+      "Madrid": "https://en.wikipedia.org/wiki/Madrid",
+      "Málaga": "https://en.wikipedia.org/wiki/M%C3%A1laga",
+      "Seville": "https://en.wikipedia.org/wiki/Seville",
+      "Valencia": "https://en.wikipedia.org/wiki/Valencia",
+      "Zaragoza": "https://en.wikipedia.org/wiki/Zaragoza"
+    },
+    "attraction_pages": {
+      "Seville": "https://en.wikipedia.org/wiki/Sights_and_landmarks_of_Seville",
+      "Zaragoza": "https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Zaragoza"
+    },
+    "tourism_sections": {
+      "Barcelona": "https://en.wikipedia.org/wiki/Barcelona#Tourism",
+      "Bilbao": "https://en.wikipedia.org/wiki/Bilbao#Tourism",
+      "Madrid": "https://en.wikipedia.org/wiki/Madrid#Tourism",
+      "Málaga": "https://en.wikipedia.org/wiki/M%C3%A1laga#Tourism",
+      "Valencia": "https://en.wikipedia.org/wiki/Valencia#Tourism"
     }
   },
   "Italy": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Italy",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Italy",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Italy",
     "pages": {
-      "Bologna": "https://en.wikivoyage.org/wiki/Bologna",
-      "Florence": "https://en.wikivoyage.org/wiki/Florence",
-      "Genoa": "https://en.wikivoyage.org/wiki/Genoa",
-      "Milan": "https://en.wikivoyage.org/wiki/Milan",
-      "Naples": "https://en.wikivoyage.org/wiki/Naples",
-      "Pisa": "https://en.wikivoyage.org/wiki/Pisa",
-      "Rome": "https://en.wikivoyage.org/wiki/Rome",
-      "Turin": "https://en.wikivoyage.org/wiki/Turin",
-      "Venice": "https://en.wikivoyage.org/wiki/Venice"
+      "Bologna": "https://en.wikipedia.org/wiki/Bologna",
+      "Florence": "https://en.wikipedia.org/wiki/Florence",
+      "Genoa": "https://en.wikipedia.org/wiki/Genoa",
+      "Milan": "https://en.wikipedia.org/wiki/Milan",
+      "Naples": "https://en.wikipedia.org/wiki/Naples",
+      "Pisa": "https://en.wikipedia.org/wiki/Pisa",
+      "Rome": "https://en.wikipedia.org/wiki/Rome",
+      "Turin": "https://en.wikipedia.org/wiki/Turin"
+    },
+    "tourism_pages": {
+      "Milan": "https://en.wikipedia.org/wiki/Tourism_in_Milan"
+    },
+    "attraction_pages": {
+      "Rome": "https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Rome"
+    },
+    "tourism_sections": {
+      "Florence": "https://en.wikipedia.org/wiki/Florence#Tourism",
+      "Milan": "https://en.wikipedia.org/wiki/Milan#Tourism",
+      "Naples": "https://en.wikipedia.org/wiki/Naples#Tourism",
+      "Rome": "https://en.wikipedia.org/wiki/Rome#Tourism"
     }
   },
   "Japan": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/Japan",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/Japan",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_Japan",
     "pages": {
-      "Hiroshima": "https://en.wikivoyage.org/wiki/Hiroshima",
-      "Kanazawa": "https://en.wikivoyage.org/wiki/Kanazawa",
-      "Kyoto": "https://en.wikivoyage.org/wiki/Kyoto",
-      "Nagasaki": "https://en.wikivoyage.org/wiki/Nagasaki",
-      "Nara": "https://en.wikivoyage.org/wiki/Nara",
-      "Osaka": "https://en.wikivoyage.org/wiki/Osaka",
-      "Sapporo": "https://en.wikivoyage.org/wiki/Sapporo",
-      "Sendai": "https://en.wikivoyage.org/wiki/Sendai",
-      "Tokyo": "https://en.wikivoyage.org/wiki/Tokyo"
+      "Hiroshima": "https://en.wikipedia.org/wiki/Hiroshima",
+      "Kanazawa": "https://en.wikipedia.org/wiki/Kanazawa",
+      "Kyoto": "https://en.wikipedia.org/wiki/Kyoto",
+      "Nagasaki": "https://en.wikipedia.org/wiki/Nagasaki",
+      "Nara": "https://en.wikipedia.org/wiki/Nara_(city)",
+      "Osaka": "https://en.wikipedia.org/wiki/Osaka",
+      "Sapporo": "https://en.wikipedia.org/wiki/Sapporo",
+      "Sendai": "https://en.wikipedia.org/wiki/Sendai",
+      "Tokyo": "https://en.wikipedia.org/wiki/Tokyo"
+    },
+    "tourism_pages": {
+      "Tokyo": "https://en.wikipedia.org/wiki/Tourism_in_Tokyo"
+    },
+    "tourism_sections": {
+      "Hiroshima": "https://en.wikipedia.org/wiki/Hiroshima#Tourism"
+    },
+    "attraction_sections": {
+      "Kanazawa": "https://en.wikipedia.org/wiki/Kanazawa#Local_attractions",
+      "Kyoto": "https://en.wikipedia.org/wiki/Kyoto#Culture",
+      "Nagasaki": "https://en.wikipedia.org/wiki/Nagasaki#Main_sites",
+      "Nara": "https://en.wikipedia.org/wiki/Nara_(city)#Landmarks_and_culture",
+      "Osaka": "https://en.wikipedia.org/wiki/Osaka#Facilities",
+      "Sapporo": "https://en.wikipedia.org/wiki/Sapporo#Sightseeing",
+      "Sendai": "https://en.wikipedia.org/wiki/Sendai#Sites_of_interest"
     }
   },
   "United Kingdom": {
-    "wikivoyage_link": "https://en.wikivoyage.org/wiki/United_Kingdom",
+    "wikipedia_link": "https://en.wikipedia.org/wiki/United_Kingdom",
+    "tourism_link": "https://en.wikipedia.org/wiki/Tourism_in_the_United_Kingdom",
     "pages": {
-      "Belfast": "https://en.wikivoyage.org/wiki/Belfast",
-      "Bristol": "https://en.wikivoyage.org/wiki/Bristol",
-      "Cardiff": "https://en.wikivoyage.org/wiki/Cardiff",
-      "Edinburgh": "https://en.wikivoyage.org/wiki/Edinburgh",
-      "Giant's Causeway": "https://en.wikivoyage.org/wiki/Giant's_Causeway",
-      "Glasgow": "https://en.wikivoyage.org/wiki/Glasgow",
-      "Gower Peninsula": "https://en.wikivoyage.org/wiki/Gower_Peninsula",
-      "Hadrian's Wall": "https://en.wikivoyage.org/wiki/Hadrian's_Wall",
-      "Isle of Arran": "https://en.wikivoyage.org/wiki/Isle_of_Arran",
-      "Lake District National Park": "https://en.wikivoyage.org/wiki/Lake_District_National_Park",
-      "Liverpool": "https://en.wikivoyage.org/wiki/Liverpool",
-      "Loch Ness": "https://en.wikivoyage.org/wiki/Loch_Ness",
-      "London": "https://en.wikivoyage.org/wiki/London",
-      "Manchester": "https://en.wikivoyage.org/wiki/Manchester",
-      "Peak District National Park": "https://en.wikivoyage.org/wiki/Peak_District_National_Park",
-      "Snowdonia National Park": "https://en.wikivoyage.org/wiki/Snowdonia_National_Park",
-      "Stonehenge": "https://en.wikivoyage.org/wiki/Stonehenge",
-      "York": "https://en.wikivoyage.org/wiki/York"
+      "Belfast": "https://en.wikipedia.org/wiki/Belfast",
+      "Bristol": "https://en.wikipedia.org/wiki/Bristol",
+      "Cardiff": "https://en.wikipedia.org/wiki/Cardiff",
+      "Edinburgh": "https://en.wikipedia.org/wiki/Edinburgh",
+      "Giant's Causeway": "https://en.wikipedia.org/wiki/Giant%27s_Causeway",
+      "Glasgow": "https://en.wikipedia.org/wiki/Glasgow",
+      "Gower Peninsula": "https://en.wikipedia.org/wiki/Gower_Peninsula",
+      "Hadrian's Wall": "https://en.wikipedia.org/wiki/Hadrian%27s_Wall",
+      "Isle of Arran": "https://en.wikipedia.org/wiki/Isle_of_Arran",
+      "Lake District National Park": "https://en.wikipedia.org/wiki/Lake_District",
+      "Liverpool": "https://en.wikipedia.org/wiki/Liverpool",
+      "Loch Ness": "https://en.wikipedia.org/wiki/Loch_Ness",
+      "London": "https://en.wikipedia.org/wiki/London",
+      "Manchester": "https://en.wikipedia.org/wiki/Manchester",
+      "Peak District National Park": "https://en.wikipedia.org/wiki/Peak_District",
+      "Snowdonia National Park": "https://en.wikipedia.org/wiki/Snowdonia",
+      "Stonehenge": "https://en.wikipedia.org/wiki/Stonehenge",
+      "York": "https://en.wikipedia.org/wiki/York"
+    },
+    "tourism_pages": {
+      "London": "https://en.wikipedia.org/wiki/Tourism_in_London"
+    },
+    "attraction_pages": {
+      "United Kingdom": "https://en.wikipedia.org/wiki/List_of_the_most-visited_attractions_in_the_United_Kingdom",
+      "York": "https://en.wikipedia.org/wiki/List_of_York_sites_of_interest"
+    },
+    "tourism_sections": {
+      "Belfast": "https://en.wikipedia.org/wiki/Belfast#Tourism_and_hospitality",
+      "Hadrian's Wall": "https://en.wikipedia.org/wiki/Hadrian%27s_Wall#Tourism",
+      "Isle of Arran": "https://en.wikipedia.org/wiki/Isle_of_Arran#Tourism",
+      "London": "https://en.wikipedia.org/wiki/London#Tourism"
+    },
+    "attraction_sections": {
+      "Cardiff": "https://en.wikipedia.org/wiki/Cardiff#Landmarks_and_attractions",
+      "Edinburgh": "https://en.wikipedia.org/wiki/Edinburgh#Museums,_libraries,_and_galleries",
+      "Liverpool": "https://en.wikipedia.org/wiki/Liverpool#Landmarks",
+      "Manchester": "https://en.wikipedia.org/wiki/Manchester#Landmarks"
     }
   },
   "Greece": {
@@ -164,7 +263,6 @@
       "Funchal": "https://en.wikivoyage.org/wiki/Funchal",
       "Guimarães": "https://en.wikivoyage.org/wiki/Guimarães",
       "Laurisilva of Madeira": "https://en.wikivoyage.org/wiki/Laurisilva_of_Madeira",
-      "Lisbon": "https://en.wikivoyage.org/wiki/Lisbon",
       "Peneda-Gerês National Park": "https://en.wikivoyage.org/wiki/Peneda-Gerês_National_Park",
       "Porto": "https://en.wikivoyage.org/wiki/Porto",
       "Prehistoric Rock Art Sites in the Côa Valley": "https://en.wikivoyage.org/wiki/Prehistoric_Rock_Art_Sites_in_the_Côa_Valley",

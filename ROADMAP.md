@@ -90,9 +90,9 @@ Kaynak tasarım: **[`neo4j.md`](./neo4j.md)**.
 
 ### Kalan
 
-- [ ] **2.A** Graph aday → Qdrant enrich (name / `wikidata_qid` filter) *(hibrit köprü)*
+- [ ] **2.A** Graph aday → Qdrant enrich (name / `wikidata_qid` filter) — `neo4j.md` Runtime §4 *(hibrit köprü)*
 - [ ] **2.B** Synthesize’te süre/kısıt satırlarını daha yapısal göstermek
-- [ ] **2.C** LLM Cypher **yok** (bilerek; template only)
+- [ ] **2.C** LLM Cypher **yok** (bilerek; `neo4j.md` v1 dışı)
 
 > Eski Phase 2 maddeleri (Attraction/PART_OF city-profile, LLM Cypher) iptal — `neo4j.md` esas.
 
@@ -150,12 +150,14 @@ Tek sayfa RAG chat: kullanıcı soru sorar, WebSocket üstünden plan + adım ad
 
 Seed verisini gerçek veriyle değiştir.
 
+> Neo4j yazımı: **[`neo4j.md`](./neo4j.md)** — node’lar `Country` / `City` / `Place` / `Airport`; prose/`SourceChunk` yok. Mevcut yol: `scripts/ingest-wikivoyage-neo4j.py`, `scripts/ingest-neo4j-places.py` (+ Qdrant `scripts/ingest-*-qdrant.py`).
+
 ### 4.A Ingestion modülü  *(~5 gün)*
 
 - [ ] **4.1** `ingestion/wikivoyage.py` — MediaWiki API client (`get_page_sections`) *(1.5 gün)*
 - [ ] **4.2** `ingestion/wikidata.py` — SPARQL client (`get_city_metadata(qid)`) *(1 gün)*
 - [ ] **4.3** `ingestion/chunker.py` — Section-based chunking, overlap, metadata preserve *(1 gün)*
-- [ ] **4.4** `ingestion/loader.py` — Embed + Qdrant upsert + Neo4j entity/SourceChunk *(1 gün)*
+- [x] **4.4** Embed + Qdrant upsert + Neo4j v1 (`neo4j.md`) — `scripts/ingest-*` (City/Country/Place/`IN_*`/`CONNECTED_BY`/`DAY_TRIP_FROM`; **SourceChunk yok**)
 - [ ] **4.5** `ingestion/configs/sources.yaml` — Hedef şehirler listesi *(0.5 gün)*
 
 ### 4.B CLI ve orchestration  *(~2 gün)*
