@@ -865,14 +865,17 @@ def _build_intent_section(state: GraphState) -> str:
 
 
 def _chunk_label(chunk: dict) -> str:
-    name = chunk.get("name") or ""
+    title = chunk.get("title") or ""
+    name = chunk.get("name") or title or ""
     city = chunk.get("city_name") or ""
     section = chunk.get("section") or ""
-    if name and city:
+    if name and city and name.casefold() != city.casefold():
         return f"{name} / {city}"
+    if name:
+        return name
     if city and section:
         return f"{city} / {section}"
-    return name or city or section or "source"
+    return city or section or "source"
 
 
 def _source_dedupe_key(source: dict) -> str:
@@ -906,7 +909,7 @@ def _merge_deduped_source(
         prev_score, new_score = 0.0, 0.0
     if new_score > prev_score:
         merged["score"] = new_score
-        for key in ("name", "city_name", "section", "source_url", "source", "poi_type"):
+        for key in ("name", "title", "city_name", "section", "source_url", "source", "poi_type"):
             if source.get(key):
                 merged[key] = source[key]
     merged["text"] = merged_text

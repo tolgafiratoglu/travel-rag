@@ -89,7 +89,8 @@ services:
       - --innodb-buffer-pool-size=1G
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./data/wikivoyage:/data/wikivoyage:ro
+      - ./data/wiki:/data/wiki:ro
+      - ./data/wiki:/data/wikivoyage:ro
     ports:
       - "3306:3306"
     networks:

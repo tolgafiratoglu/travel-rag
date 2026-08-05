@@ -1,4 +1,9 @@
-"""Wikipedia HTML → Unstructured chunk_by_title → Qdrant-ready payloads."""
+"""Wikipedia HTML → Unstructured chunk_by_title → Qdrant-ready payloads.
+
+Used for:
+  - City / tourism guide pages (wp_pages → travel_chunks)
+  - Museum / historical POIs (wp_pois → travel_museums / historical)
+"""
 
 from __future__ import annotations
 
@@ -65,7 +70,6 @@ def clean_wikipedia_html(html: str) -> str:
         for node in soup.select(selector):
             node.decompose()
 
-    # Drop trailing reference-like sections by heading text when present.
     for heading in soup.find_all(re.compile(r"^h[1-6]$")):
         title = heading.get_text(" ", strip=True)
         if not _skip_section(title):
@@ -86,6 +90,7 @@ def clean_wikipedia_html(html: str) -> str:
 
 
 def _element_title(el) -> str:
+    """Read section/title from Unstructured element metadata (often empty on chunks)."""
     meta = getattr(el, "metadata", None)
     if meta is None:
         return ""
@@ -99,6 +104,47 @@ def _element_title(el) -> str:
         val = getattr(meta, attr, None)
         if val:
             return str(val).strip()
+    return ""
+
+
+def _titles_from_orig_elements(chunk) -> list[str]:
+    """Title texts embedded in a CompositeElement (chunk_by_title)."""
+    meta = getattr(chunk, "metadata", None)
+    orig = getattr(meta, "orig_elements", None) if meta is not None else None
+    if not orig:
+        return []
+    titles: list[str] = []
+    for el in orig:
+        if type(el).__name__ != "Title":
+            continue
+        text = (getattr(el, "text", None) or "").strip()
+        if text:
+            titles.append(text)
+    return titles
+
+
+def _chunk_section(chunk, *, previous: str = "Lead") -> str:
+    """Resolve Wikipedia section for a chunk_by_title result.
+
+    Unstructured often leaves CompositeElement.metadata.section empty even when
+    the chunk starts with a Title (e.g. "Airports"). Prefer metadata, then the
+    first Title in orig_elements, else carry the previous section (continuation
+    chunks), else Lead.
+    """
+    from_meta = _element_title(chunk)
+    if from_meta:
+        return from_meta
+    titles = _titles_from_orig_elements(chunk)
+    if titles:
+        return titles[0]
+    return previous or "Lead"
+
+
+def _page_title(row: dict) -> str:
+    for key in ("title", "resolved_title", "wiki_title", "name"):
+        val = row.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
     return ""
 
 
@@ -124,33 +170,45 @@ def build_chunks(row: dict) -> list[dict]:
     elif fetched_at is not None:
         fetched_at = str(fetched_at)
 
+    title = _page_title(row)
+    display_name = (row.get("name") or title or row.get("city_name") or "").strip()
+    city_name = (row.get("city_name") or "").strip()
+    page_kind = (row.get("page_kind") or "").strip()
+    poi_type = (row.get("poi_type") or "").strip()
+
     base = {
         "source": "wikipedia",
         "lang": "en",
-        "poi_type": row["poi_type"],
-        "name": row["name"],
-        "city_name": row["city_name"],
-        "country_name": row["country_name"],
+        "title": title,
+        "wiki_title": row.get("wiki_title") or title,
+        "resolved_title": row.get("resolved_title") or title,
+        "name": display_name,
+        "city_name": city_name,
+        "country_name": row.get("country_name") or "",
         "source_url": row["source_url"],
         "wikipedia_url": row["source_url"],
-        "wiki_title": row.get("wiki_title") or row.get("resolved_title"),
-        "resolved_title": row.get("resolved_title"),
         "page_id": row.get("page_id"),
         "revision_id": row.get("revid"),
         "wikidata_qid": row.get("wikidata_qid"),
         "fetched_at": fetched_at,
+        "page_kind": page_kind or None,
+        "poi_type": poi_type or None,
     }
 
     out: list[dict] = []
+    previous_section = "Lead"
     for i, chunk in enumerate(raw_chunks):
         text = (getattr(chunk, "text", None) or str(chunk)).strip()
         if not text:
             continue
-        section_path = _element_title(chunk) or "Lead"
+        section_path = _chunk_section(chunk, previous=previous_section)
+        # Remember explicit titles for continuation chunks that omit Title.
+        if _element_title(chunk) or _titles_from_orig_elements(chunk):
+            previous_section = section_path
         if _skip_section(section_path.split("/")[-1].strip()):
             continue
 
-        label = f"{row['name']} / {section_path}"
+        label = f"{display_name} / {section_path}" if display_name else section_path
         out.append(
             {
                 **base,

@@ -63,7 +63,12 @@ function isTemplateLikeTitle(title: string): boolean {
 
 /** Chicago-style web citation (no author). Empty title → site name only. */
 function chicagoCitation(source: Source): { title: string; rest: string } {
-  const rawTitle = (source.name?.trim() || source.city_name?.trim() || "").trim();
+  const rawTitle = (
+    source.title?.trim() ||
+    source.name?.trim() ||
+    source.city_name?.trim() ||
+    ""
+  ).trim();
   const title = rawTitle && !isTemplateLikeTitle(rawTitle) ? rawTitle : "";
   const site = siteName(source);
   const sec = sectionLabel(source.section || "");

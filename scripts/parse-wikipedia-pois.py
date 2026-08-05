@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fetch Wikipedia museum / historical-site pages into MariaDB (wp_pois).
 
-Reads data/wikivoyage/museums.json and historical_sites.json, pulls article
+Reads data/wiki/museums.json and historical_sites.json, pulls article
 HTML via MediaWiki action=parse, upserts by source_url.
 
 Usage (from repo root, MariaDB on localhost:3306):
@@ -41,7 +41,7 @@ from lib.wp_db import ensure_table
 
 API_URL = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "TravelRAGBot/0.1 (mailto:tolgafiratoglu@gmail.com)"
-DATA_DIR = ROOT / "data" / "wikivoyage"
+DATA_DIR = ROOT / "data" / "wiki"
 MUSEUMS_PATH = DATA_DIR / "museums.json"
 HISTORICAL_PATH = DATA_DIR / "historical_sites.json"
 SLEEP_SECONDS = float(os.getenv("WP_FETCH_SLEEP", "1"))

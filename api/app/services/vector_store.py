@@ -26,6 +26,9 @@ def _payload_dict(point) -> dict:
         "source_url": payload.get("source_url", ""),
         "source": payload.get("source", ""),
         "name": payload.get("name", ""),
+        "title": payload.get("title", ""),
+        "wiki_title": payload.get("wiki_title", ""),
+        "page_kind": payload.get("page_kind", ""),
         "poi_type": payload.get("poi_type", ""),
         "score": point.score,
     }

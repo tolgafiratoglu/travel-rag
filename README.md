@@ -62,30 +62,26 @@ LangGraph
 ### Ingest (offline)
 
 ```
-Wikivoyage dump / API ──▶ MariaDB (wv_cities)
-                              │
-                              ├─▶ scripts/ingest-wikivoyage-qdrant.py  ──▶ Qdrant travel_chunks
-                              └─▶ scripts/ingest-wikivoyage-neo4j.py   ──▶ Neo4j City/Country + ilişkiler
+data/wiki/sources.json ──▶ scripts/parse-wiki-pages.py ──▶ MariaDB wp_pages (+ wp_gov_links *.gov.*)
+                              └─▶ scripts/ingest-wiki-qdrant.py ──▶ Qdrant travel_chunks
+                                  (Unstructured chunk_by_title; payload.title)
 
-Wikipedia POI rows   ──▶ scripts/ingest-wikipedia-pois.py ──▶ Qdrant museums/historical
-                     └─▶ scripts/ingest-neo4j-places.py   ──▶ Neo4j Place + IN_CITY
+data/wiki/museums.json + historical_sites.json
+  ──▶ parse-wikipedia-pois.py ──▶ wp_pois
+  ──▶ ingest-wikipedia-pois.py ──▶ travel_museums / travel_historical_sites
+  ──▶ ingest-neo4j-places.py   ──▶ Neo4j Place + IN_CITY
+
+(Legacy) Wikivoyage dump ──▶ wv_cities ──▶ ingest-wikivoyage-neo4j.py ──▶ Neo4j City edges
 ```
 
-**Wikivoyage section politikası** (`scripts/lib/wv_parse.py`):
-
-- Tam: `see`, `do`, `get_in`, `districts`, `go_next`
-- `understand`: yalnızca history / climate
-- `get_around`: toplu taşıma / yürüme / bisiklet (+ ücret); taxi/car red
-- Intro/lead ve sleep/eat/buy vb. **yok**
-
-Qdrant’a şehir eklerken: ilk yüklemede wipe varsayılan; ek şehir için `--no-wipe`.
+Guide chunk’lar: Wikipedia HTML → `chunk_by_title`. Wipe varsayılan; ek sayfa için `--no-wipe`.
 
 ### Query (online)
 
 1. Guard → planner JSON (`needs_graph` / `graph_queries` / deep / vector)  
 2. İsteğe bağlı Neo4j template’ler (aday + kısıt)  
 3. İsteğe bağlı müze/tarihi Qdrant  
-4. Wikivoyage guide Qdrant  
+4. Wikipedia guide Qdrant (`travel_chunks`)  
 5. Synthesize: kaynak dedupe, `[n]` citation  
 
 Detay: `LANGGRAPH.md`, `neo4j.md`.
@@ -135,14 +131,13 @@ travel-rag/
 │       └── lib/ws.ts
 │
 └── scripts/
-    ├── ingest-wikivoyage-qdrant.py
-    ├── ingest-wikipedia-pois.py
-    ├── ingest-wikivoyage-neo4j.py
-    ├── parse-wikivoyage.py / parse-wikipedia-pois.py
+    ├── parse-wiki-pages.py / ingest-wiki-qdrant.py   # Wikipedia → travel_chunks
+    ├── parse-wikipedia-pois.py / ingest-wikipedia-pois.py
+    ├── ingest-wikivoyage-neo4j.py / ingest-neo4j-places.py
     ├── import-wikivoyage.sh
     ├── init-ollama.sh
     ├── setup-venv.sh
-    └── lib/                 # wv_parse, wv_chunks, wp_*, neo4j_wv_ingest, …
+    └── lib/                 # wp_chunks, wp_gov, wp_pages_db, neo4j_wv_ingest, …
 ```
 
 ---
@@ -200,11 +195,13 @@ Sohbet **WS `/ws/chat`** üzerinden gider.
 export MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \
   OLLAMA_BASE_URL=http://localhost:11434 OLLAMA_EMBED_MODEL=bge-m3
 
-# Wikivoyage → Qdrant (ilk şehir wipe eder; sonrakiler --no-wipe)
-.venv/bin/python scripts/ingest-wikivoyage-qdrant.py --page Antalya
-.venv/bin/python scripts/ingest-wikivoyage-qdrant.py --page Istanbul --no-wipe
+# Wikipedia city pages → travel_chunks (parse then embed)
+.venv/bin/python scripts/parse-wiki-pages.py --country Turkey --city Istanbul
+.venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul --dry-run
+.venv/bin/python scripts/ingest-wiki-qdrant.py --country Turkey
 
 # Wikipedia POI → museums / historical collections
+.venv/bin/python scripts/parse-wikipedia-pois.py --type museum --city Ankara
 .venv/bin/python scripts/ingest-wikipedia-pois.py …
 ```
 

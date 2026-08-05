@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Ingest Wikivoyage wikitext from MariaDB into Qdrant (bge-m3).
+"""[Legacy] Ingest Wikivoyage wikitext from MariaDB into Qdrant (bge-m3).
+
+Prefer Wikipedia guide ingest:
+  scripts/parse-wiki-pages.py → scripts/ingest-wiki-qdrant.py → travel_chunks
 
 Parses see/do/go listing templates into dedicated chunks, then allowed-section
 prose into separate chunks. Section allowlist (see/do/get_in/districts/go_next,

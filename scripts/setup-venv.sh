@@ -49,4 +49,5 @@ echo "Verifying imports..."
 echo
 echo "Done. Example:"
 echo "  MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 LLM_PROVIDER=gemini \\"
-echo "  ${VENV_DIR}/bin/python scripts/ingest-wikivoyage-neo4j.py --page Bordeaux --dry-run"
+echo "  ${VENV_DIR}/bin/python scripts/parse-wiki-pages.py --country Turkey --city Istanbul"
+echo "  ${VENV_DIR}/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul --dry-run"
