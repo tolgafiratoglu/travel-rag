@@ -83,7 +83,7 @@ Kaynak tasarım: **[`neo4j.md`](./neo4j.md)**.
 ### Yapılan (v1)
 
 - [x] Şema: Country / City / Place / Airport + `IN_COUNTRY` / `IN_CITY` / `SERVED_BY_AIRPORT` / `CONNECTED_BY` / `DAY_TRIP_FROM`
-- [x] Ingest: `ingest-wikivoyage-neo4j.py`, `ingest-neo4j-places.py`
+- [x] Ingest: `ingest-wiki-neo4j.py`, `ingest-neo4j-places.py`
 - [x] `graph_store.GRAPH_TEMPLATES` (4 template) + allowlist
 - [x] Planner: `needs_graph` + `graph_queries` (eski `neo4j_data` legacy fallback)
 - [x] Routing: graph-first when `needs_graph`, sonra deep/vector
@@ -150,7 +150,7 @@ Tek sayfa RAG chat: kullanıcı soru sorar, WebSocket üstünden plan + adım ad
 
 Seed verisini gerçek veriyle değiştir.
 
-> Neo4j yazımı: **[`neo4j.md`](./neo4j.md)** — node’lar `Country` / `City` / `Place` / `Airport`; prose/`SourceChunk` yok. Mevcut yol: `scripts/ingest-wikivoyage-neo4j.py`, `scripts/ingest-neo4j-places.py` (+ Qdrant `scripts/ingest-*-qdrant.py`).
+> Neo4j yazımı: **[`neo4j.md`](./neo4j.md)** — node’lar `Country` / `City` / `Place` / `Airport`; prose/`SourceChunk` yok. Mevcut yol: `scripts/ingest-wiki-neo4j.py`, `scripts/ingest-neo4j-places.py` (+ Qdrant `scripts/ingest-wiki-qdrant.py`).
 
 ### 4.A Ingestion modülü  *(~5 gün)*
 

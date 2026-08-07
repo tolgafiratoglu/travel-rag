@@ -11,9 +11,6 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Prefer canonical source_url; tolerate legacy wv_source_url until re-ingest.
-_EDGE_SOURCE_URL = "coalesce(r.source_url, r.wv_source_url)"
-
 # City match: slug, name, or aliases (case-insensitive).
 _CITY_MATCH = """
 OPTIONAL MATCH (c:City)
@@ -46,14 +43,14 @@ WHERE ($max_one_way_minutes < 0 OR r.one_way_minutes IS NULL
 RETURN p.name AS name,
        p.type AS type,
        p.wikidata_qid AS wikidata_qid,
-       coalesce({_EDGE_SOURCE_URL}, p.source_url, c.source_url) AS source_url,
+       coalesce(r.source_url, p.source_url, c.source_url) AS source_url,
        r.one_way_minutes AS one_way_minutes,
        r.mode AS mode,
        c.name AS city
 ORDER BY coalesce(r.one_way_minutes, 99999), p.name
 LIMIT $limit
 """,
-    "connection_between_cities": f"""
+    "connection_between_cities": """
 OPTIONAL MATCH (a:City)
 WHERE toLower(a.slug) = toLower($city_a)
    OR toLower(a.name) = toLower($city_a)
@@ -72,7 +69,7 @@ RETURN a.name AS from_city,
        r.duration_max AS duration_max,
        r.direct AS direct,
        r.evidence_text AS evidence_text,
-       coalesce({_EDGE_SOURCE_URL}, a.source_url, b.source_url) AS source_url
+       coalesce(r.source_url, a.source_url, b.source_url) AS source_url
 LIMIT $limit
 """,
     "airports_serving_city": f"""

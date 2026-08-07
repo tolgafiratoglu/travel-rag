@@ -39,7 +39,7 @@ echo "Guard:     $GUARD_MODEL"
 echo
 
 echo "Pulling $QWEN8B (this may take a while on first run)..."
-docker exec "$CONTAINER" ollama pull "$QWEN8B"
+# docker exec "$CONTAINER" ollama pull "$QWEN8B"
 
 echo
 echo "Pulling $QWEN1B..."

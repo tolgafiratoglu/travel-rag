@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ingest Wikipedia POIs (wp_pois) into Neo4j as Place + IN_CITY.
 
-Requires City anchors already loaded (ingest-wikivoyage-neo4j.py --anchors-only
+Requires City anchors already loaded (ingest-wiki-neo4j.py --anchors-only
 or full city ingest). Resolves city by name / aliases.
 
 Usage:
@@ -43,7 +43,7 @@ import os
 
 from neo4j import GraphDatabase
 
-from lib.neo4j_wv_ingest import (
+from lib.neo4j_ingest import (
     IngestCounts,
     build_place_from_poi,
     ensure_constraints,

@@ -63,15 +63,13 @@ LangGraph
 
 ```
 data/wiki/sources.json ──▶ scripts/parse-wiki-pages.py ──▶ MariaDB wp_pages (+ wp_gov_links *.gov.*)
-                              └─▶ scripts/ingest-wiki-qdrant.py ──▶ Qdrant travel_chunks
-                                  (Unstructured chunk_by_title; payload.title)
+                              ├─▶ scripts/ingest-wiki-qdrant.py ──▶ Qdrant travel_chunks
+                              └─▶ scripts/ingest-wiki-neo4j.py  ──▶ Neo4j City/Country + ilişkiler
 
 data/wiki/museums.json + historical_sites.json
   ──▶ parse-wikipedia-pois.py ──▶ wp_pois
   ──▶ ingest-wikipedia-pois.py ──▶ travel_museums / travel_historical_sites
   ──▶ ingest-neo4j-places.py   ──▶ Neo4j Place + IN_CITY
-
-(Legacy) Wikivoyage dump ──▶ wv_cities ──▶ ingest-wikivoyage-neo4j.py ──▶ Neo4j City edges
 ```
 
 Guide chunk’lar: Wikipedia HTML → `chunk_by_title`. Wipe varsayılan; ek sayfa için `--no-wipe`.
@@ -131,13 +129,12 @@ travel-rag/
 │       └── lib/ws.ts
 │
 └── scripts/
-    ├── parse-wiki-pages.py / ingest-wiki-qdrant.py   # Wikipedia → travel_chunks
+    ├── parse-wiki-pages.py / ingest-wiki-qdrant.py / ingest-wiki-neo4j.py
     ├── parse-wikipedia-pois.py / ingest-wikipedia-pois.py
-    ├── ingest-wikivoyage-neo4j.py / ingest-neo4j-places.py
-    ├── import-wikivoyage.sh
+    ├── ingest-neo4j-places.py
     ├── init-ollama.sh
     ├── setup-venv.sh
-    └── lib/                 # wp_chunks, wp_gov, wp_pages_db, neo4j_wv_ingest, …
+    └── lib/                 # wp_chunks, wp_gov, wp_pages_db, neo4j_ingest, …
 ```
 
 ---
@@ -200,9 +197,14 @@ export MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \
 .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul --dry-run
 .venv/bin/python scripts/ingest-wiki-qdrant.py --country Turkey
 
-# Wikipedia POI → museums / historical collections
+# Wikipedia → Neo4j (anchors; + Gemini ilişkileri)
+.venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbul --anchors-only
+LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbul
+
+# Wikipedia POI → museums / historical collections + Neo4j Place
 .venv/bin/python scripts/parse-wikipedia-pois.py --type museum --city Ankara
 .venv/bin/python scripts/ingest-wikipedia-pois.py …
+.venv/bin/python scripts/ingest-neo4j-places.py --city Istanbul
 ```
 
 ---

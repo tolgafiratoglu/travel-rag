@@ -65,7 +65,7 @@ Süreler **dakika**. Metinde yoksa `null` — uydurma yok.
   name: "Antalya",
   aliases: ["Antalya"],
   wikidata_qid: "Q6487",
-  source_url: "https://en.wikivoyage.org/wiki/Antalya"
+  source_url: "https://en.wikipedia.org/wiki/Antalya"
 })
 
 (:Airport {slug: "ayt", name: "Antalya Airport", iata: "AYT"})
@@ -135,7 +135,7 @@ Okuma: *Perge is a day trip from Antalya.*
 ## Ingest ilkesi
 
 1. Deterministik: Country, City, Place (QID), Airport  
-2. LLM (az): `get_in` / `go_next` metninden **aday** `CONNECTED_BY` / `DAY_TRIP_FROM`  
+2. LLM (az): Wikipedia şehir sayfasından **aday** `CONNECTED_BY` / `DAY_TRIP_FROM` / `SERVED_BY_AIRPORT`  
 3. Validate → evidence + confidence; süre yoksa null  
 
 Graph aday kümesini daraltır; Qdrant açıklar.
@@ -144,7 +144,7 @@ Graph aday kümesini daraltır; Qdrant açıklar.
 
 | Script | Ne yazar |
 |--------|----------|
-| `scripts/ingest-wikivoyage-neo4j.py` | City, Country, `IN_COUNTRY`; opsiyonel Gemini ilişkileri |
+| `scripts/ingest-wiki-neo4j.py` | City, Country, `IN_COUNTRY`; opsiyonel Gemini ilişkileri (`wp_pages`) |
 | `scripts/ingest-neo4j-places.py` | `Place` + `IN_CITY` (`wp_pois`) |
 
-Flags: `--anchors-only`, `--wipe`, `--dry-run`, `--page`.
+Flags: `--anchors-only`, `--wipe`, `--dry-run`, `--city`, `--country`.

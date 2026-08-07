@@ -1,6 +1,6 @@
 """Seed script for Qdrant (legacy demo chunks).
 
-Neo4j is populated by scripts/ingest-wikivoyage-neo4j.py, not this file.
+Neo4j is populated by scripts/ingest-wiki-neo4j.py, not this file.
 
 Usage:
     ALLOW_DB_RESET=true QDRANT_URL=http://localhost:6333 \\
