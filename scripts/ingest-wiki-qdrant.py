@@ -41,8 +41,12 @@ except ImportError:
     sys.exit(1)
 
 from lib.wp_chunks import build_chunks, make_point_id
-from lib.wp_pages_db import load_pages
-
+from lib.wp_pages_db import (
+    bump_section_stats,
+    ensure_section_stats_table,
+    load_pages,
+    reset_section_stats,
+)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
@@ -120,6 +124,16 @@ async def ingest_page(
     print(f"  {len(chunks)} chunk(s) title={row.get('title') or row.get('resolved_title')!r}")
 
     if dry_run:
+        from collections import Counter
+
+        sec_counts = Counter(
+            (c.get("section") or c.get("section_path") or "").strip() or "?"
+            for c in chunks
+        )
+        for sec, n in sec_counts.most_common(10):
+            print(f"    section {sec!r}: {n}")
+        if len(sec_counts) > 10:
+            print(f"    ... +{len(sec_counts) - 10} sections")
         for chunk in chunks[:5]:
             print(
                 f"    [{chunk['section_path']}] "
@@ -149,6 +163,9 @@ async def ingest_page(
 
     if points:
         qdrant.upsert(collection_name=QDRANT_COLLECTION, points=points)
+
+    n_sec = bump_section_stats(chunks)
+    print(f"  section stats: {n_sec} distinct section(s) bumped")
     return len(chunks)
 
 
@@ -167,6 +184,8 @@ async def main_async(
 
     print(f"Loaded {len(rows)} page(s) from wp_pages")
     print(f"Embed model: {OLLAMA_EMBED_MODEL} → {QDRANT_COLLECTION}")
+    if not dry_run:
+        ensure_section_stats_table()
     qdrant = QdrantClient(url=QDRANT_URL)
     total = 0
     wiped = False
@@ -175,6 +194,8 @@ async def main_async(
         if wipe and not dry_run:
             probe = await embed_text(http, "dimension probe")
             recreate_collection(qdrant, len(probe))
+            reset_section_stats()
+            print("  reset wp_section_stats")
             wiped = True
 
         for i, row in enumerate(rows, 1):

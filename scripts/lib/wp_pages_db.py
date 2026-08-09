@@ -55,6 +55,19 @@ CREATE TABLE IF NOT EXISTS wp_gov_links (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 """
 
+CREATE_SECTION_STATS_SQL = """
+CREATE TABLE IF NOT EXISTS wp_section_stats (
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    section       VARCHAR(512)  NOT NULL,
+    chunk_count   INT UNSIGNED  NOT NULL DEFAULT 0,
+    page_count    INT UNSIGNED  NOT NULL DEFAULT 0,
+    updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_section (section(191)),
+    KEY idx_chunk_count (chunk_count)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+"""
+
 _PAGE_COLUMNS = (
     "id",
     "page_kind",
@@ -80,7 +93,64 @@ def ensure_tables(conn) -> None:
     with conn.cursor() as cur:
         cur.execute(CREATE_PAGES_SQL)
         cur.execute(CREATE_GOV_SQL)
+        cur.execute(CREATE_SECTION_STATS_SQL)
     conn.commit()
+
+
+def ensure_section_stats_table() -> None:
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(CREATE_SECTION_STATS_SQL)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def reset_section_stats() -> None:
+    """Clear global section counters (call when wiping travel_chunks)."""
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(CREATE_SECTION_STATS_SQL)
+            cur.execute("TRUNCATE TABLE wp_section_stats")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def bump_section_stats(chunks: list[dict]) -> int:
+    """Increment chunk_count / page_count from one page's chunks. Returns distinct sections."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    for chunk in chunks:
+        section = (chunk.get("section") or chunk.get("section_path") or "").strip()
+        if not section:
+            continue
+        counts[section] += 1
+    if not counts:
+        return 0
+
+    conn = connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(CREATE_SECTION_STATS_SQL)
+            for section, n in counts.items():
+                cur.execute(
+                    """
+                    INSERT INTO wp_section_stats (section, chunk_count, page_count)
+                    VALUES (%s, %s, 1)
+                    ON DUPLICATE KEY UPDATE
+                        chunk_count = chunk_count + VALUES(chunk_count),
+                        page_count = page_count + 1
+                    """,
+                    (section[:512], int(n)),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    return len(counts)
 
 
 def replace_gov_links(
