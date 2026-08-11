@@ -109,6 +109,10 @@ Kaynak JSON: `data/wiki/sources.json`, `museums.json`, `historical_sites.json`.
 .venv/bin/python scripts/ingest-wiki-qdrant.py
 ```
 
+Guide (`wp_pages`) chunk’ları yalnızca allowlist section’lara yazılır
+(`scripts/lib/wp_chunks.py` → `SECTION_ALLOWLIST`; payload’da `section_group`).
+POI sayfaları filtrelenmez.
+
 Tek şehir deneme:
 
 ```bash

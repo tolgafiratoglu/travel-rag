@@ -28,15 +28,70 @@ SKIP_SECTION_PATTERNS = (
     r"^gallery$",
 )
 
+# Guide pages only (wp_pages). Leaf heading → canonical group.
+# Lead and unlisted sections are dropped for city/tourism/attraction_list.
+GUIDE_PAGE_KINDS = frozenset({"city", "tourism", "attraction_list"})
+
+SECTION_ALLOWLIST: dict[str, tuple[str, ...]] = {
+    "sights": ("Main sights", "Landmarks"),
+    "museums": ("Museums", "Museums and galleries"),
+    "architecture": ("Architecture", "Cityscape"),
+    "parks": ("Parks", "Parks and gardens", "National Park"),
+    "tourism": ("Tourism",),
+    "transport": ("Transport", "Transportation"),
+    "public_transport": ("Public transport", "Metro", "Tram", "Bus", "Buses"),
+    "rail": ("Rail", "Railway", "Railways"),
+    "airport": ("Airport", "Airports", "Air"),
+    "road": ("Roads",),
+    "port": ("Port",),
+    "cycling": ("Cycling",),
+    "food": ("Cuisine", "Food", "Gastronomy"),
+    "nature": (
+        "Geography",
+        "Geography and climate",
+        "Physical geography",
+        "Climate",
+        "Flora",
+        "Fauna",
+        "Wildlife",
+    ),
+    "districts": ("Districts",),
+    "activities": ("Festivals", "Recreation", "Leisure and entertainment"),
+}
+
 MAX_CHARS = int(os.getenv("WP_MAX_CHUNK_CHARS", "1800"))
 COMBINE_UNDER = int(os.getenv("WP_COMBINE_UNDER_N_CHARS", "200"))
+
+
+def _normalize_heading(title: str | None) -> str:
+    if not title:
+        return ""
+    return re.sub(r"\s+", " ", title).strip().lower()
+
+
+def _section_group_map() -> dict[str, str]:
+    """normalized heading → canonical group (built once)."""
+    out: dict[str, str] = {}
+    for group, titles in SECTION_ALLOWLIST.items():
+        for title in titles:
+            out[_normalize_heading(title)] = group
+    return out
+
+
+_SECTION_GROUP_BY_HEADING = _section_group_map()
 
 
 def _skip_section(title: str | None) -> bool:
     if not title:
         return False
-    normalized = re.sub(r"\s+", " ", title).strip().lower()
+    normalized = _normalize_heading(title)
     return any(re.match(pat, normalized) for pat in SKIP_SECTION_PATTERNS)
+
+
+def _guide_section_group(section_path: str) -> str | None:
+    """Return canonical group for a guide section leaf, or None if not allowed."""
+    leaf = section_path.split("/")[-1].strip()
+    return _SECTION_GROUP_BY_HEADING.get(_normalize_heading(leaf))
 
 
 def clean_wikipedia_html(html: str) -> str:
@@ -205,20 +260,28 @@ def build_chunks(row: dict) -> list[dict]:
         # Remember explicit titles for continuation chunks that omit Title.
         if _element_title(chunk) or _titles_from_orig_elements(chunk):
             previous_section = section_path
-        if _skip_section(section_path.split("/")[-1].strip()):
+        leaf = section_path.split("/")[-1].strip()
+        if _skip_section(leaf):
             continue
 
+        section_group: str | None = None
+        if page_kind in GUIDE_PAGE_KINDS:
+            section_group = _guide_section_group(section_path)
+            if section_group is None:
+                continue
+
         label = f"{display_name} / {section_path}" if display_name else section_path
-        out.append(
-            {
-                **base,
-                "chunk_kind": "wiki_section",
-                "chunk_index": i,
-                "section_path": section_path,
-                "section": section_path,
-                "text": f"[{label}]\n\n{text}",
-            }
-        )
+        payload = {
+            **base,
+            "chunk_kind": "wiki_section",
+            "chunk_index": i,
+            "section_path": section_path,
+            "section": section_path,
+            "text": f"[{label}]\n\n{text}",
+        }
+        if section_group:
+            payload["section_group"] = section_group
+        out.append(payload)
     return out
 
 
