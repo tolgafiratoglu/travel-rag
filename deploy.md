@@ -257,26 +257,20 @@ docker exec -i travel-rag-neo4j cypher-shell -u neo4j -p changeme \
 
 ---
 
-## 10. Retrieval eval (Hit@k / Recall@k / MRR)
+## 10. Retrieval eval (Hit@k / Recall@k / Precision@k / MRR)
 
 Qdrant + embed ayaktayken (`travel_chunks` dolu):
 
 ```bash
-export QDRANT_URL=http://localhost:6333
-export OLLAMA_BASE_URL=http://localhost:11434
-export OLLAMA_EMBED_MODEL=bge-m3
+QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
+  .venv/bin/python eval/run_retrieval_eval.py
 
-.venv/bin/python eval/run_retrieval_eval.py
+# Opsiyonel:
 # .venv/bin/python eval/run_retrieval_eval.py --k 10 --limit 3
+# .venv/bin/python eval/validate_golden.py
 ```
 
 Golden: `eval/golden/retrieval.json` (`source_url` + `section`).  
-Önce envanter kontrolü:
-
-```bash
-.venv/bin/python eval/validate_golden.py
-```
-
 Çıktı: `eval/results/<timestamp>_<model>_kN.json` (gitignored).  
 Eval unreachable golden’ları skordan düşer; retrieval varsayılan olarak `source_url+section` dedupe eder.
 

@@ -224,7 +224,7 @@ Retrieval ve cevap kalitesini ölçülebilir hale getir.
 
 - [x] **7.1** `eval/golden/retrieval.json` — retrieval golden (source_url + section; genişletilebilir)
 - [x] **7.2** `eval/run_retrieval_eval.py` — Hit@k / Recall@k / MRR → `eval/results/`
-- [x] **7.3** Retrieval metrikleri (Hit@k, set Recall@k, MRR)
+- [x] **7.3** Retrieval metrikleri (Hit@k, set Recall@k, Precision@k, MRR)
 - [ ] **7.4** Cevap kalite metriği (LLM-as-judge, basit puanlama) *(0.5 gün)*
 - [ ] **7.5** Embedding modelini karşılaştır (`nomic-embed-text` vs `bge-m3`) *(1 gün)*
 - [ ] **7.6** Reranker dene (cross-encoder, opsiyonel) *(0.5 gün)*

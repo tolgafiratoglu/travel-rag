@@ -207,6 +207,15 @@ LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbu
 .venv/bin/python scripts/ingest-neo4j-places.py --city Istanbul
 ```
 
+### Retrieval eval
+
+```bash
+QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
+  .venv/bin/python eval/run_retrieval_eval.py
+```
+
+Detay: [`deploy.md`](./deploy.md) §10.
+
 ---
 
 ## Ortam değişkenleri

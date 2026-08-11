@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retrieval eval for travel_chunks: Hit@k, Recall@k, MRR.
+"""Retrieval eval for travel_chunks: Hit@k, Recall@k, Precision@k, MRR.
 
 Unreachable golden sections (not in Qdrant) are excluded from scoring.
 Run ``eval/validate_golden.py`` first to inspect mismatches.
@@ -118,7 +118,7 @@ def search_qdrant(
     return out
 
 
-def score_case(relevant: list[dict], retrieved: list[dict]) -> dict:
+def score_case(relevant: list[dict], retrieved: list[dict], *, top_k: int) -> dict:
     relevant_by_key: dict[tuple[str, str], dict] = {}
     for item in relevant:
         key = relevant_key(item)
@@ -133,35 +133,44 @@ def score_case(relevant: list[dict], retrieved: list[dict]) -> dict:
         return {
             "hit": 0.0,
             "recall": 0.0,
+            "precision": 0.0,
             "rr": 0.0,
             "first_rank": None,
             "matched": [],
             "relevant_count": 0,
             "matched_count": 0,
+            "relevant_in_topk": 0,
             "scored": False,
         }
 
     matched_keys: set[tuple[str, str]] = set()
     first_rank: int | None = None
+    relevant_in_topk = 0
     for rank, chunk in enumerate(retrieved, start=1):
         hits = _hit_matches(chunk, relevant)
         if not hits:
             continue
+        relevant_in_topk += 1
         if first_rank is None:
             first_rank = rank
         matched_keys.update(hits)
 
     hit = 1.0 if matched_keys else 0.0
     recall = len(matched_keys) / len(relevant_by_key)
+    # Precision@k: relevant slots in the returned list / k (empty slots count as miss).
+    k = max(top_k, 1)
+    precision = relevant_in_topk / k
     rr = (1.0 / first_rank) if first_rank else 0.0
     return {
         "hit": hit,
         "recall": recall,
+        "precision": precision,
         "rr": rr,
         "first_rank": first_rank,
-        "matched": [relevant_by_key[k] for k in sorted(matched_keys)],
+        "matched": [relevant_by_key[k_] for k_ in sorted(matched_keys)],
         "relevant_count": len(relevant_by_key),
         "matched_count": len(matched_keys),
+        "relevant_in_topk": relevant_in_topk,
         "scored": True,
     }
 
@@ -251,10 +260,11 @@ async def run_eval(
                 city=city,
                 dedupe_section=dedupe_section,
             )
-            metrics = score_case(reachable, retrieved)
+            metrics = score_case(reachable, retrieved, top_k=top_k)
             print(
                 f"  hit={metrics['hit']:.0f} "
                 f"recall={metrics['recall']:.3f} "
+                f"prec={metrics['precision']:.3f} "
                 f"rr={metrics['rr']:.3f} "
                 f"rank={metrics['first_rank']}"
             )
@@ -283,6 +293,7 @@ async def run_eval(
 
     hit_at_k = sum(c["metrics"]["hit"] for c in scored) / n
     recall_at_k = sum(c["metrics"]["recall"] for c in scored) / n
+    precision_at_k = sum(c["metrics"]["precision"] for c in scored) / n
     mrr = sum(c["metrics"]["rr"] for c in scored) / n
 
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%SZ")
@@ -311,6 +322,7 @@ async def run_eval(
         "metrics": {
             f"hit_at_{top_k}": round(hit_at_k, 4),
             f"recall_at_{top_k}": round(recall_at_k, 4),
+            f"precision_at_{top_k}": round(precision_at_k, 4),
             "mrr": round(mrr, 4),
         },
         "results": per_case,
@@ -324,6 +336,7 @@ async def run_eval(
     print(f"  Scored:    {n}/{len(cases)} (skipped unreachable: {skipped})")
     print(f"  Hit@{top_k}:    {hit_at_k:.4f}")
     print(f"  Recall@{top_k}: {recall_at_k:.4f}")
+    print(f"  Prec@{top_k}:   {precision_at_k:.4f}")
     print(f"  MRR:       {mrr:.4f}")
     print(f"  Wrote {out_path.relative_to(ROOT)}")
     return out_path
