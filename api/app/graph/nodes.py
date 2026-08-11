@@ -79,9 +79,9 @@ Rules:
   cities: cities relevant to that specific intent (empty list if none). Do not invent cities that are not in the question or Recent conversation.
   If the user mixes goals (e.g. plan + compare), emit multiple intents entries with cities scoped per intent.
   When primary_intent is a task intent (not chitchat/meta), in_scope is true, and needs_clarification is false, include a matching entry in intents[].
-- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikivoyage/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
+- steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikipedia/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
 - For chitchat, meta, in_scope false, or needs_clarification: use a single synthesize step and set search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
-- search_queries: 1-3 objects for Wikivoyage/guide vector search (empty for chitchat/meta/out-of-scope/clarification). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
+- search_queries: 1-3 objects for Wikipedia/guide vector search (empty for chitchat/meta/out-of-scope/clarification). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
   q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
   city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
   For multi-city questions, prefer one query object per city (same or different q) rather than a single unfiltered query.
@@ -955,9 +955,7 @@ def _build_unified_sources(
         url = (ctx.get("source_url") or "").strip()
         source_kind = (ctx.get("source") or "").strip()
         if not source_kind:
-            if "wikivoyage" in url.lower():
-                source_kind = "wikivoyage"
-            elif "wikipedia" in url.lower():
+            if "wikipedia" in url.lower():
                 source_kind = "wikipedia"
         graph_as_source = {
             "text": ctx.get("text") or "",

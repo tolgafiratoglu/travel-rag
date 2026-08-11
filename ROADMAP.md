@@ -146,7 +146,7 @@ Tek sayfa RAG chat: kullanıcı soru sorar, WebSocket üstünden plan + adım ad
 
 ---
 
-## Phase 4 — Data Ingestion (Wikivoyage + Wikidata)  *(~7 gün)*
+## Phase 4 — Data Ingestion (Wikipedia + Wikidata)  *(~7 gün)*
 
 Seed verisini gerçek veriyle değiştir.
 
@@ -154,20 +154,20 @@ Seed verisini gerçek veriyle değiştir.
 
 ### 4.A Ingestion modülü  *(~5 gün)*
 
-- [ ] **4.1** `ingestion/wikivoyage.py` — MediaWiki API client (`get_page_sections`) *(1.5 gün)*
+- [x] **4.1** Wikipedia city/guide parse → MariaDB (`scripts/parse-wiki-pages.py`, `data/wiki/sources.json`)
 - [ ] **4.2** `ingestion/wikidata.py` — SPARQL client (`get_city_metadata(qid)`) *(1 gün)*
-- [ ] **4.3** `ingestion/chunker.py` — Section-based chunking, overlap, metadata preserve *(1 gün)*
+- [x] **4.3** Section-aware chunking (`scripts/lib/wp_chunks.py` + Unstructured)
 - [x] **4.4** Embed + Qdrant upsert + Neo4j v1 (`neo4j.md`) — `scripts/ingest-*` (City/Country/Place/`IN_*`/`CONNECTED_BY`/`DAY_TRIP_FROM`; **SourceChunk yok**)
-- [ ] **4.5** `ingestion/configs/sources.yaml` — Hedef şehirler listesi *(0.5 gün)*
+- [x] **4.5** Hedef şehirler — `data/wiki/sources.json` (+ museums/historical JSON)
 
 ### 4.B CLI ve orchestration  *(~2 gün)*
 
 - [ ] **4.6** `ingestion/run.py` — CLI (`python -m ingestion.run --config sources.yaml`) *(0.5 gün)*
-- [ ] **4.7** Idempotent re-run (chunk_id deterministic, MERGE bazlı) *(0.5 gün)*
+- [x] **4.7** Idempotent re-run (chunk_id deterministic, MERGE bazlı)
 - [ ] **4.8** Progress log + error retry *(0.5 gün)*
 - [ ] **4.9** İlk 20 şehir için tam pipeline çalıştır *(0.5 gün)*
 
-**Çıktı:** Sistem 20+ şehir için gerçek Wikivoyage verisiyle dolu.
+**Çıktı:** Sistem 20+ şehir için gerçek Wikipedia verisiyle dolu.
 
 ---
 

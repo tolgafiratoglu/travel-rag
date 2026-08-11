@@ -205,11 +205,9 @@ def _primary_source_url(rows: list[dict[str, Any]]) -> str:
 
 def _infer_source_kind(url: str) -> str:
     lower = url.lower()
-    if "wikivoyage" in lower:
-        return "wikivoyage"
     if "wikipedia" in lower:
         return "wikipedia"
-    return "wikivoyage" if url else ""
+    return "wikipedia" if url else ""
 
 
 async def run_graph_query(

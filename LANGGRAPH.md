@@ -29,7 +29,7 @@ START
 | `chitchat` | **Evet** | Retrieval’sız kısa cevap |
 | `graph_retrieval` | Hayır | Neo4j allowlist template Cypher (`needs_graph`) |
 | `deep_retrieval` | Hayır (embed) | Müze + tarihi alan Qdrant koleksiyonları |
-| `vector_retrieval` | Hayır (embed) | Wikivoyage guide chunk’ları |
+| `vector_retrieval` | Hayır (embed) | Wikipedia guide chunk’ları |
 | `synthesize` | **Evet (#2)** | Kaynaklara dayalı cevap + citation |
 | `format` | Hayır | Pass-through (ileride post-process) |
 
@@ -63,7 +63,7 @@ primary_intent           str   # chitchat|factoid|recommendation|planning|compar
 intents                  list[{intent, cities}]
 prompt_language          str   # ISO 639-1
 plan                     {summary, steps[]}
-search_queries           list[{q, city?}]      # guide / Wikivoyage
+search_queries           list[{q, city?}]      # guide / Wikipedia
 deep_search              bool
 search_museums           bool
 search_artifacts         bool
@@ -181,7 +181,7 @@ Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` /
 
 ### `vector_retrieval_node`
 
-- Koleksiyon: `travel_chunks` (Wikivoyage guide).
+- Koleksiyon: `travel_chunks` (Wikipedia guide).
 - `search_queries` + city filter.
 - Sonuç: `vector_chunks`.
 

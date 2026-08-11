@@ -58,12 +58,11 @@ def ensure_constraints(driver: Driver) -> None:
 
 
 def wipe_all_entities(driver: Driver) -> int:
-    """Delete every WikiEntity (and legacy WvEntity). Returns deleted count."""
+    """Delete every WikiEntity. Returns deleted count."""
     with driver.session() as session:
         result = session.run(
             f"""
-            MATCH (n)
-            WHERE n:{ENTITY_LABEL} OR n:WvEntity
+            MATCH (n:{ENTITY_LABEL})
             DETACH DELETE n
             RETURN count(n) AS deleted
             """
@@ -141,69 +140,62 @@ def build_place_from_poi(row: dict, *, city_gid: str) -> GraphNode:
 def delete_city_llm_derived(driver: Driver, city_gid: str) -> tuple[int, int]:
     """Remove LLM-derived graph for one city; keep City anchor, IN_COUNTRY, POI Places.
 
-    Deletes edges/nodes tagged graph_llm or legacy wikivoyage (not wikipedia POIs).
+    Deletes edges/nodes tagged graph_llm (not wikipedia POIs).
     """
     edges_deleted = 0
-    llm_sources = ["graph_llm", "wikivoyage"]
     with driver.session() as session:
         city_edge_result = session.run(
             """
             MATCH (c:City {graph_id: $city_gid})-[r]->(t)
             WHERE NOT (type(r) = $anchor_rel AND t:Country)
-              AND coalesce(r.source, '') IN $llm_sources
+              AND coalesce(r.source, '') = $llm_source
             DELETE r
             RETURN count(r) AS deleted
             """,
             city_gid=city_gid,
             anchor_rel=ANCHOR_REL_TYPE,
-            llm_sources=llm_sources,
+            llm_source=LLM_SOURCE,
         )
         edges_deleted += city_edge_result.single()["deleted"]
 
         in_edge = session.run(
             """
             MATCH (p:Place)-[r:DAY_TRIP_FROM]->(c:City {graph_id: $city_gid})
-            WHERE coalesce(r.source, '') IN $llm_sources
+            WHERE coalesce(r.source, '') = $llm_source
             DELETE r
             RETURN count(r) AS deleted
             """,
             city_gid=city_gid,
-            llm_sources=llm_sources,
+            llm_source=LLM_SOURCE,
         )
         edges_deleted += in_edge.single()["deleted"]
 
         edge_result = session.run(
             f"""
-            MATCH (n)
-            WHERE (n:{ENTITY_LABEL} OR n:WvEntity)
-              AND n.source_city_graph_id = $city_gid
-              AND n.managed_scope = $scope
-              AND NOT n:City
-              AND coalesce(n.source, '') IN $llm_sources
+            MATCH (n:{ENTITY_LABEL} {{source_city_graph_id: $city_gid, managed_scope: $scope}})
+            WHERE NOT n:City
+              AND coalesce(n.source, '') = $llm_source
             MATCH (n)-[r]-()
             DELETE r
             RETURN count(r) AS deleted
             """,
             city_gid=city_gid,
             scope=ManagedScope.CITY.value,
-            llm_sources=llm_sources,
+            llm_source=LLM_SOURCE,
         )
         edges_deleted += edge_result.single()["deleted"]
 
         node_result = session.run(
             f"""
-            MATCH (n)
-            WHERE (n:{ENTITY_LABEL} OR n:WvEntity)
-              AND n.source_city_graph_id = $city_gid
-              AND n.managed_scope = $scope
-              AND NOT n:City
-              AND coalesce(n.source, '') IN $llm_sources
+            MATCH (n:{ENTITY_LABEL} {{source_city_graph_id: $city_gid, managed_scope: $scope}})
+            WHERE NOT n:City
+              AND coalesce(n.source, '') = $llm_source
             DETACH DELETE n
             RETURN count(n) AS deleted
             """,
             city_gid=city_gid,
             scope=ManagedScope.CITY.value,
-            llm_sources=llm_sources,
+            llm_source=LLM_SOURCE,
         )
         nodes_deleted = node_result.single()["deleted"]
     return nodes_deleted, edges_deleted
@@ -236,7 +228,6 @@ def merge_node(
         f"""
         MERGE (n:{labels} {{graph_id: $graph_id}})
         SET n += $props
-        REMOVE n:WvEntity
         """,
         graph_id=node.graph_id,
         props=_clean_props(props),
@@ -257,10 +248,8 @@ def merge_edge(
     }
     session.run(
         f"""
-        MATCH (a {{graph_id: $from_id}})
-        WHERE a:{ENTITY_LABEL} OR a:WvEntity
-        MATCH (b {{graph_id: $to_id}})
-        WHERE b:{ENTITY_LABEL} OR b:WvEntity
+        MATCH (a:{ENTITY_LABEL} {{graph_id: $from_id}})
+        MATCH (b:{ENTITY_LABEL} {{graph_id: $to_id}})
         MERGE (a)-[r:{edge.type}]->(b)
         SET r += $props
         """,

@@ -31,9 +31,9 @@ LangGraph
   intake → safety_guard → planner_json
               │
               ├─ chitchat/meta → chitchat → format
-              ├─ needs_graph → Neo4j templates → (± deep) → Wikivoyage → synthesize
-              ├─ deep_search → museums/historical → Wikivoyage → synthesize
-              └─ else → Wikivoyage → synthesize
+              ├─ needs_graph → Neo4j templates → (± deep) → Wikipedia guide → synthesize
+              ├─ deep_search → museums/historical → Wikipedia guide → synthesize
+              └─ else → Wikipedia guide → synthesize
     │
     ├── Qdrant (guide + optional POI collections)
     ├── Neo4j (aday / kısıt — neo4j.md)
@@ -259,7 +259,7 @@ FE: markdown cevap, `[n]` → kaynak linki, References listesi.
 - Guard + planner + deep/guide retrieval + synthesize  
 - Neo4j v1: şema + ingest + `needs_graph` / template Cypher (`neo4j.md`)  
 - City filter, kaynak dedupe, `[n]` citation + FE References  
-- Wikivoyage allowlist ingest, Wikipedia POI → Qdrant + Place nodes  
+- Wikipedia city/guide ingest + POI → Qdrant + Place nodes  
 - Rate limit, Docker Compose stack  
 
 **Sonraki / zayıf halkalar**

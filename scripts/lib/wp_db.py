@@ -12,9 +12,9 @@ POIType = Literal["museum", "historical_site"]
 DB_CONFIG = {
     "host": os.getenv("MARIADB_HOST", "localhost"),
     "port": int(os.getenv("MARIADB_PORT", "3306")),
-    "user": os.getenv("MARIADB_USER", "wikivoyage"),
+    "user": os.getenv("MARIADB_USER", "travel"),
     "password": os.getenv("MARIADB_PASSWORD", "changeme"),
-    "database": os.getenv("MARIADB_DATABASE", "wikivoyage"),
+    "database": os.getenv("MARIADB_DATABASE", "travel"),
     "charset": "utf8mb4",
 }
 

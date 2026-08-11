@@ -81,8 +81,8 @@ services:
     restart: unless-stopped
     environment:
       - MARIADB_ROOT_PASSWORD=changeme
-      - MARIADB_DATABASE=wikivoyage
-      - MARIADB_USER=wikivoyage
+      - MARIADB_DATABASE=travel
+      - MARIADB_USER=travel
       - MARIADB_PASSWORD=changeme
     command:
       - --max-allowed-packet=512M
@@ -90,7 +90,6 @@ services:
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./data/wiki:/data/wiki:ro
-      - ./data/wiki:/data/wikivoyage:ro
     ports:
       - "3306:3306"
     networks:

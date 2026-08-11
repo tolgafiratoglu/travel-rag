@@ -32,10 +32,8 @@ function linkifyCitations(text: string, sources: Source[], anchorPrefix: string)
 
 function siteName(source: Source): string {
   const url = (source.source_url || "").toLowerCase();
-  if (url.includes("wikivoyage")) return "Wikivoyage";
   if (url.includes("wikipedia")) return "Wikipedia";
   const raw = (source.source || "").toLowerCase();
-  if (raw.includes("wikivoyage")) return "Wikivoyage";
   if (raw.includes("wikipedia") || raw === "wp") return "Wikipedia";
   if (raw && raw !== "neo4j" && raw !== "graph") {
     return raw.charAt(0).toUpperCase() + raw.slice(1);

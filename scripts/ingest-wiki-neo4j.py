@@ -460,7 +460,7 @@ async def main_async(
     try:
         if wipe and not dry_run:
             deleted = wipe_all_entities(driver)
-            print(f"Wiped {deleted} {ENTITY_LABEL}/WvEntity node(s)")
+            print(f"Wiped {deleted} {ENTITY_LABEL} node(s)")
 
         if not dry_run:
             ensure_constraints(driver)
@@ -524,7 +524,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--wipe",
         action="store_true",
-        help=f"DETACH DELETE all {ENTITY_LABEL}/WvEntity nodes before ingest",
+        help=f"DETACH DELETE all {ENTITY_LABEL} nodes before ingest",
     )
     return parser.parse_args()
 
