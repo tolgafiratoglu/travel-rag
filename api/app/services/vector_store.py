@@ -66,23 +66,47 @@ async def search(
     *,
     collection: str | None = None,
     city: str | None = None,
+    dedupe_section: bool = True,
 ) -> list[dict]:
     """Embed the query and return the top-k matching chunks from Qdrant.
 
     When ``city`` is set, restrict results to that city_name (and known aliases).
     When ``city`` is None (planner ANY), no metadata filter is applied.
+    When ``dedupe_section`` is true (default), keep at most one hit per
+    ``source_url`` + section leaf so duplicate chunks do not fill top-k.
     """
     vector = await embed(query)
     client = _get_client()
     collection_name = collection or settings.qdrant_collection
     query_filter = _build_city_filter(city)
+    fetch_limit = max(top_k * 4, top_k) if dedupe_section else top_k
 
     results = client.query_points(
         collection_name=collection_name,
         query=vector,
         query_filter=query_filter,
-        limit=top_k,
+        limit=fetch_limit,
         with_payload=True,
     )
 
-    return [_payload_dict(point) for point in (results.points or [])]
+    points = results.points or []
+    if not dedupe_section:
+        return [_payload_dict(point) for point in points[:top_k]]
+
+    out: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for point in points:
+        payload = point.payload or {}
+        url = (payload.get("source_url") or "").strip().lower()
+        section = (
+            payload.get("section") or payload.get("section_path") or ""
+        ).strip()
+        leaf = section.split("/")[-1].strip().lower()
+        key = (url, leaf)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(_payload_dict(point))
+        if len(out) >= top_k:
+            break
+    return out

@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "description": "Guide retrieval goldens aligned to sections present after allowlist ingest. Match source_url + section leaf. Prefer search_query for embedding.",
+  "cases": [
+    {
+      "id": "istanbul_airports_01",
+      "query": "İstanbul'a uçakla nasıl ulaşılır?",
+      "search_query": "Istanbul airports arrival by plane",
+      "city": "Istanbul",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Airports"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Transportation"
+        }
+      ]
+    },
+    {
+      "id": "istanbul_transport_01",
+      "query": "Istanbul metro and public transport",
+      "search_query": "Istanbul public transport transportation metro",
+      "city": "Istanbul",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Transportation"
+        }
+      ]
+    },
+    {
+      "id": "istanbul_architecture_01",
+      "query": "Istanbul architecture and cityscape",
+      "search_query": "Istanbul architecture cityscape",
+      "city": "Istanbul",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Architecture"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Cityscape"
+        }
+      ]
+    },
+    {
+      "id": "istanbul_parks_01",
+      "query": "Istanbul parks",
+      "search_query": "Istanbul parks gardens",
+      "city": "Istanbul",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Parks"
+        }
+      ]
+    },
+    {
+      "id": "antalya_sights_01",
+      "query": "Antalya landmarks and main sights",
+      "search_query": "Antalya main sights landmarks",
+      "city": "Antalya",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Antalya",
+          "section": "Main sights"
+        }
+      ]
+    },
+    {
+      "id": "antalya_airport_01",
+      "query": "How to fly into Antalya?",
+      "search_query": "Antalya airport arrival by plane",
+      "city": "Antalya",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Antalya",
+          "section": "Airport"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Antalya",
+          "section": "Transportation"
+        }
+      ]
+    },
+    {
+      "id": "antalya_museums_01",
+      "query": "Antalya museums",
+      "search_query": "Antalya museums",
+      "city": "Antalya",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Antalya",
+          "section": "Museums"
+        }
+      ]
+    },
+    {
+      "id": "paris_tourism_01",
+      "query": "Paris tourism overview",
+      "search_query": "Paris tourism",
+      "city": "Paris",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Paris",
+          "section": "Tourism"
+        }
+      ]
+    },
+    {
+      "id": "paris_museums_01",
+      "query": "Paris museums and galleries",
+      "search_query": "Paris museums",
+      "city": "Paris",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Paris",
+          "section": "Museums"
+        }
+      ]
+    },
+    {
+      "id": "paris_parks_01",
+      "query": "Paris parks and gardens",
+      "search_query": "Paris parks gardens",
+      "city": "Paris",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Paris",
+          "section": "Parks and gardens"
+        }
+      ]
+    },
+    {
+      "id": "paris_rail_01",
+      "query": "Paris railways and getting around by train",
+      "search_query": "Paris railways train transport",
+      "city": "Paris",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Paris",
+          "section": "Railways"
+        }
+      ]
+    },
+    {
+      "id": "cappadocia_geo_01",
+      "query": "Cappadocia geography and climate",
+      "search_query": "Cappadocia geography climate",
+      "city": "Cappadocia",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Cappadocia",
+          "section": "Geography and climate"
+        }
+      ],
+      "notes": "Coverage thin after allowlist — only this section in collection currently."
+    },
+    {
+      "id": "rome_cuisine_01",
+      "query": "What to eat in Rome?",
+      "search_query": "Rome cuisine food",
+      "city": "Rome",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Rome",
+          "section": "Cuisine"
+        }
+      ]
+    },
+    {
+      "id": "rome_tourism_01",
+      "query": "Rome tourism attractions",
+      "search_query": "Rome tourism",
+      "city": "Rome",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Rome",
+          "section": "Tourism"
+        }
+      ]
+    },
+    {
+      "id": "barcelona_parks_01",
+      "query": "Barcelona parks and gardens",
+      "search_query": "Barcelona parks gardens",
+      "city": "Barcelona",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Parks"
+        }
+      ]
+    },
+    {
+      "id": "barcelona_sights_01",
+      "query": "Barcelona main sights",
+      "search_query": "Barcelona main sights landmarks",
+      "city": "Barcelona",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Main sights"
+        }
+      ]
+    },
+    {
+      "id": "barcelona_transport_01",
+      "query": "Barcelona public transport bus tram",
+      "search_query": "Barcelona bus tram transport",
+      "city": "Barcelona",
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Transport"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Bus"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Tram"
+        }
+      ]
+    }
+  ]
+}

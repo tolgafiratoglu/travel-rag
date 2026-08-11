@@ -570,12 +570,11 @@ async def _collect_query_chunks(
             )
             continue
         for chunk in results:
+            section = (chunk.get("section") or "").strip()
+            leaf = section.split("/")[-1].strip().lower()
             key = (
-                chunk.get("source_url", ""),
-                chunk.get("name", ""),
-                chunk.get("city_name", ""),
-                chunk.get("section", ""),
-                chunk.get("text", "")[:100],
+                (chunk.get("source_url") or "").strip().lower(),
+                leaf,
             )
             if key not in seen:
                 seen.add(key)
