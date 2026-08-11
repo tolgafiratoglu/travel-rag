@@ -6,11 +6,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import type { Message, Source } from "./types";
+import { PlanCard } from "./PlanCard";
 import { SuggestionChips } from "./SuggestionChips";
 
 type MessageBubbleProps = Pick<
   Message,
-  "role" | "content" | "status" | "sources" | "suggestions"
+  "role" | "content" | "status" | "plan" | "sources" | "suggestions"
 > & {
   onSuggestionSelect?: (text: string) => void;
   suggestionsDisabled?: boolean;
@@ -96,6 +97,7 @@ export function MessageBubble({
   role,
   content,
   status,
+  plan,
   sources,
   suggestions,
   onSuggestionSelect,
@@ -183,9 +185,10 @@ export function MessageBubble({
 
   return (
     <div className="py-2">
-      {status && (
-        <p className="text-sm text-gray-400 animate-pulse">{status}</p>
-      )}
+      {plan ? <PlanCard plan={plan} status={status} /> : null}
+      {!plan && status ? (
+        <p className="mb-2 text-sm text-gray-400 animate-pulse">{status}</p>
+      ) : null}
       {renderedContent && (
         <div className="text-sm text-gray-900">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>

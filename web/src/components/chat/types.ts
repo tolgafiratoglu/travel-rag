@@ -3,6 +3,7 @@ export type PlanStep = {
   label: string;
   kind: string;
   status: "idle" | "running" | "done" | "error";
+  detail?: string;
 };
 
 export type Plan = {

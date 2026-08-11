@@ -30,6 +30,7 @@ export function MessageList({
           role={msg.role}
           content={msg.content}
           status={msg.status}
+          plan={msg.plan}
           sources={msg.sources}
           suggestions={msg.suggestions}
           onSuggestionSelect={onSuggestionSelect}

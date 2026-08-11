@@ -60,7 +60,12 @@ export function useChatStream() {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last?.role === "assistant") {
-                updated[updated.length - 1] = { ...last, plan, status: event.summary };
+                // Keep Thinking… under the summary; do not replace with summary text.
+                updated[updated.length - 1] = {
+                  ...last,
+                  plan,
+                  status: last.status || "Thinking…",
+                };
               }
               return updated;
             });
@@ -71,14 +76,30 @@ export function useChatStream() {
             plan = {
               ...plan,
               steps: plan.steps.map((s) =>
-                s.kind === event.kind ? { ...s, status: event.status as Plan["steps"][number]["status"] } : s,
+                s.kind === event.kind
+                  ? {
+                      ...s,
+                      status: event.status as Plan["steps"][number]["status"],
+                      detail:
+                        event.status === "done" && event.detail
+                          ? event.detail
+                          : s.detail,
+                    }
+                  : s,
               ),
             };
             setMessages((prev) => {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last?.role === "assistant") {
-                updated[updated.length - 1] = { ...last, plan };
+                updated[updated.length - 1] = {
+                  ...last,
+                  plan,
+                  status:
+                    event.kind === "synthesize" && event.status === "running"
+                      ? "Answering your question…"
+                      : last.status || "Thinking…",
+                };
               }
               return updated;
             });
@@ -93,6 +114,7 @@ export function useChatStream() {
                 updated[updated.length - 1] = {
                   ...last,
                   content: (last.content || "") + event.delta,
+                  // Keep plan; drop pulse line once tokens arrive.
                   status: undefined,
                 };
               }

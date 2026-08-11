@@ -56,7 +56,7 @@ async def ws_chat(ws: WebSocket):
             await ws.close()
             return
 
-        await _send(ws, {"type": "status", "message": "Answering your question..."})
+        await _send(ws, {"type": "status", "message": "Thinking…"})
 
         result: dict = {}
 
