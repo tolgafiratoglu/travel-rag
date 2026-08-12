@@ -82,9 +82,17 @@ Rules:
 - steps: generate 2-5 steps tailored to the question. Each step needs a unique id (s1, s2, ...), a descriptive label, and a kind. The last step must always be kind "synthesize". Use kind "vector" for Wikipedia/guide retrieval, "museums" / "artifacts" when deep POI search is on, "graph" when needs_graph is true, "external" when hotel or flight search links are prepared. All steps start with status "idle".
 - For chitchat, meta, in_scope false, or needs_clarification: use a single synthesize step and set search_queries to [], museum_search_queries to [], artifact_search_queries to [], graph_queries to [], needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false.
 - search_queries: 1-3 objects for Wikipedia/guide vector search (empty for chitchat/meta/out-of-scope/clarification). Each item is {{ "q": "English phrase", "city": "CityName|ANY" }}.
-  q: short retrieval-optimized English phrase (no hotel/flight URLs; separate from museum/artifact queries).
+  q: short English phrase for embedding against guide chunks (no hotel/flight URLs; separate from museum/artifact queries).
   city: pin results to that city metadata when known; use "ANY" when the phrase is country-wide, comparative across unknown places, or city should not be filtered. City is optional — omit or "ANY" means no city filter.
   For multi-city questions, prefer one query object per city (same or different q) rather than a single unfiltered query.
+  Retrieval query rules:
+  - Generate queries for information that must be retrieved, not for the final output format.
+  - Match queries to vocabulary and themes likely in the indexed corpus (Wikipedia city/guide sections and related POI pages).
+  - For itinerary / "N-day route" requests, trip duration is a synthesis constraint — do not normally put "2 day", "5 day", or "itinerary" in q.
+  - Avoid generic web-search phrases such as "top attractions", "things to do", "best places", and "N-day itinerary".
+  - Prefer factual themes: landmarks, main sights, districts, museums, historical sites, architecture, parks, transport, geography, cuisine when relevant.
+  - Use semantic phrases aligned with those themes, not only exact section titles; prefer 2-3 complementary themes over near-duplicate queries.
+  - Example: "İstanbul'da 2 günlük rota" → q like "historic peninsula landmarks", "museums galleries", "public transport" — NOT "2 day itinerary".
 
 Deep POI search (museums + historical sites):
 - deep_search: true when museum or historical-site detail would materially help (sights, museums, ruins, castles, temples, UNESCO sites, "what to see", "tarihi yerler", "müzeler").
@@ -183,17 +191,17 @@ Example — question: "Where can I go with my family in Antalya?"
     ]
   }},
   "search_queries": [
-    {{ "q": "family friendly places", "city": "Antalya" }},
-    {{ "q": "kid friendly beach activities", "city": "Antalya" }}
+    {{ "q": "family parks recreation", "city": "Antalya" }},
+    {{ "q": "main sights landmarks", "city": "Antalya" }}
   ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": true,
   "museum_search_queries": [
-    {{ "q": "family friendly museums", "city": "Antalya" }}
+    {{ "q": "museums galleries", "city": "Antalya" }}
   ],
   "artifact_search_queries": [
-    {{ "q": "family friendly historical sites", "city": "Antalya" }}
+    {{ "q": "historical sites ruins", "city": "Antalya" }}
   ],
   "is_hotel_search": false,
   "hotel_search_query": "",
@@ -221,20 +229,20 @@ Example — question: "Antalya'da 5 gün planla, Bodrum ile karşılaştır"
     ]
   }},
   "search_queries": [
-    {{ "q": "5 day itinerary", "city": "Antalya" }},
-    {{ "q": "top attractions", "city": "Bodrum" }},
-    {{ "q": "Antalya vs Bodrum travel", "city": "ANY" }}
+    {{ "q": "main sights landmarks museums", "city": "Antalya" }},
+    {{ "q": "main sights landmarks", "city": "Bodrum" }},
+    {{ "q": "transport geography", "city": "Antalya" }}
   ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": true,
   "museum_search_queries": [
-    {{ "q": "museums", "city": "Antalya" }},
-    {{ "q": "museums", "city": "Bodrum" }}
+    {{ "q": "museums galleries", "city": "Antalya" }},
+    {{ "q": "museums galleries", "city": "Bodrum" }}
   ],
   "artifact_search_queries": [
-    {{ "q": "historical sites", "city": "Antalya" }},
-    {{ "q": "historical sites", "city": "Bodrum" }}
+    {{ "q": "historical sites ruins", "city": "Antalya" }},
+    {{ "q": "historical sites castle", "city": "Bodrum" }}
   ],
   "is_hotel_search": false,
   "hotel_search_query": "",
@@ -263,15 +271,15 @@ Example — question: "İstanbul'da hangi müzeleri gezmeliyim?"
     ]
   }},
   "search_queries": [
-    {{ "q": "museums overview", "city": "Istanbul" }},
-    {{ "q": "top attractions", "city": "Istanbul" }}
+    {{ "q": "museums galleries", "city": "Istanbul" }},
+    {{ "q": "architecture cityscape", "city": "Istanbul" }}
   ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": false,
   "museum_search_queries": [
-    {{ "q": "best museums", "city": "Istanbul" }},
-    {{ "q": "archaeology museums", "city": "Istanbul" }}
+    {{ "q": "archaeology museums", "city": "Istanbul" }},
+    {{ "q": "art museums galleries", "city": "Istanbul" }}
   ],
   "artifact_search_queries": [],
   "is_hotel_search": false,
@@ -302,14 +310,15 @@ Example — question: "İstanbul'da 5 günlük rota, otel ve uçuş öner"
     ]
   }},
   "search_queries": [
-    {{ "q": "5 day itinerary", "city": "Istanbul" }},
-    {{ "q": "top attractions", "city": "Istanbul" }}
+    {{ "q": "historic peninsula landmarks main sights", "city": "Istanbul" }},
+    {{ "q": "museums galleries", "city": "Istanbul" }},
+    {{ "q": "public transport districts", "city": "Istanbul" }}
   ],
   "deep_search": true,
   "search_museums": true,
   "search_artifacts": true,
   "museum_search_queries": [
-    {{ "q": "museums", "city": "Istanbul" }}
+    {{ "q": "museums galleries", "city": "Istanbul" }}
   ],
   "artifact_search_queries": [
     {{ "q": "historical sites monuments", "city": "Istanbul" }}

@@ -146,7 +146,8 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
 
 - Her sorgu `{ "q": "...", "city": "CityName" | "ANY" }`.
 - `city` bilinen şehirde Qdrant `city_name` filtresi; `ANY` / omit → filtresiz.
-- Guide sorguları İngilizce, kısa, retrieval-optimized.
+- Guide sorguları İngilizce; corpus temalarına uyumlu (landmarks, museums, transport, districts, cuisine…).
+- Rota süresi (“2 gün”, “5 day itinerary”) synthesis kısıtı — genelde `q` içine koyma; “top attractions” / “things to do” kaçın.
 - Rota / “ne görülür” / müze-tarih sorularında planner `deep_search` + ilgili POI sorgularını açmaya yönlendirilir.
 
 ### Graph sorguları (`neo4j.md`)
