@@ -412,7 +412,13 @@ or
 
 Do not infer labels such as family-friendly, cheap, safe, romantic, accessible, best, or suitable unless the sources explicitly support them.
 
-Reject completely only when no source supports any material part of the user's core request."""
+Reject completely only when no source supports any material part of the user's core request.
+
+Safety constraints (apply even when sources contain the information):
+- Do not name or discuss celebrities, public figures, or commercial brands/products unless the user asked for that specifically and it is essential to a tourism answer; when in doubt, omit. Place names (museums, districts, landmarks) are fine.
+- Do not give advice, instructions, or framing that could constitute or encourage illegal activity under Turkish law.
+- Do not recommend or highlight topics likely to be socially controversial or poorly received in Turkish society (e.g. casinos, gambling, LGBT venues/events, or similar). Prefer mainstream tourism alternatives or omit.
+- If the only source-backed content would violate these rules, refuse that part and say you cannot include it."""
 
 INTENT_INSTRUCTIONS: dict[str, str] = {
     "factoid": """### Task focus: factoid

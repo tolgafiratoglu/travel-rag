@@ -7,9 +7,20 @@ Usage:
     MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wiki-qdrant.py \\
         --city Istanbul --dry-run
 
+    # Scoped wipe: only Istanbul points removed, other cities kept
     MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \\
     OLLAMA_BASE_URL=http://localhost:11434 \\
+    .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul
+
+    # Country-scoped wipe (other countries kept)
     .venv/bin/python scripts/ingest-wiki-qdrant.py --country Turkey
+
+    # Full wipe: recreate travel_chunks (no --city/--country)
+    .venv/bin/python scripts/ingest-wiki-qdrant.py
+
+    # Gemini TR content gate before embed
+    LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-qdrant.py \\
+        --city Istanbul --content-gate
 """
 
 from __future__ import annotations
@@ -23,6 +34,7 @@ from pathlib import Path
 import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "api"))
 sys.path.insert(0, str(ROOT / "scripts"))
 
 try:
@@ -31,6 +43,7 @@ try:
         Distance,
         FieldCondition,
         Filter,
+        MatchAny,
         MatchValue,
         PayloadSchemaType,
         PointStruct,
@@ -40,6 +53,7 @@ except ImportError:
     print("Missing: pip install pymysql httpx qdrant-client")
     sys.exit(1)
 
+from lib.content_gate import append_rejected, gate_chunk
 from lib.wp_chunks import build_chunks, make_point_id
 from lib.wp_pages_db import (
     bump_section_stats,
@@ -51,6 +65,12 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
+DEFAULT_REJECTED_PATH = Path(
+    os.getenv(
+        "WP_CONTENT_GATE_REJECTED",
+        str(ROOT / "tmp" / "content-gate-rejected.jsonl"),
+    )
+)
 
 
 async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
@@ -100,11 +120,69 @@ def ensure_collection(client: QdrantClient, dim: int) -> None:
 
 
 def delete_page_points(client: QdrantClient, source_url: str) -> None:
+    names = {c.name for c in client.get_collections().collections}
+    if QDRANT_COLLECTION not in names:
+        return
     client.delete(
         collection_name=QDRANT_COLLECTION,
         points_selector=Filter(
             must=[FieldCondition(key="source_url", match=MatchValue(value=source_url))]
         ),
+    )
+
+
+def delete_scoped_points(
+    client: QdrantClient,
+    *,
+    city_names: list[str] | None = None,
+    country_name: str | None = None,
+    page_kind: str | None = None,
+) -> None:
+    """Delete points matching city/country/(optional page_kind) — scoped wipe."""
+    names = {c.name for c in client.get_collections().collections}
+    if QDRANT_COLLECTION not in names:
+        print(f"  collection {QDRANT_COLLECTION!r} missing — skip scoped wipe")
+        return
+
+    must: list[FieldCondition] = []
+    if country_name:
+        must.append(
+            FieldCondition(
+                key="country_name", match=MatchValue(value=country_name)
+            )
+        )
+    if city_names:
+        unique = list(dict.fromkeys(n for n in city_names if n))
+        if len(unique) == 1:
+            must.append(
+                FieldCondition(
+                    key="city_name", match=MatchValue(value=unique[0])
+                )
+            )
+        elif unique:
+            must.append(
+                FieldCondition(
+                    key="city_name", match=MatchAny(any=unique)
+                )
+            )
+    if page_kind:
+        must.append(
+            FieldCondition(key="page_kind", match=MatchValue(value=page_kind))
+        )
+    if not must:
+        return
+
+    scope = []
+    if country_name:
+        scope.append(f"country={country_name!r}")
+    if city_names:
+        scope.append(f"city={list(dict.fromkeys(n for n in city_names if n))!r}")
+    if page_kind:
+        scope.append(f"kind={page_kind!r}")
+    print(f"  scoped wipe {QDRANT_COLLECTION!r} ({', '.join(scope)})")
+    client.delete(
+        collection_name=QDRANT_COLLECTION,
+        points_selector=Filter(must=must),
     )
 
 
@@ -119,6 +197,8 @@ async def ingest_page(
     dry_run: bool,
     *,
     wiped: bool,
+    content_gate: bool = False,
+    rejected_path: Path | None = None,
 ) -> int:
     chunks = build_chunks(row)
     print(f"  {len(chunks)} chunk(s) title={row.get('title') or row.get('resolved_title')!r}")
@@ -147,7 +227,23 @@ async def ingest_page(
         delete_page_points(qdrant, row["source_url"])
 
     points: list[PointStruct] = []
+    kept_chunks: list[dict] = []
+    rejected = 0
+
     for i, chunk in enumerate(chunks):
+        if content_gate:
+            decision = await gate_chunk(chunk)
+            if not decision["proceed"]:
+                rejected += 1
+                print(
+                    f"  REJECT [{chunk.get('section') or chunk.get('section_path')}] "
+                    f"illegal={decision['illegal']} sensitive={decision['sensitive']} "
+                    f"— {decision['reason']}"
+                )
+                if rejected_path is not None:
+                    append_rejected(rejected_path, chunk, decision)
+                continue
+
         vector = await embed_text(http, chunk["text"])
         if not points:
             ensure_collection(qdrant, len(vector))
@@ -158,15 +254,19 @@ async def ingest_page(
                 payload=qdrant_payload(chunk),
             )
         )
+        kept_chunks.append(chunk)
         if (i + 1) % 20 == 0:
             print(f"  embedded {i + 1}/{len(chunks)}")
 
     if points:
         qdrant.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
-    n_sec = bump_section_stats(chunks)
-    print(f"  section stats: {n_sec} distinct section(s) bumped")
-    return len(chunks)
+    n_sec = bump_section_stats(kept_chunks)
+    print(
+        f"  kept={len(kept_chunks)} rejected={rejected}; "
+        f"section stats: {n_sec} distinct section(s) bumped"
+    )
+    return len(kept_chunks)
 
 
 async def main_async(
@@ -176,6 +276,8 @@ async def main_async(
     limit: int | None,
     dry_run: bool,
     wipe: bool,
+    content_gate: bool,
+    rejected_path: Path,
 ) -> None:
     rows = load_pages(country=country, city=city, page_kind=page_kind, limit=limit)
     if not rows:
@@ -184,19 +286,56 @@ async def main_async(
 
     print(f"Loaded {len(rows)} page(s) from wp_pages")
     print(f"Embed model: {OLLAMA_EMBED_MODEL} → {QDRANT_COLLECTION}")
+    if content_gate:
+        print(f"Content gate: ON (rejected → {rejected_path})")
+        if not dry_run:
+            from app.config import settings
+
+            if settings.llm_provider != "gemini":
+                print(
+                    f"ERROR: --content-gate needs LLM_PROVIDER=gemini "
+                    f"(got {settings.llm_provider!r})"
+                )
+                sys.exit(1)
+            if not settings.gemini_api_key:
+                print("ERROR: GEMINI_API_KEY not set (secrets env or environment)")
+                sys.exit(1)
     if not dry_run:
         ensure_section_stats_table()
     qdrant = QdrantClient(url=QDRANT_URL)
     total = 0
     wiped = False
 
+    scoped = bool(city or country)
+
     async with httpx.AsyncClient(timeout=120.0) as http:
         if wipe and not dry_run:
             probe = await embed_text(http, "dimension probe")
-            recreate_collection(qdrant, len(probe))
-            reset_section_stats()
-            print("  reset wp_section_stats")
-            wiped = True
+            if scoped:
+                # Keep other cities; only drop points for this filter scope.
+                ensure_collection(qdrant, len(probe))
+                cities = sorted(
+                    {
+                        (r.get("city_name") or "").strip()
+                        for r in rows
+                        if (r.get("city_name") or "").strip()
+                    }
+                )
+                if city:
+                    delete_scoped_points(
+                        qdrant, city_names=cities, page_kind=page_kind
+                    )
+                else:
+                    delete_scoped_points(
+                        qdrant, country_name=country, page_kind=page_kind
+                    )
+                print("  skip full wp_section_stats reset (scoped wipe)")
+                wiped = True
+            else:
+                recreate_collection(qdrant, len(probe))
+                reset_section_stats()
+                print("  reset wp_section_stats")
+                wiped = True
 
         for i, row in enumerate(rows, 1):
             print(
@@ -204,7 +343,15 @@ async def main_async(
                 f"{row['country_name']} / {row['city_name']}"
             )
             try:
-                n = await ingest_page(qdrant, http, row, dry_run, wiped=wiped)
+                n = await ingest_page(
+                    qdrant,
+                    http,
+                    row,
+                    dry_run,
+                    wiped=wiped,
+                    content_gate=content_gate,
+                    rejected_path=rejected_path if content_gate else None,
+                )
                 total += n
                 if not dry_run:
                     print(f"  upserted {n} point(s)")
@@ -229,7 +376,22 @@ def parse_args() -> argparse.Namespace:
         "--wipe",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Recreate travel_chunks before ingest (default: true)",
+        help=(
+            "Before ingest: with --city/--country delete only matching points; "
+            "without filters recreate the whole collection (default: true)"
+        ),
+    )
+    parser.add_argument(
+        "--content-gate",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Gemini TR compliance gate before embed (default: false)",
+    )
+    parser.add_argument(
+        "--rejected-path",
+        type=Path,
+        default=DEFAULT_REJECTED_PATH,
+        help=f"JSONL for rejected chunks (default: {DEFAULT_REJECTED_PATH})",
     )
     return parser.parse_args()
 
@@ -244,5 +406,7 @@ if __name__ == "__main__":
             args.limit,
             args.dry_run,
             args.wipe,
+            args.content_gate,
+            args.rejected_path,
         )
     )
