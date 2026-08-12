@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -11,6 +12,50 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 _graph = build_graph()
+
+_TR_CHARS = re.compile(r"[ıİşŞğĞüÜöÖçÇ]")
+
+
+def _lang_code(raw: str | None) -> str:
+    code = (raw or "en").strip().lower().split("-")[0]
+    return code if code in ("tr", "en") else "en"
+
+
+def _guess_lang_from_text(text: str) -> str:
+    return "tr" if _TR_CHARS.search(text or "") else "en"
+
+
+def _status_message(kind: str, lang: str) -> str:
+    messages = {
+        "thinking": {"en": "Thinking…", "tr": "Düşünüyor…"},
+        "answering": {"en": "Answering your question…", "tr": "Sorunuzu yanıtlıyorum…"},
+    }
+    bucket = messages.get(kind, messages["thinking"])
+    return bucket.get(lang) or bucket["en"]
+
+
+def _graph_detail(count: int, lang: str) -> str:
+    if lang == "tr":
+        return f"{count} graf sonucu"
+    return f"{count} graph result{'s' if count != 1 else ''}"
+
+
+def _vector_detail(count: int, lang: str) -> str:
+    if lang == "tr":
+        return f"{count} kaynak bulundu"
+    return f"{count} source{'s' if count != 1 else ''} found"
+
+
+def _museums_detail(count: int, lang: str) -> str:
+    if lang == "tr":
+        return f"{count} müze kaynağı"
+    return f"{count} museum source{'s' if count != 1 else ''}"
+
+
+def _artifacts_detail(count: int, lang: str) -> str:
+    if lang == "tr":
+        return f"{count} tarihi kaynak"
+    return f"{count} historical source{'s' if count != 1 else ''}"
 
 
 async def _send(ws: WebSocket, event: dict) -> None:
@@ -56,7 +101,11 @@ async def ws_chat(ws: WebSocket):
             await ws.close()
             return
 
-        await _send(ws, {"type": "status", "message": "Thinking…"})
+        ui_lang = _guess_lang_from_text(question)
+        await _send(
+            ws,
+            {"type": "status", "message": _status_message("thinking", ui_lang)},
+        )
 
         result: dict = {}
 
@@ -78,6 +127,7 @@ async def ws_chat(ws: WebSocket):
                 if not update:
                     continue
                 result.update(update)
+                lang = _lang_code(result.get("prompt_language")) or ui_lang
 
                 if node_name == "safety_guard":
                     if update.get("error"):
@@ -91,11 +141,13 @@ async def ws_chat(ws: WebSocket):
                         await ws.close()
                         return
 
+                    lang = _lang_code(update.get("prompt_language")) or ui_lang
                     plan = update.get("plan") or {}
                     await _send(ws, {
                         "type": "plan",
                         "summary": plan.get("summary", ""),
                         "steps": plan.get("steps", []),
+                        "prompt_language": update.get("prompt_language") or lang,
                     })
 
                     primary_intent = update.get("primary_intent", "")
@@ -119,7 +171,7 @@ async def ws_chat(ws: WebSocket):
                         "type": "step",
                         "kind": "graph",
                         "status": "done",
-                        "detail": f"{count} graph result(s)",
+                        "detail": _graph_detail(count, lang),
                     })
                     deep = bool(result.get("deep_search"))
                     await _send(
@@ -134,12 +186,20 @@ async def ws_chat(ws: WebSocket):
                 elif node_name == "deep_retrieval":
                     m_count = len(update.get("museum_chunks") or [])
                     a_count = len(update.get("artifact_chunks") or [])
-                    await _send(ws, {
-                        "type": "step",
-                        "kind": "museums",
-                        "status": "done",
-                        "detail": f"{m_count} museum, {a_count} historical sources",
-                    })
+                    if result.get("search_museums"):
+                        await _send(ws, {
+                            "type": "step",
+                            "kind": "museums",
+                            "status": "done",
+                            "detail": _museums_detail(m_count, lang),
+                        })
+                    if result.get("search_artifacts"):
+                        await _send(ws, {
+                            "type": "step",
+                            "kind": "artifacts",
+                            "status": "done",
+                            "detail": _artifacts_detail(a_count, lang),
+                        })
                     await _send(ws, {"type": "step", "kind": "vector", "status": "running"})
 
                 elif node_name == "vector_retrieval":
@@ -148,9 +208,17 @@ async def ws_chat(ws: WebSocket):
                         "type": "step",
                         "kind": "vector",
                         "status": "done",
-                        "detail": f"{count} sources found",
+                        "detail": _vector_detail(count, lang),
                     })
-                    await _send(ws, {"type": "step", "kind": "synthesize", "status": "running"})
+                    await _send(
+                        ws,
+                        {
+                            "type": "step",
+                            "kind": "synthesize",
+                            "status": "running",
+                            "status_message": _status_message("answering", lang),
+                        },
+                    )
 
                 elif node_name in ("synthesize", "chitchat", "out_of_scope", "clarify"):
                     await _send(ws, {"type": "step", "kind": "synthesize", "status": "done"})

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import { connectChat, type WsEvent } from "@/lib/ws";
+import { uiString } from "@/lib/uiStrings";
 import type { Message, Plan } from "@/components/chat/types";
 
 export function useChatStream() {
@@ -34,6 +35,7 @@ export function useChatStream() {
     setLoading(true);
 
     let plan: Plan | undefined;
+    let promptLanguage: string | undefined;
 
     const cleanup = connectChat(
       q,
@@ -47,6 +49,7 @@ export function useChatStream() {
             break;
 
           case "plan":
+            promptLanguage = event.prompt_language;
             plan = {
               summary: event.summary,
               steps: event.steps.map((s) => ({
@@ -60,11 +63,10 @@ export function useChatStream() {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last?.role === "assistant") {
-                // Keep Thinking… under the summary; do not replace with summary text.
                 updated[updated.length - 1] = {
                   ...last,
                   plan,
-                  status: last.status || "Thinking…",
+                  status: last.status || uiString("thinking", promptLanguage),
                 };
               }
               return updated;
@@ -92,13 +94,16 @@ export function useChatStream() {
               const updated = [...prev];
               const last = updated[updated.length - 1];
               if (last?.role === "assistant") {
+                let nextStatus = last.status || uiString("thinking", promptLanguage);
+                if (event.kind === "synthesize" && event.status === "running") {
+                  nextStatus =
+                    event.status_message ||
+                    uiString("answering", promptLanguage);
+                }
                 updated[updated.length - 1] = {
                   ...last,
                   plan,
-                  status:
-                    event.kind === "synthesize" && event.status === "running"
-                      ? "Answering your question…"
-                      : last.status || "Thinking…",
+                  status: nextStatus,
                 };
               }
               return updated;
@@ -114,7 +119,6 @@ export function useChatStream() {
                 updated[updated.length - 1] = {
                   ...last,
                   content: (last.content || "") + event.delta,
-                  // Keep plan; drop pulse line once tokens arrive.
                   status: undefined,
                 };
               }
