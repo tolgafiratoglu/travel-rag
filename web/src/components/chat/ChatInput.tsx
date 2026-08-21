@@ -3,6 +3,8 @@ type ChatInputProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  /** Blocks send (e.g. Terms not accepted) without disabling the textarea. */
+  submitDisabled?: boolean;
 };
 
 export function ChatInput({
@@ -10,11 +12,14 @@ export function ChatInput({
   onChange,
   onSubmit,
   disabled = false,
+  submitDisabled = false,
 }: ChatInputProps) {
+  const canSubmit = !disabled && !submitDisabled && Boolean(value.trim());
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      onSubmit();
+      if (canSubmit) onSubmit();
     }
   }
 
@@ -32,7 +37,7 @@ export function ChatInput({
       <button
         type="button"
         onClick={onSubmit}
-        disabled={disabled || !value.trim()}
+        disabled={!canSubmit}
         aria-label="Send message"
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-900 text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
       >

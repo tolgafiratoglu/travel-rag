@@ -1,19 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useChatStream } from "@/hooks/useChatStream";
+import { readTosAccepted, writeTosAccepted } from "@/lib/tos";
 import { ConversationScreen } from "./ConversationScreen";
 import { LandingScreen } from "./LandingScreen";
 
 export function ChatApp() {
   const [started, setStarted] = useState(false);
   const [input, setInput] = useState("");
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [tosReady, setTosReady] = useState(false);
   const { messages, loading, send } = useChatStream();
+
+  useEffect(() => {
+    setTosAccepted(readTosAccepted());
+    setTosReady(true);
+  }, []);
+
+  function handleTosChange(accepted: boolean) {
+    setTosAccepted(accepted);
+    writeTosAccepted(accepted);
+  }
 
   function sendMessage(text: string) {
     const q = text.trim();
-    if (!q || loading) return;
+    if (!q || loading || !tosAccepted) return;
 
     setStarted(true);
     setInput("");
@@ -36,7 +49,9 @@ export function ChatApp() {
           onInputChange={setInput}
           onSubmit={handleSubmit}
           onSuggestionSelect={handleSuggestionSelect}
-          disabled={loading}
+          tosAccepted={tosAccepted}
+          onTosChange={handleTosChange}
+          disabled={loading || !tosReady}
         />
       </div>
     );
