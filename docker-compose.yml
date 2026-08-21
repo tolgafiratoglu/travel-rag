@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       - OLLAMA_MAX_LOADED_MODELS=4
-      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_KEEP_ALIVE=5m
     volumes:
       - ollama_models:/root/.ollama
     ports:

@@ -20,7 +20,7 @@ export function LandingScreen({
     <div className="flex h-full flex-col">
       <header className="shrink-0 px-4 pt-16 text-center">
         <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
-          Travel RAG
+          Visitor Atlas
         </h1>
         <p className="mt-2 text-sm text-gray-500">
           AI-powered travel assistant for your next adventure

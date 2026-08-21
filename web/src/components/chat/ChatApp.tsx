@@ -50,6 +50,10 @@ export function ChatApp() {
         onInputChange={setInput}
         onSubmit={handleSubmit}
         onSuggestionSelect={handleSuggestionSelect}
+        onBrandClick={() => {
+          setStarted(false);
+          setInput("");
+        }}
         disabled={loading}
       />
     </div>

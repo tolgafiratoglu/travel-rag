@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Travel RAG",
-  description: "AI-powered travel assistant",
+  title: "Visitor Atlas",
+  description: "AI-powered travel assistant for your next adventure",
 };
 
 export default function RootLayout({
