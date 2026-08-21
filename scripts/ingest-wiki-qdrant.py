@@ -18,6 +18,9 @@ Usage:
     # Full wipe: recreate travel_chunks (no --city/--country)
     .venv/bin/python scripts/ingest-wiki-qdrant.py
 
+    # Secured Qdrant (prod): admin key required for upsert/wipe
+    # QDRANT_API_KEY=$QDRANT_ADMIN_API_KEY .venv/bin/python scripts/ingest-wiki-qdrant.py
+
     # Gemini TR content gate before embed
     LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-qdrant.py \\
         --city Istanbul --content-gate
@@ -64,6 +67,7 @@ from lib.wp_pages_db import (
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 DEFAULT_REJECTED_PATH = Path(
     os.getenv(
@@ -302,7 +306,9 @@ async def main_async(
                 sys.exit(1)
     if not dry_run:
         ensure_section_stats_table()
-    qdrant = QdrantClient(url=QDRANT_URL)
+    qdrant = QdrantClient(
+        url=QDRANT_URL, api_key=QDRANT_API_KEY or None
+    )
     total = 0
     wiped = False
 

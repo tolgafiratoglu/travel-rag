@@ -169,7 +169,8 @@ docker compose up -d
 ./scripts/init-ollama.sh    # bge-m3, guard, isteğe bağlı qwen
 ```
 
-API: `http://localhost:8000` — health endpoint’leri mevcut.  
+API: `http://127.0.0.1:8000` (host portları yalnızca localhost).  
+VPS: `docker compose -f docker-compose.prod.yml up -d` — bkz. [`deploy.md`](./deploy.md) §4.  
 Kod değişince: `docker compose up -d --build api`.
 
 ### Frontend

@@ -13,7 +13,10 @@ _CITY_ALIASES: dict[str, list[str]] = {
 
 
 def _get_client() -> QdrantClient:
-    return QdrantClient(url=settings.qdrant_url)
+    kwargs: dict = {"url": settings.qdrant_url}
+    if settings.qdrant_api_key:
+        kwargs["api_key"] = settings.qdrant_api_key
+    return QdrantClient(**kwargs)
 
 
 def _payload_dict(point) -> dict:

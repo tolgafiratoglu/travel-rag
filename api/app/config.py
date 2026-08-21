@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     ollama_guard_model: str = "sileader/qwen3guard:0.6b"
 
     qdrant_url: str = "http://qdrant:6333"
+    # Runtime: use read-only key when Qdrant auth is enabled. Empty = no auth header.
+    qdrant_api_key: str = ""
     qdrant_collection: str = "travel_chunks"
     qdrant_collection_museums: str = "travel_museums"
     qdrant_collection_historical: str = "travel_historical_sites"

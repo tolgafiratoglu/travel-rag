@@ -25,6 +25,7 @@ ALLOW_DB_RESET = os.getenv("ALLOW_DB_RESET", "false").lower() == "true"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 
 # ---------------------------------------------------------------------------
@@ -170,7 +171,7 @@ async def get_embedding(text: str) -> list[float]:
 
 async def seed_qdrant() -> None:
     print("--- Seeding Qdrant ---")
-    client = QdrantClient(url=QDRANT_URL)
+    client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
 
     collections = [c.name for c in client.get_collections().collections]
     if QDRANT_COLLECTION in collections:

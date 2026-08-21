@@ -26,6 +26,7 @@ from common import filter_reachable, load_inventory  # noqa: E402
 
 DEFAULT_GOLDEN = Path(__file__).resolve().parent / "golden" / "retrieval.json"
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 
 
@@ -41,7 +42,7 @@ def main() -> int:
 
     data = json.loads(args.golden.read_text(encoding="utf-8"))
     cases = data.get("cases") or []
-    client = QdrantClient(url=QDRANT_URL)
+    client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
     names = {c.name for c in client.get_collections().collections}
     if QDRANT_COLLECTION not in names:
         print(f"Collection {QDRANT_COLLECTION!r} not found")

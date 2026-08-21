@@ -49,6 +49,7 @@ DEFAULT_RESULTS_DIR = EVAL_DIR / "results"
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
 
 
@@ -192,7 +193,7 @@ async def run_eval(
         print("No cases in golden file")
         sys.exit(1)
 
-    qdrant = QdrantClient(url=QDRANT_URL)
+    qdrant = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
     names = {c.name for c in qdrant.get_collections().collections}
     if QDRANT_COLLECTION not in names:
         print(f"Collection {QDRANT_COLLECTION!r} not found at {QDRANT_URL}")

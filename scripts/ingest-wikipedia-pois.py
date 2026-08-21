@@ -50,6 +50,7 @@ from lib.wp_db import load_pois
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 COLLECTION_MUSEUMS = os.getenv("QDRANT_COLLECTION_MUSEUMS", "travel_museums")
 COLLECTION_HISTORICAL = os.getenv(
     "QDRANT_COLLECTION_HISTORICAL", "travel_historical_sites"
@@ -179,7 +180,9 @@ async def main_async(
     print(f"Loaded {len(rows)} POI row(s) types={types_present}")
     print(f"Embed model: {OLLAMA_EMBED_MODEL}")
 
-    qdrant = QdrantClient(url=QDRANT_URL)
+    qdrant = QdrantClient(
+        url=QDRANT_URL, api_key=QDRANT_API_KEY or None
+    )
     wiped: set[str] = set()
     total = 0
 

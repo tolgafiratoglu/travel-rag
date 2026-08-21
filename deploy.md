@@ -20,6 +20,9 @@ cd /path/to/travel-rag
 
 cp .env.example .env
 # Üretimde LLM_PROVIDER=gemini önerilir; geliştirmede qwen de olur.
+# Prod (.env): güçlü NEO4J_PASSWORD, MARIADB_*, ve:
+#   QDRANT_ADMIN_API_KEY=$(openssl rand -hex 32)
+#   QDRANT_READ_ONLY_API_KEY=$(openssl rand -hex 32)
 
 mkdir -p ~/.config/rag
 # Gemini:
@@ -41,10 +44,40 @@ docker volume create qwen_ollama_models
 
 ## 4. Servisleri başlat
 
+### Lokal (geliştirme)
+
+Portlar yalnızca `127.0.0.1` üzerinde (LAN/internet’e açık değil). Host ingest için Qdrant/MariaDB/Neo4j localhost’tan erişilir.
+
 ```bash
+cp .env.example .env   # güçlü parolalar koy (NEO4J_PASSWORD, MARIADB_*)
 docker compose up -d --build
 docker compose ps
 ```
+
+| Servis | Host (localhost only) |
+|--------|------------------------|
+| API | http://127.0.0.1:8000 |
+| Qdrant | http://127.0.0.1:6333 |
+| Neo4j Browser | http://127.0.0.1:7474 |
+| Neo4j Bolt | 127.0.0.1:7687 |
+| MariaDB | 127.0.0.1:3306 |
+| Ollama | http://127.0.0.1:11434 |
+
+### VPS / production
+
+```bash
+# Güçlü secret’lar (.env + ~/.config/rag/.env), changeme kullanma
+# QDRANT_ADMIN_API_KEY + QDRANT_READ_ONLY_API_KEY zorunlu
+# Ollama modellerini önce çek (prod’da ollama outbound yok — §5)
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+- DB / Ollama **host’a publish edilmez** (yalnızca `internal_net`)
+- API yalnızca `127.0.0.1:8000` — önüne Caddy/Nginx TLS koy (80/443)
+- API `outbound_net` ile Gemini’ye çıkar; DB’ler `internal: true` network’te
+- API `env_file: .env` kullanmaz — yalnızca ihtiyaç duyduğu değişkenler + Gemini mount; MariaDB secret’ları API’ye girmez
+- API Qdrant’a **read-only** key ile bağlanır; ingest script’leri `QDRANT_API_KEY=$QDRANT_ADMIN_API_KEY` kullanır
+- UFW’de sadece 22/80/443 yetmez: Docker publish UFW’yi bypass edebilir — bu yüzden prod’da DB portu yok
 
 MariaDB kullanıcı/DB adı `travel` / `travel`. Eski volume (farklı DB/user ile init edilmiş) kullanıyorsan sıfırlamak gerekir:
 
@@ -56,26 +89,21 @@ docker compose up -d
 # ardından §6 ingest’i yeniden çalıştır
 ```
 
-Servisler:
-
-| Servis | Port (host) |
-|--------|-------------|
-| API | http://localhost:8000 |
-| Qdrant | http://localhost:6333 |
-| Neo4j Browser | http://localhost:7474 |
-| Neo4j Bolt | localhost:7687 |
-| MariaDB | localhost:3306 |
-| Ollama | http://127.0.0.1:11434 |
-
 ---
 
 ## 5. Ollama modelleri
 
+`docker-compose.prod.yml` içinde Ollama yalnızca `internal_net` üzerindedir (**outbound yok**). Modelleri prod’a geçmeden önce çek:
+
 ```bash
+# Lokal stack ile (veya publish’li ollama) pull
+docker compose up -d ollama
 ./scripts/init-ollama.sh
 # Embeddings: bge-m3
 # Guard: sileader/qwen3guard:0.6b
 # İsteğe bağlı Qwen (LLM_PROVIDER=qwen)
+
+# Sonra prod’a geçersen aynı volume (qwen_ollama_models) kullanılır
 ```
 
 ---
@@ -90,6 +118,8 @@ export MARIADB_USER=travel
 export MARIADB_PASSWORD=changeme
 export MARIADB_DATABASE=travel
 export QDRANT_URL=http://localhost:6333
+# Prod Qdrant auth açıksa (admin key):
+# export QDRANT_API_KEY="$QDRANT_ADMIN_API_KEY"
 export OLLAMA_BASE_URL=http://localhost:11434
 export OLLAMA_EMBED_MODEL=bge-m3
 export NEO4J_URI=bolt://localhost:7687
