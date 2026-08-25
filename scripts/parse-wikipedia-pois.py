@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Fetch Wikipedia museum / historical-site pages into MariaDB (wp_pois).
+"""Fetch Wikipedia museum / historical-site pages into PostgreSQL (wp_pois).
 
 Reads data/wiki/museums.json and historical_sites.json, pulls article
 HTML via MediaWiki action=parse, upserts by source_url.
 
-Usage (from repo root, MariaDB on localhost:3306):
-    MARIADB_HOST=localhost .venv/bin/python scripts/parse-wikipedia-pois.py \\
+Usage (from repo root, Postgres on localhost:5432):
+    POSTGRES_HOST=localhost .venv/bin/python scripts/parse-wikipedia-pois.py \\
         --type museum --city Ankara --limit 3
 
-    MARIADB_HOST=localhost .venv/bin/python scripts/parse-wikipedia-pois.py
+    POSTGRES_HOST=localhost .venv/bin/python scripts/parse-wikipedia-pois.py
 
 Env:
-    MARIADB_HOST / MARIADB_PORT / MARIADB_DATABASE / MARIADB_USER / MARIADB_PASSWORD
+    POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD
     WP_FETCH_SLEEP=1
 """
 
@@ -32,11 +32,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 try:
-    import pymysql
+    import psycopg  # noqa: F401
 except ImportError:
-    print("Missing dependency: pip install pymysql httpx")
+    print("Missing dependency: pip install psycopg[binary] httpx")
     sys.exit(1)
 
+from lib.pg import connect
 from lib.wp_db import ensure_table
 
 API_URL = "https://en.wikipedia.org/w/api.php"
@@ -45,15 +46,6 @@ DATA_DIR = ROOT / "data" / "wiki"
 MUSEUMS_PATH = DATA_DIR / "museums.json"
 HISTORICAL_PATH = DATA_DIR / "historical_sites.json"
 SLEEP_SECONDS = float(os.getenv("WP_FETCH_SLEEP", "1"))
-
-DB_CONFIG = {
-    "host": os.getenv("MARIADB_HOST", "localhost"),
-    "port": int(os.getenv("MARIADB_PORT", "3306")),
-    "user": os.getenv("MARIADB_USER", "travel"),
-    "password": os.getenv("MARIADB_PASSWORD", "changeme"),
-    "database": os.getenv("MARIADB_DATABASE", "travel"),
-    "charset": "utf8mb4",
-}
 
 
 def url_to_wiki_title(url: str) -> str:
@@ -167,18 +159,18 @@ def upsert_poi(conn, job: dict, parsed: dict) -> None:
                 %(wiki_title)s, %(resolved_title)s, %(page_id)s, %(revid)s, %(wikidata_qid)s,
                 %(html)s, %(fetched_at)s
             )
-            ON DUPLICATE KEY UPDATE
-                poi_type = VALUES(poi_type),
-                name = VALUES(name),
-                city_name = VALUES(city_name),
-                country_name = VALUES(country_name),
-                wiki_title = VALUES(wiki_title),
-                resolved_title = VALUES(resolved_title),
-                page_id = VALUES(page_id),
-                revid = VALUES(revid),
-                wikidata_qid = VALUES(wikidata_qid),
-                html = VALUES(html),
-                fetched_at = VALUES(fetched_at)
+            ON CONFLICT (source_url) DO UPDATE SET
+                poi_type = EXCLUDED.poi_type,
+                name = EXCLUDED.name,
+                city_name = EXCLUDED.city_name,
+                country_name = EXCLUDED.country_name,
+                wiki_title = EXCLUDED.wiki_title,
+                resolved_title = EXCLUDED.resolved_title,
+                page_id = EXCLUDED.page_id,
+                revid = EXCLUDED.revid,
+                wikidata_qid = EXCLUDED.wikidata_qid,
+                html = EXCLUDED.html,
+                fetched_at = EXCLUDED.fetched_at
             """,
             {
                 **job,
@@ -187,14 +179,14 @@ def upsert_poi(conn, job: dict, parsed: dict) -> None:
                 "revid": parsed.get("revid"),
                 "wikidata_qid": wikidata_qid,
                 "html": text,
-                "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "fetched_at": datetime.now(timezone.utc),
             },
         )
     conn.commit()
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch Wikipedia POIs into MariaDB")
+    parser = argparse.ArgumentParser(description="Fetch Wikipedia POIs into PostgreSQL")
     parser.add_argument(
         "--type",
         choices=("museum", "historical_site", "all"),
@@ -216,7 +208,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Loaded {len(jobs)} POI job(s)")
-    conn = pymysql.connect(**DB_CONFIG)
+    conn = connect()
     ensure_table(conn)
 
     headers = {"User-Agent": USER_AGENT}

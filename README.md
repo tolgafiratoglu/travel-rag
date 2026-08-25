@@ -62,7 +62,7 @@ LangGraph
 ### Ingest (offline)
 
 ```
-data/wiki/sources.json ──▶ scripts/parse-wiki-pages.py ──▶ MariaDB wp_pages (+ wp_gov_links *.gov.*)
+data/wiki/sources.json ──▶ scripts/parse-wiki-pages.py ──▶ PostgreSQL wp_pages (+ wp_gov_links *.gov.*)
                               ├─▶ scripts/ingest-wiki-qdrant.py ──▶ Qdrant travel_chunks
                               └─▶ scripts/ingest-wiki-neo4j.py  ──▶ Neo4j City/Country + ilişkiler
 
@@ -96,7 +96,7 @@ Detay: `LANGGRAPH.md`, `neo4j.md`.
 | Graph | Neo4j Community 5.x |
 | Orchestration | LangGraph |
 | API | FastAPI |
-| Ingest | `scripts/` + `scripts/lib/` (MariaDB → Qdrant/Neo4j) |
+| Ingest | `scripts/` + `scripts/lib/` (PostgreSQL → Qdrant/Neo4j) |
 | Frontend | Next.js 14+, React, Tailwind, `react-markdown` + `remark-gfm` |
 | Infra | Docker Compose |
 
@@ -106,7 +106,7 @@ Detay: `LANGGRAPH.md`, `neo4j.md`.
 
 ```
 travel-rag/
-├── docker-compose.yml       # ollama, api, qdrant, neo4j, mariadb
+├── docker-compose.yml       # ollama, api, qdrant, neo4j, postgres
 ├── .env.example
 ├── LANGGRAPH.md             # pipeline referansı
 ├── README.md
@@ -148,9 +148,9 @@ Host
   ├── :6333  qdrant
   ├── :7474/:7687  neo4j
   ├── :11434 ollama (127.0.0.1)
-  └── :3306  mariadb
+  └── :5432  postgres
 
-llm_internal network: api ↔ ollama, qdrant, neo4j, mariadb
+llm_internal network: api ↔ ollama, qdrant, neo4j, postgres
 ```
 
 ---
@@ -190,7 +190,7 @@ Sohbet **WS `/ws/chat`** üzerinden gider.
 ```bash
 # venv + host’tan servislere erişim
 ./scripts/setup-venv.sh
-export MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \
+export POSTGRES_HOST=localhost QDRANT_URL=http://localhost:6333 \
   OLLAMA_BASE_URL=http://localhost:11434 OLLAMA_EMBED_MODEL=bge-m3
 
 # Wikipedia city pages → travel_chunks (parse then embed)
@@ -244,7 +244,7 @@ QDRANT_COLLECTION_MUSEUMS=travel_museums
 QDRANT_COLLECTION_HISTORICAL=travel_historical_sites
 
 NEO4J_URI=bolt://neo4j:7687
-# + MariaDB, API, RATE_LIMIT_*  → .env.example
+# + PostgreSQL, API, RATE_LIMIT_*  → .env.example
 ```
 
 ---

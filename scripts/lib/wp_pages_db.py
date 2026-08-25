@@ -1,72 +1,69 @@
-"""MariaDB access for Wikipedia city/guide pages + gov reference links."""
+"""PostgreSQL access for Wikipedia city/guide pages + gov reference links."""
 
 from __future__ import annotations
 
-import os
-
-import pymysql
-
-DB_CONFIG = {
-    "host": os.getenv("MARIADB_HOST", "localhost"),
-    "port": int(os.getenv("MARIADB_PORT", "3306")),
-    "user": os.getenv("MARIADB_USER", "travel"),
-    "password": os.getenv("MARIADB_PASSWORD", "changeme"),
-    "database": os.getenv("MARIADB_DATABASE", "travel"),
-    "charset": "utf8mb4",
-}
+from lib.pg import DB_CONFIG, connect, connect_dict
 
 CREATE_PAGES_SQL = """
 CREATE TABLE IF NOT EXISTS wp_pages (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    page_kind       ENUM('city','tourism','attraction_list') NOT NULL DEFAULT 'city',
+    id              BIGSERIAL PRIMARY KEY,
+    page_kind       TEXT NOT NULL DEFAULT 'city'
+        CHECK (page_kind IN ('city', 'tourism', 'attraction_list')),
     city_name       VARCHAR(255)  NOT NULL,
     country_name    VARCHAR(128)  NOT NULL,
     source_url      VARCHAR(768)  NOT NULL,
     wiki_title      VARCHAR(512)  NULL,
     resolved_title  VARCHAR(512)  NULL,
     title           VARCHAR(512)  NULL,
-    page_id         INT UNSIGNED  NULL,
-    revid           BIGINT UNSIGNED NULL,
+    page_id         INTEGER       NULL,
+    revid           BIGINT        NULL,
     wikidata_qid    VARCHAR(16)   NULL,
-    html            LONGTEXT      NULL,
-    fetched_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_source_url (source_url),
-    KEY idx_city (city_name),
-    KEY idx_country (country_name),
-    KEY idx_kind (page_kind)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    html            TEXT          NULL,
+    fetched_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_wp_pages_source_url UNIQUE (source_url)
+)
 """
+
+CREATE_PAGES_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_wp_pages_city ON wp_pages (city_name)",
+    "CREATE INDEX IF NOT EXISTS idx_wp_pages_country ON wp_pages (country_name)",
+    "CREATE INDEX IF NOT EXISTS idx_wp_pages_kind ON wp_pages (page_kind)",
+)
 
 CREATE_GOV_SQL = """
 CREATE TABLE IF NOT EXISTS wp_gov_links (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id              BIGSERIAL PRIMARY KEY,
     country_name    VARCHAR(128)  NOT NULL,
     city_name       VARCHAR(255)  NULL,
     page_url        VARCHAR(768)  NOT NULL,
     link_url        VARCHAR(768)  NOT NULL,
     link_text       VARCHAR(512)  NULL,
     domain          VARCHAR(255)  NULL,
-    fetched_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_page_link (page_url(384), link_url(384)),
-    KEY idx_city (city_name),
-    KEY idx_domain (domain)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    fetched_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_wp_gov_page_link UNIQUE (page_url, link_url)
+)
 """
+
+CREATE_GOV_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_wp_gov_city ON wp_gov_links (city_name)",
+    "CREATE INDEX IF NOT EXISTS idx_wp_gov_domain ON wp_gov_links (domain)",
+)
 
 CREATE_SECTION_STATS_SQL = """
 CREATE TABLE IF NOT EXISTS wp_section_stats (
-    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id            BIGSERIAL PRIMARY KEY,
     section       VARCHAR(512)  NOT NULL,
-    chunk_count   INT UNSIGNED  NOT NULL DEFAULT 0,
-    page_count    INT UNSIGNED  NOT NULL DEFAULT 0,
-    updated_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_section (section(191)),
-    KEY idx_chunk_count (chunk_count)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    chunk_count   INTEGER       NOT NULL DEFAULT 0,
+    page_count    INTEGER       NOT NULL DEFAULT 0,
+    updated_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_wp_section_stats_section UNIQUE (section)
+)
 """
+
+CREATE_SECTION_STATS_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_wp_section_stats_chunk "
+    "ON wp_section_stats (chunk_count)",
+)
 
 _PAGE_COLUMNS = (
     "id",
@@ -85,15 +82,17 @@ _PAGE_COLUMNS = (
 )
 
 
-def connect():
-    return pymysql.connect(**DB_CONFIG)
-
-
 def ensure_tables(conn) -> None:
     with conn.cursor() as cur:
         cur.execute(CREATE_PAGES_SQL)
+        for stmt in CREATE_PAGES_INDEXES:
+            cur.execute(stmt)
         cur.execute(CREATE_GOV_SQL)
+        for stmt in CREATE_GOV_INDEXES:
+            cur.execute(stmt)
         cur.execute(CREATE_SECTION_STATS_SQL)
+        for stmt in CREATE_SECTION_STATS_INDEXES:
+            cur.execute(stmt)
     conn.commit()
 
 
@@ -102,6 +101,8 @@ def ensure_section_stats_table() -> None:
     try:
         with conn.cursor() as cur:
             cur.execute(CREATE_SECTION_STATS_SQL)
+            for stmt in CREATE_SECTION_STATS_INDEXES:
+                cur.execute(stmt)
         conn.commit()
     finally:
         conn.close()
@@ -113,6 +114,8 @@ def reset_section_stats() -> None:
     try:
         with conn.cursor() as cur:
             cur.execute(CREATE_SECTION_STATS_SQL)
+            for stmt in CREATE_SECTION_STATS_INDEXES:
+                cur.execute(stmt)
             cur.execute("TRUNCATE TABLE wp_section_stats")
         conn.commit()
     finally:
@@ -136,14 +139,18 @@ def bump_section_stats(chunks: list[dict]) -> int:
     try:
         with conn.cursor() as cur:
             cur.execute(CREATE_SECTION_STATS_SQL)
+            for stmt in CREATE_SECTION_STATS_INDEXES:
+                cur.execute(stmt)
             for section, n in counts.items():
                 cur.execute(
                     """
                     INSERT INTO wp_section_stats (section, chunk_count, page_count)
                     VALUES (%s, %s, 1)
-                    ON DUPLICATE KEY UPDATE
-                        chunk_count = chunk_count + VALUES(chunk_count),
-                        page_count = page_count + 1
+                    ON CONFLICT (section) DO UPDATE SET
+                        chunk_count = wp_section_stats.chunk_count
+                            + EXCLUDED.chunk_count,
+                        page_count = wp_section_stats.page_count + 1,
+                        updated_at = NOW()
                     """,
                     (section[:512], int(n)),
                 )
@@ -216,9 +223,9 @@ def load_pages(
         sql += " LIMIT %s"
         params.append(limit)
 
-    conn = connect()
+    conn = connect_dict()
     try:
-        with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        with conn.cursor() as cur:
             cur.execute(sql, params)
             return list(cur.fetchall())
     finally:

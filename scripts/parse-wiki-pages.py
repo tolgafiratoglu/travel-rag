@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Wikipedia city/guide pages from data/wiki/sources.json into MariaDB.
+"""Fetch Wikipedia city/guide pages from data/wiki/sources.json into PostgreSQL.
 
 Writes:
   wp_pages      — HTML for Qdrant (travel_chunks)
@@ -8,10 +8,10 @@ Writes:
 By default ingests `pages` and `tourism_pages`. Skip with --pages-only.
 
 Usage:
-    MARIADB_HOST=localhost .venv/bin/python scripts/parse-wiki-pages.py \\
+    POSTGRES_HOST=localhost .venv/bin/python scripts/parse-wiki-pages.py \\
         --country Turkey --city Istanbul
 
-    MARIADB_HOST=localhost .venv/bin/python scripts/parse-wiki-pages.py --limit 3
+    POSTGRES_HOST=localhost .venv/bin/python scripts/parse-wiki-pages.py --limit 3
 """
 
 from __future__ import annotations
@@ -31,13 +31,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 try:
-    import pymysql
+    import psycopg  # noqa: F401
 except ImportError:
-    print("Missing dependency: pip install pymysql httpx beautifulsoup4")
+    print("Missing dependency: pip install psycopg[binary] httpx beautifulsoup4")
     sys.exit(1)
 
+from lib.pg import connect
 from lib.wp_gov import extract_gov_links
-from lib.wp_pages_db import DB_CONFIG, ensure_tables, replace_gov_links
+from lib.wp_pages_db import ensure_tables, replace_gov_links
 
 API_URL = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "TravelRAGBot/0.1 (mailto:tolgafiratoglu@gmail.com)"
@@ -175,18 +176,18 @@ def upsert_page(conn, job: dict, parsed: dict) -> str:
                 %(wiki_title)s, %(resolved_title)s, %(title)s, %(page_id)s, %(revid)s,
                 %(wikidata_qid)s, %(html)s, %(fetched_at)s
             )
-            ON DUPLICATE KEY UPDATE
-                page_kind = VALUES(page_kind),
-                city_name = VALUES(city_name),
-                country_name = VALUES(country_name),
-                wiki_title = VALUES(wiki_title),
-                resolved_title = VALUES(resolved_title),
-                title = VALUES(title),
-                page_id = VALUES(page_id),
-                revid = VALUES(revid),
-                wikidata_qid = VALUES(wikidata_qid),
-                html = VALUES(html),
-                fetched_at = VALUES(fetched_at)
+            ON CONFLICT (source_url) DO UPDATE SET
+                page_kind = EXCLUDED.page_kind,
+                city_name = EXCLUDED.city_name,
+                country_name = EXCLUDED.country_name,
+                wiki_title = EXCLUDED.wiki_title,
+                resolved_title = EXCLUDED.resolved_title,
+                title = EXCLUDED.title,
+                page_id = EXCLUDED.page_id,
+                revid = EXCLUDED.revid,
+                wikidata_qid = EXCLUDED.wikidata_qid,
+                html = EXCLUDED.html,
+                fetched_at = EXCLUDED.fetched_at
             """,
             {
                 **job,
@@ -196,7 +197,7 @@ def upsert_page(conn, job: dict, parsed: dict) -> str:
                 "revid": parsed.get("revid"),
                 "wikidata_qid": pageprops.get("wikibase_item"),
                 "html": text,
-                "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "fetched_at": datetime.now(timezone.utc),
             },
         )
     conn.commit()
@@ -205,7 +206,7 @@ def upsert_page(conn, job: dict, parsed: dict) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Fetch Wikipedia pages from sources.json into MariaDB"
+        description="Fetch Wikipedia pages from sources.json into PostgreSQL"
     )
     parser.add_argument("--country", help="Filter country (e.g. Turkey)")
     parser.add_argument("--city", help="Filter city key (e.g. Istanbul)")
@@ -231,7 +232,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"Loaded {len(jobs)} page job(s)")
-    conn = pymysql.connect(**DB_CONFIG)
+    conn = connect()
     ensure_tables(conn)
 
     headers = {"User-Agent": USER_AGENT}

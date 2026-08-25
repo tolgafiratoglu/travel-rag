@@ -4,11 +4,11 @@
 Uses Unstructured chunk_by_title (via lib.wp_chunks). Payload includes `title`.
 
 Usage:
-    MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wiki-qdrant.py \\
+    POSTGRES_HOST=localhost .venv/bin/python scripts/ingest-wiki-qdrant.py \\
         --city Istanbul --dry-run
 
     # Scoped wipe: only Istanbul points removed, other cities kept
-    MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \\
+    POSTGRES_HOST=localhost QDRANT_URL=http://localhost:6333 \\
     OLLAMA_BASE_URL=http://localhost:11434 \\
     .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul
 
@@ -49,7 +49,7 @@ try:
         VectorParams,
     )
 except ImportError:
-    print("Missing: pip install pymysql httpx qdrant-client")
+    print("Missing: pip install psycopg[binary] httpx qdrant-client")
     sys.exit(1)
 
 from lib.wp_chunks import build_chunks, make_point_id

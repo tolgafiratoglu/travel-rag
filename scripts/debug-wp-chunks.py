@@ -2,9 +2,9 @@
 """Debug Unstructured partition_html + chunk_by_title for a wp_pages row.
 
 Usage:
-    MARIADB_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul
-    MARIADB_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul --contains Airport
-    MARIADB_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul --json > /tmp/wp-debug.json
+    POSTGRES_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul
+    POSTGRES_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul --contains Airport
+    POSTGRES_HOST=localhost .venv/bin/python scripts/debug-wp-chunks.py --city Istanbul --json > /tmp/wp-debug.json
 """
 
 from __future__ import annotations

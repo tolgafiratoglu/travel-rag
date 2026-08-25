@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ingest Wikipedia POIs from MariaDB (wp_pois) into Qdrant via Unstructured.
+"""Ingest Wikipedia POIs from PostgreSQL (wp_pois) into Qdrant via Unstructured.
 
 Collections:
   travel_museums            (poi_type=museum)
@@ -8,10 +8,10 @@ Collections:
 Uses Ollama bge-m3 by default. Recreates target collection(s) unless --no-wipe.
 
 Usage:
-    MARIADB_HOST=localhost .venv/bin/python scripts/ingest-wikipedia-pois.py \\
+    POSTGRES_HOST=localhost .venv/bin/python scripts/ingest-wikipedia-pois.py \\
         --type museum --city Ankara --dry-run
 
-    MARIADB_HOST=localhost QDRANT_URL=http://localhost:6333 \\
+    POSTGRES_HOST=localhost QDRANT_URL=http://localhost:6333 \\
     OLLAMA_BASE_URL=http://localhost:11434 \\
     .venv/bin/python scripts/ingest-wikipedia-pois.py --type all
 """
@@ -41,7 +41,7 @@ try:
         VectorParams,
     )
 except ImportError:
-    print("Missing: pip install pymysql httpx qdrant-client")
+    print("Missing: pip install psycopg[binary] httpx qdrant-client")
     sys.exit(1)
 
 from lib.wp_chunks import build_chunks, make_point_id

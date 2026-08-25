@@ -4,7 +4,7 @@
 #
 # Topology:
 #   Internet → Caddy/Nginx (443) → 127.0.0.1:8000 → api
-#   api ↔ [internal_net] ↔ ollama, qdrant, neo4j, mariadb
+#   api ↔ [internal_net] ↔ ollama, qdrant, neo4j, postgres
 #   api ↔ [outbound_net] → Gemini / internet
 #
 # Pull Ollama models BEFORE first prod start (ollama has no outbound on
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"
-    # Explicit env only — do not env_file:.env (avoids MariaDB secrets in API).
+    # Explicit env only — do not env_file:.env (avoids Postgres secrets in API).
     environment:
       - SECRETS_ENV_PATH=/config/rag/.env
       - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
@@ -123,27 +123,27 @@ services:
       timeout: 5s
       retries: 5
 
-  mariadb:
-    image: ${MARIADB_IMAGE:-mariadb:11.4}
-    container_name: travel-rag-mariadb
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    container_name: travel-rag-postgres
     restart: unless-stopped
     environment:
-      - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:?Set MARIADB_ROOT_PASSWORD in .env}
-      - MARIADB_DATABASE=${MARIADB_DATABASE:-travel}
-      - MARIADB_USER=${MARIADB_USER:-travel}
-      - MARIADB_PASSWORD=${MARIADB_PASSWORD:?Set MARIADB_PASSWORD in .env}
-    command:
-      - --max-allowed-packet=512M
-      - --innodb-buffer-pool-size=1G
+      - POSTGRES_DB=${POSTGRES_DB:-travel}
+      - POSTGRES_USER=${POSTGRES_USER:-travel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
       - ./data/wiki:/data/wiki:ro
     networks:
       - internal_net
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -154,7 +154,7 @@ volumes:
     name: qwen_ollama_models
   qdrant_data:
   neo4j_data:
-  mariadb_data:
+  postgres_data:
 
 networks:
   internal_net:

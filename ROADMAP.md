@@ -154,7 +154,7 @@ Seed verisini gerçek veriyle değiştir.
 
 ### 4.A Ingestion modülü  *(~5 gün)*
 
-- [x] **4.1** Wikipedia city/guide parse → MariaDB (`scripts/parse-wiki-pages.py`, `data/wiki/sources.json`)
+- [x] **4.1** Wikipedia city/guide parse → PostgreSQL (`scripts/parse-wiki-pages.py`, `data/wiki/sources.json`)
 - [ ] **4.2** `ingestion/wikidata.py` — SPARQL client (`get_city_metadata(qid)`) *(1 gün)*
 - [x] **4.3** Section-aware chunking (`scripts/lib/wp_chunks.py` + Unstructured)
 - [x] **4.4** Embed + Qdrant upsert + Neo4j v1 (`neo4j.md`) — `scripts/ingest-*` (City/Country/Place/`IN_*`/`CONNECTED_BY`/`DAY_TRIP_FROM`; **SourceChunk yok**)

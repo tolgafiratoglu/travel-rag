@@ -20,7 +20,7 @@ cd /path/to/travel-rag
 
 cp .env.example .env
 # Üretimde LLM_PROVIDER=gemini önerilir; geliştirmede qwen de olur.
-# Prod (.env): güçlü NEO4J_PASSWORD, MARIADB_*, ve:
+# Prod (.env): güçlü NEO4J_PASSWORD, POSTGRES_*, ve:
 #   QDRANT_ADMIN_API_KEY=$(openssl rand -hex 32)
 #   QDRANT_READ_ONLY_API_KEY=$(openssl rand -hex 32)
 
@@ -46,10 +46,10 @@ docker volume create qwen_ollama_models
 
 ### Lokal (geliştirme)
 
-Portlar yalnızca `127.0.0.1` üzerinde (LAN/internet’e açık değil). Host ingest için Qdrant/MariaDB/Neo4j localhost’tan erişilir.
+Portlar yalnızca `127.0.0.1` üzerinde (LAN/internet’e açık değil). Host ingest için Qdrant/Postgres/Neo4j localhost’tan erişilir.
 
 ```bash
-cp .env.example .env   # güçlü parolalar koy (NEO4J_PASSWORD, MARIADB_*)
+cp .env.example .env   # güçlü parolalar koy (NEO4J_PASSWORD, POSTGRES_*)
 docker compose up -d --build
 docker compose ps
 ```
@@ -60,7 +60,7 @@ docker compose ps
 | Qdrant | http://127.0.0.1:6333 |
 | Neo4j Browser | http://127.0.0.1:7474 |
 | Neo4j Bolt | 127.0.0.1:7687 |
-| MariaDB | 127.0.0.1:3306 |
+| PostgreSQL | 127.0.0.1:5432 |
 | Ollama | http://127.0.0.1:11434 |
 
 ### VPS / production
@@ -75,16 +75,16 @@ docker compose -f docker-compose.prod.yml up -d --build
 - DB / Ollama **host’a publish edilmez** (yalnızca `internal_net`)
 - API yalnızca `127.0.0.1:8000` — önüne Caddy/Nginx TLS koy (80/443)
 - API `outbound_net` ile Gemini’ye çıkar; DB’ler `internal: true` network’te
-- API `env_file: .env` kullanmaz — yalnızca ihtiyaç duyduğu değişkenler + Gemini mount; MariaDB secret’ları API’ye girmez
+- API `env_file: .env` kullanmaz — yalnızca ihtiyaç duyduğu değişkenler + Gemini mount; Postgres secret’ları API’ye girmez
 - API Qdrant’a **read-only** key ile bağlanır; ingest script’leri `QDRANT_API_KEY=$QDRANT_ADMIN_API_KEY` kullanır
 - UFW’de sadece 22/80/443 yetmez: Docker publish UFW’yi bypass edebilir — bu yüzden prod’da DB portu yok
 
-MariaDB kullanıcı/DB adı `travel` / `travel`. Eski volume (farklı DB/user ile init edilmiş) kullanıyorsan sıfırlamak gerekir:
+PostgreSQL kullanıcı/DB adı `travel` / `travel`. Eski volume (farklı DB/user ile init edilmiş) kullanıyorsan sıfırlamak gerekir:
 
 ```bash
 docker compose down
-docker volume ls | grep mariadb   # örn. travel-rag_mariadb_data
-docker volume rm <mariadb_volume>
+docker volume ls | grep postgres   # örn. travel-rag_postgres_data
+docker volume rm <postgres_volume>
 docker compose up -d
 # ardından §6 ingest’i yeniden çalıştır
 ```
@@ -113,10 +113,10 @@ docker compose up -d ollama
 ```bash
 ./scripts/setup-venv.sh
 
-export MARIADB_HOST=localhost
-export MARIADB_USER=travel
-export MARIADB_PASSWORD=changeme
-export MARIADB_DATABASE=travel
+export POSTGRES_HOST=localhost
+export POSTGRES_USER=travel
+export POSTGRES_PASSWORD=changeme
+export POSTGRES_DB=travel
 export QDRANT_URL=http://localhost:6333
 # Prod Qdrant auth açıksa (admin key):
 # export QDRANT_API_KEY="$QDRANT_ADMIN_API_KEY"
@@ -129,7 +129,7 @@ export NEO4J_PASSWORD=changeme
 
 Kaynak JSON: `data/wiki/sources.json`, `museums.json`, `historical_sites.json`.
 
-### 6a. Guide sayfalar → MariaDB → Qdrant
+### 6a. Guide sayfalar → PostgreSQL → Qdrant
 
 ```bash
 # Tüm city pages (uzun sürebilir)
@@ -206,7 +206,7 @@ curl -s http://localhost:8000/docs | head -5
 curl -s http://localhost:6333/collections
 curl -s http://127.0.0.1:11434/api/tags
 docker exec travel-rag-neo4j cypher-shell -u neo4j -p changeme 'RETURN 1 AS ok'
-docker exec travel-rag-mariadb mariadb -utravel -pchangeme travel -e 'SELECT 1'
+docker exec travel-rag-postgres pg_isready -U travel -d travel
 ```
 
 ### Hızlı sohbet smoke
@@ -252,10 +252,10 @@ curl -s -X POST http://localhost:6333/collections/travel_chunks/points/scroll \
   }' | python3 -m json.tool
 ```
 
-### MariaDB — `wp_section_stats`
+### PostgreSQL — `wp_section_stats`
 
 ```bash
-docker exec -i travel-rag-mariadb mariadb -utravel -pchangeme travel <<'SQL'
+docker exec -i travel-rag-postgres psql -U travel -d travel <<'SQL'
 SELECT section, chunk_count, page_count, updated_at
 FROM wp_section_stats
 ORDER BY chunk_count DESC
@@ -263,12 +263,12 @@ LIMIT 30;
 SQL
 ```
 
-### MariaDB — `wp_pages`
+### PostgreSQL — `wp_pages`
 
 ```bash
-docker exec -i travel-rag-mariadb mariadb -utravel -pchangeme travel <<'SQL'
+docker exec -i travel-rag-postgres psql -U travel -d travel <<'SQL'
 SELECT id, page_kind, country_name, city_name, title,
-       CHAR_LENGTH(html) AS html_chars, fetched_at, source_url
+       length(html) AS html_chars, fetched_at, source_url
 FROM wp_pages
 ORDER BY country_name, city_name
 LIMIT 50;

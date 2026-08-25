@@ -5,7 +5,7 @@ Requires City anchors already loaded (ingest-wiki-neo4j.py --anchors-only
 or full city ingest). Resolves city by name / aliases.
 
 Usage:
-    MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
+    POSTGRES_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
     .venv/bin/python scripts/ingest-neo4j-places.py --city Antalya
 
     .venv/bin/python scripts/ingest-neo4j-places.py --type museum --dry-run
@@ -25,9 +25,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 def _require_imports() -> None:
     missing: list[str] = []
     try:
-        import pymysql  # noqa: F401
+        import psycopg  # noqa: F401
     except ImportError:
-        missing.append("pymysql")
+        missing.append("psycopg")
     try:
         import neo4j  # noqa: F401
     except ImportError:

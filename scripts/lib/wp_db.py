@@ -1,45 +1,39 @@
-"""Shared MariaDB access for Wikipedia POI (museum / historical site) scripts."""
+"""Shared PostgreSQL access for Wikipedia POI (museum / historical site) scripts."""
 
 from __future__ import annotations
 
-import os
 from typing import Literal
 
-import pymysql
+from lib.pg import DB_CONFIG, connect, connect_dict
 
 POIType = Literal["museum", "historical_site"]
 
-DB_CONFIG = {
-    "host": os.getenv("MARIADB_HOST", "localhost"),
-    "port": int(os.getenv("MARIADB_PORT", "3306")),
-    "user": os.getenv("MARIADB_USER", "travel"),
-    "password": os.getenv("MARIADB_PASSWORD", "changeme"),
-    "database": os.getenv("MARIADB_DATABASE", "travel"),
-    "charset": "utf8mb4",
-}
-
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS wp_pois (
-    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    poi_type        ENUM('museum','historical_site') NOT NULL,
+    id              BIGSERIAL PRIMARY KEY,
+    poi_type        TEXT NOT NULL
+        CHECK (poi_type IN ('museum', 'historical_site')),
     name            VARCHAR(512)  NOT NULL,
     city_name       VARCHAR(255)  NOT NULL,
     country_name    VARCHAR(128)  NOT NULL,
     source_url      VARCHAR(768)  NOT NULL,
     wiki_title      VARCHAR(512)  NULL,
     resolved_title  VARCHAR(512)  NULL,
-    page_id         INT UNSIGNED  NULL,
-    revid           BIGINT UNSIGNED NULL,
+    page_id         INTEGER       NULL,
+    revid           BIGINT        NULL,
     wikidata_qid    VARCHAR(16)   NULL,
-    html            LONGTEXT      NULL,
-    fetched_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_source_url (source_url),
-    KEY idx_type_city (poi_type, city_name),
-    KEY idx_country (country_name),
-    KEY idx_poi_type (poi_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    html            TEXT          NULL,
+    fetched_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_wp_pois_source_url UNIQUE (source_url)
+)
 """
+
+CREATE_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_wp_pois_type_city "
+    "ON wp_pois (poi_type, city_name)",
+    "CREATE INDEX IF NOT EXISTS idx_wp_pois_country ON wp_pois (country_name)",
+    "CREATE INDEX IF NOT EXISTS idx_wp_pois_type ON wp_pois (poi_type)",
+)
 
 _COLUMNS = (
     "id",
@@ -58,13 +52,11 @@ _COLUMNS = (
 )
 
 
-def connect():
-    return pymysql.connect(**DB_CONFIG)
-
-
 def ensure_table(conn) -> None:
     with conn.cursor() as cur:
         cur.execute(CREATE_TABLE_SQL)
+        for stmt in CREATE_INDEXES:
+            cur.execute(stmt)
     conn.commit()
 
 
@@ -102,9 +94,9 @@ def load_pois(
         sql += " LIMIT %s"
         params.append(limit)
 
-    conn = connect()
+    conn = connect_dict()
     try:
-        with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        with conn.cursor() as cur:
             cur.execute(sql, params)
             return list(cur.fetchall())
     finally:

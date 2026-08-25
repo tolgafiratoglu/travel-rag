@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create/refresh the host .venv for offline scripts (parse/ingest).
 # API runtime deps live in the Docker image (api/Dockerfile); this mirrors that
-# list plus script-only pymysql.
+# list plus script-only psycopg.
 
 set -euo pipefail
 
@@ -23,7 +23,7 @@ else
   echo "Using existing ${VENV_DIR}"
 fi
 
-# Keep in sync with api/Dockerfile pip install line (+ pymysql for scripts)
+# Keep in sync with api/Dockerfile pip install line (+ psycopg for scripts)
 echo "Installing host dependencies..."
 "${VENV_DIR}/bin/pip" install -U pip
 "${VENV_DIR}/bin/pip" install \
@@ -36,7 +36,7 @@ echo "Installing host dependencies..."
   langgraph \
   google-genai \
   python-dotenv \
-  pymysql \
+  "psycopg[binary]" \
   langchain-text-splitters \
   beautifulsoup4 \
   lxml \
@@ -44,10 +44,10 @@ echo "Installing host dependencies..."
 
 echo "Verifying imports..."
 "${VENV_DIR}/bin/python" -c \
-  "import neo4j, pymysql, google.genai, langchain_text_splitters, bs4, unstructured; print('ok')"
+  "import neo4j, psycopg, google.genai, langchain_text_splitters, bs4, unstructured; print('ok')"
 
 echo
 echo "Done. Example:"
-echo "  MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 LLM_PROVIDER=gemini \\"
+echo "  POSTGRES_HOST=localhost NEO4J_URI=bolt://localhost:7687 LLM_PROVIDER=gemini \\"
 echo "  ${VENV_DIR}/bin/python scripts/parse-wiki-pages.py --country Turkey --city Istanbul"
 echo "  ${VENV_DIR}/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul --dry-run"

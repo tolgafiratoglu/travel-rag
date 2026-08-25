@@ -7,7 +7,7 @@ Optional Gemini (3 narrow passes): SERVED_BY_AIRPORT, CONNECTED_BY, DAY_TRIP_FRO
 Places (museums / historical) come from scripts/ingest-neo4j-places.py.
 
 Usage:
-    MARIADB_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
+    POSTGRES_HOST=localhost NEO4J_URI=bolt://localhost:7687 \\
     LLM_PROVIDER=gemini \\
     .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbul
 
@@ -36,9 +36,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 def _require_imports() -> None:
     missing: list[str] = []
     try:
-        import pymysql  # noqa: F401
+        import psycopg  # noqa: F401
     except ImportError:
-        missing.append("pymysql")
+        missing.append("psycopg")
     try:
         import neo4j  # noqa: F401
     except ImportError:
