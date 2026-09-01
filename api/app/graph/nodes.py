@@ -21,7 +21,7 @@ from app.services.guard import REJECT_MESSAGE, get_guard_client
 logger = logging.getLogger(__name__)
 
 # TODO: remove before prod — appends LLM prompts to the answer for debugging
-DEBUG_APPEND_PROMPT = True
+DEBUG_APPEND_PROMPT = False
 
 # ---------------------------------------------------------------------------
 # Prompts
@@ -429,8 +429,10 @@ Suggest options only when the sources support them. Explain brief tradeoffs with
 Structure the answer as a sequenced plan (e.g. day-by-day). Note gaps instead of inventing times or logistics.""",
     "comparison": """### Task focus: comparison
 Compare along dimensions explicitly supported by the sources.
-Include one markdown comparison table:
-- Do not put the table at the very start of the answer; write a short intro first, then the table, then closing notes if needed.
+Use a short intro, then the comparison body, then brief closing notes if helpful.
+Include a markdown comparison table only when the sources support enough concrete, comparable facts across the subjects (e.g. at least two meaningful rows with real values). If sources are sparse, uneven, or mostly list-style museum/place descriptions, skip the table and compare in prose or bullet points instead.
+When you do use a table:
+- Do not put it at the very start of the answer.
 - The table body must have at most 5 data rows (header row does not count).
 - Keep columns few and readable; leave cells empty or say "not in sources" rather than inventing values.""",
     "logistics": """### Task focus: logistics

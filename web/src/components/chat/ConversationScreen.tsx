@@ -46,11 +46,11 @@ export function ConversationScreen({
             defaultValue=""
             onChange={handleExampleChange}
             disabled={disabled || !onSuggestionSelect}
-            aria-label="Örnek sorular"
+            aria-label="Suggested queries"
             className="max-w-[min(100%,16rem)] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-gray-300 focus:ring-1 focus:ring-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="" disabled>
-              Örnek sorular
+              Suggested queries
             </option>
             {SUGGESTIONS.map((text) => (
               <option key={text} value={text}>
