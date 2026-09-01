@@ -60,7 +60,7 @@ docker compose ps
 | Qdrant | http://127.0.0.1:6333 |
 | Neo4j Browser | http://127.0.0.1:7474 |
 | Neo4j Bolt | 127.0.0.1:7687 |
-| PostgreSQL | 127.0.0.1:5432 |
+| PostgreSQL | 127.0.0.1:5433 |
 | Ollama | http://127.0.0.1:11434 |
 
 ### VPS / production

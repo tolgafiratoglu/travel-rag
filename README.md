@@ -148,7 +148,7 @@ Host
   ├── :6333  qdrant
   ├── :7474/:7687  neo4j
   ├── :11434 ollama (127.0.0.1)
-  └── :5432  postgres
+  └── :5433  postgres
 
 llm_internal network: api ↔ ollama, qdrant, neo4j, postgres
 ```

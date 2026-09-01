@@ -4,7 +4,7 @@
 Reads data/wiki/museums.json and historical_sites.json, pulls article
 HTML via MediaWiki action=parse, upserts by source_url.
 
-Usage (from repo root, Postgres on localhost:5432):
+Usage (from repo root, Postgres on localhost:5433):
     POSTGRES_HOST=localhost .venv/bin/python scripts/parse-wikipedia-pois.py \\
         --type museum --city Ankara --limit 3
 

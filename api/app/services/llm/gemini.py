@@ -6,6 +6,7 @@ from google.genai import types
 from app.config import settings
 
 _client: genai.Client | None = None
+_MAX_OUTPUT_TOKENS = 4096
 
 
 def _get_client() -> genai.Client:
@@ -47,7 +48,7 @@ class GeminiProvider:
         config = types.GenerateContentConfig(
             temperature=0.3,
             top_p=0.9,
-            max_output_tokens=2048,
+            max_output_tokens=_MAX_OUTPUT_TOKENS,
         )
         response = await client.aio.models.generate_content(
             model=model or settings.gemini_model,
@@ -66,7 +67,7 @@ class GeminiProvider:
         config = types.GenerateContentConfig(
             temperature=0.3,
             top_p=0.9,
-            max_output_tokens=2048,
+            max_output_tokens=_MAX_OUTPUT_TOKENS,
         )
         async for chunk in await client.aio.models.generate_content_stream(
             model=model or settings.gemini_model,

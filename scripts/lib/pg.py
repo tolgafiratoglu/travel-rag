@@ -9,7 +9,7 @@ from psycopg.rows import dict_row
 
 DB_CONFIG = {
     "host": os.getenv("POSTGRES_HOST", os.getenv("MARIADB_HOST", "localhost")),
-    "port": int(os.getenv("POSTGRES_PORT", os.getenv("MARIADB_PORT", "5432"))),
+    "port": int(os.getenv("POSTGRES_PORT", os.getenv("MARIADB_PORT", "5433"))),
     "user": os.getenv("POSTGRES_USER", os.getenv("MARIADB_USER", "travel")),
     "password": os.getenv(
         "POSTGRES_PASSWORD", os.getenv("MARIADB_PASSWORD", "changeme")
