@@ -20,6 +20,10 @@ Usage:
 
     # Secured Qdrant (prod): admin key required for upsert/wipe
     # QDRANT_API_KEY=$QDRANT_ADMIN_API_KEY .venv/bin/python scripts/ingest-wiki-qdrant.py
+
+    # Gemini TR content gate (WP_CONTENT_GATE=true|false; rejected → tmp/…)
+    WP_CONTENT_GATE=true LLM_PROVIDER=gemini \\
+      .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul
 """
 
 from __future__ import annotations
@@ -52,6 +56,7 @@ except ImportError:
     print("Missing: pip install psycopg[binary] httpx qdrant-client")
     sys.exit(1)
 
+from lib.content_gate import append_rejected, gate_chunk
 from lib.wp_chunks import build_chunks, make_point_id
 from lib.wp_pages_db import (
     bump_section_stats,
@@ -60,11 +65,26 @@ from lib.wp_pages_db import (
     reset_section_stats,
 )
 
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "bge-m3")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "").strip()
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "travel_chunks")
+WP_CONTENT_GATE = _env_bool("WP_CONTENT_GATE", False)
+DEFAULT_REJECTED_PATH = Path(
+    os.getenv(
+        "WP_CONTENT_GATE_REJECTED",
+        str(ROOT / "tmp" / "content-gate-rejected.jsonl"),
+    )
+)
 
 
 async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
@@ -191,6 +211,8 @@ async def ingest_page(
     dry_run: bool,
     *,
     wiped: bool,
+    content_gate: bool = False,
+    rejected_path: Path | None = None,
 ) -> int:
     chunks = build_chunks(row)
     print(f"  {len(chunks)} chunk(s) title={row.get('title') or row.get('resolved_title')!r}")
@@ -219,8 +241,23 @@ async def ingest_page(
         delete_page_points(qdrant, row["source_url"])
 
     points: list[PointStruct] = []
+    kept_chunks: list[dict] = []
+    rejected = 0
 
     for i, chunk in enumerate(chunks):
+        if content_gate:
+            decision = await gate_chunk(chunk)
+            if not decision["proceed"]:
+                rejected += 1
+                print(
+                    f"  REJECT [{chunk.get('section') or chunk.get('section_path')}] "
+                    f"illegal={decision['illegal']} sensitive={decision['sensitive']} "
+                    f"— {decision['reason']}"
+                )
+                if rejected_path is not None:
+                    append_rejected(rejected_path, chunk, decision)
+                continue
+
         vector = await embed_text(http, chunk["text"])
         if not points:
             ensure_collection(qdrant, len(vector))
@@ -231,18 +268,19 @@ async def ingest_page(
                 payload=qdrant_payload(chunk),
             )
         )
+        kept_chunks.append(chunk)
         if (i + 1) % 20 == 0:
             print(f"  embedded {i + 1}/{len(chunks)}")
 
     if points:
         qdrant.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
-    n_sec = bump_section_stats(chunks)
+    n_sec = bump_section_stats(kept_chunks)
     print(
-        f"  upserted={len(points)}; "
+        f"  kept={len(kept_chunks)} rejected={rejected}; "
         f"section stats: {n_sec} distinct section(s) bumped"
     )
-    return len(points)
+    return len(kept_chunks)
 
 
 async def main_async(
@@ -260,6 +298,19 @@ async def main_async(
 
     print(f"Loaded {len(rows)} page(s) from wp_pages")
     print(f"Embed model: {OLLAMA_EMBED_MODEL} → {QDRANT_COLLECTION}")
+    if WP_CONTENT_GATE:
+        print(f"Content gate: ON (rejected → {DEFAULT_REJECTED_PATH})")
+        if not dry_run:
+            from app.config import settings
+
+            if settings.llm_provider != "gemini":
+                print(
+                    "ERROR: WP_CONTENT_GATE=true needs LLM_PROVIDER=gemini "
+                    f"(current: {settings.llm_provider!r})"
+                )
+                sys.exit(1)
+    else:
+        print("Content gate: OFF (WP_CONTENT_GATE=false)")
     if not dry_run:
         ensure_section_stats_table()
     qdrant = QdrantClient(
@@ -311,6 +362,8 @@ async def main_async(
                     row,
                     dry_run,
                     wiped=wiped,
+                    content_gate=WP_CONTENT_GATE,
+                    rejected_path=DEFAULT_REJECTED_PATH if WP_CONTENT_GATE else None,
                 )
                 total += n
                 if not dry_run:

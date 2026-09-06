@@ -138,6 +138,11 @@ Kaynak JSON: `data/wiki/sources.json`, `museums.json`, `historical_sites.json`.
 # Qdrant travel_chunks (+ wp_section_stats; varsayılan wipe)
 # Filtre yoksa tüm koleksiyon silinir; --city/--country ile yalnızca o kapsam.
 .venv/bin/python scripts/ingest-wiki-qdrant.py
+
+# Opsiyonel: Gemini TR content gate (WP_CONTENT_GATE=true|false)
+# Rejected chunks → tmp/content-gate-rejected.jsonl (or WP_CONTENT_GATE_REJECTED)
+WP_CONTENT_GATE=true LLM_PROVIDER=gemini \\
+  .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul
 ```
 
 Guide (`wp_pages`) chunk’ları yalnızca allowlist section’lara yazılır
