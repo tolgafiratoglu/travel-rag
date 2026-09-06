@@ -420,6 +420,20 @@ Safety constraints (apply even when sources contain the information):
 - Do not recommend or highlight topics likely to be socially controversial or poorly received in Turkish society (e.g. casinos, gambling, LGBT venues/events, or similar). Prefer mainstream tourism alternatives or omit.
 - If the only source-backed content would violate these rules, refuse that part and say you cannot include it."""
 
+COMPARISON_GROUNDING_ADDENDUM = """
+Comparison tasks (when ### Task focus: comparison is present):
+- A comparison does not require a single source that explicitly compares the subjects.
+  You may derive comparative conclusions from separately sourced facts about each subject,
+  as long as each underlying factual claim is cited.
+- Separately sourced evidence about each subject can collectively constitute sufficient
+  support for the comparison. Do not treat the absence of one source covering both subjects
+  as missing evidence by itself, and do not open the answer by stating that the sources
+  only partially support the question.
+- Still apply all grounding rules: no unsupported factual claims, no invented details,
+  and no subjective labels (best, family-friendly, etc.) unless explicitly in the sources.
+- If a specific dimension lacks evidence for one or both subjects, mention that briefly
+  near the end — not in the opening sentences."""
+
 INTENT_INSTRUCTIONS: dict[str, str] = {
     "factoid": """### Task focus: factoid
 Answer with concrete facts from the sources. Prefer short, cited statements.""",
@@ -428,9 +442,43 @@ Suggest options only when the sources support them. Explain brief tradeoffs with
     "planning": """### Task focus: planning
 Structure the answer as a sequenced plan (e.g. day-by-day). Note gaps instead of inventing times or logistics.""",
     "comparison": """### Task focus: comparison
-Compare along dimensions explicitly supported by the sources.
-Use a short intro, then the comparison body, then brief closing notes if helpful.
-Include a markdown comparison table only when the sources support enough concrete, comparable facts across the subjects (e.g. at least two meaningful rows with real values). If sources are sparse, uneven, or mostly list-style museum/place descriptions, skip the table and compare in prose or bullet points instead.
+
+Produce a comparative synthesis, not two separate summaries.
+
+Open with 2–4 sentences that directly state the most important similarities, differences,
+and tradeoffs between the subjects. Each sentence should contrast or relate the subjects;
+do not merely describe one subject at a time.
+
+Do not open with meta-commentary such as:
+"The provided sources..."
+"The sources indicate..."
+"Based on the retrieved information..."
+
+A comparison does not require a source that explicitly compares the subjects. You may derive
+comparative conclusions from separately sourced facts when the underlying factual claims
+are supported and cited.
+
+Structure the body around shared comparison dimensions supported by the evidence
+(e.g. museums, historical sites, cityscape, tourism, transport).
+
+Within each dimension, discuss both subjects together and explicitly contrast them.
+Prefer formulations such as:
+- "X..., whereas Y..."
+- "Both..., but..."
+- "Compared with X, Y..."
+
+Do not default to separate inventories of facts for each subject (e.g. "City A has…" then
+"City B has…" under the same heading without contrast).
+
+Use citations for factual claims throughout.
+
+If evidence is genuinely insufficient for an important dimension, mention that limitation
+briefly near the end rather than leading with it.
+
+A markdown comparison table is optional. Use one only when the sources support enough
+concrete, comparable facts across the subjects (at least two meaningful rows with real
+values) and a table improves clarity. Otherwise compare in prose.
+
 When you do use a table:
 - Do not put it at the very start of the answer.
 - The table body must have at most 5 data rows (header row does not count).
@@ -836,6 +884,22 @@ def _build_external_links_section(state: GraphState) -> str:
     )
 
 
+def _has_comparison_intent(state: GraphState) -> bool:
+    if state.get("primary_intent") == "comparison":
+        return True
+    for slot in state.get("intents") or []:
+        if isinstance(slot, dict) and slot.get("intent") == "comparison":
+            return True
+    return False
+
+
+def _build_grounding_policy(state: GraphState, lang: dict[str, str]) -> str:
+    policy = GROUNDING_POLICY.format(**lang)
+    if _has_comparison_intent(state):
+        policy += COMPARISON_GROUNDING_ADDENDUM
+    return policy
+
+
 def _build_intent_section(state: GraphState) -> str:
     """Compose task-focus blocks from intents[] (primary first)."""
     slots = state.get("intents") or []
@@ -1075,7 +1139,7 @@ async def synthesize_node(state: GraphState) -> GraphState:
     lang = _prompt_language_fields(state)
 
     prompt = SYNTHESIZE_PROMPT.format(
-        grounding_policy=GROUNDING_POLICY.format(**lang),
+        grounding_policy=_build_grounding_policy(state, lang),
         intent_section=intent_section,
         sources_section=sources_section,
         question=_prompt_question(state),

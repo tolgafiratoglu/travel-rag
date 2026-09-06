@@ -32,8 +32,10 @@ export type Message = {
 };
 
 export const SUGGESTIONS = [
-  "Antalya'da aileyle gidilecek yerler neresi?",
-  "İstanbul'da 2 günlük rota öner",
-  "Göreme için en iyi mevsim ne zaman?",
-  "Bodrum'da bütçe dostu aktiviteler",
+  "Plan a 3-day trip to Istanbul focused on history, museums, and walkable areas.",
+  "Compare Madrid and Istanbul for museums, historical sites, and overall sightseeing.",
+  "What historical day trips can I take from Antalya within 90 minutes?",
+  "Plan 4 days in Antalya and compare it with Bodrum for history and sightseeing.",
+  "Which airports serve Istanbul, and what should I know about getting into the city?",
+  "I want to visit Barcelona.",
 ];
