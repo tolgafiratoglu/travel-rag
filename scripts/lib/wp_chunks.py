@@ -203,6 +203,71 @@ def _page_title(row: dict) -> str:
     return ""
 
 
+def derive_source_kind(row: dict) -> str:
+    """Uniform source axis across collections: guide | museum | historical_site.
+
+    ``poi_type`` only exists on wp_pois rows; guide pages fall back to "guide".
+    """
+    poi_type = (row.get("poi_type") or "").strip().lower()
+    if poi_type == "museum":
+        return "museum"
+    if poi_type in ("historical_site", "historical"):
+        return "historical_site"
+    return "guide"
+
+
+def make_section_id(source_url: str, section_path: str) -> str:
+    """Stable id shared by every chunk of one page section."""
+    key = f"{source_url}:section:{section_path}"
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+
+
+def make_chunk_id(source_url: str, section_path: str, chunk_index: int) -> str:
+    """Stable per-chunk id; also used as the Qdrant point id."""
+    key = f"{source_url}:wiki_section:{section_path}:{chunk_index}"
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, key))
+
+
+def section_prefix(name: str, section_path: str) -> str:
+    """The ``[Name / Section]`` header prepended to embedded chunk text."""
+    label = f"{name} / {section_path}" if name else section_path
+    if not label:
+        return ""
+    return f"[{label}]\n\n"
+
+
+def strip_section_prefix(payload: dict) -> tuple[str, bool]:
+    """Recover chunk body from embedded text. Returns (body, prefix_matched).
+
+    The prefix is rebuilt exactly from ``name`` + ``section_path``, so a miss
+    means the point predates the current label format and must be left alone.
+    """
+    text = payload.get("text") or ""
+    prefix = section_prefix(
+        (payload.get("name") or "").strip(),
+        (payload.get("section_path") or payload.get("section") or "").strip(),
+    )
+    if prefix and text.startswith(prefix):
+        return text[len(prefix) :], True
+    return text, False
+
+
+def assign_section_sequence(chunks: list[dict]) -> None:
+    """Number chunks inside each section (0-based seq + per-section total).
+
+    ``section_chunk_total`` cannot be derived from a partial retrieval result,
+    so it has to be stamped here where the whole section is visible.
+    """
+    by_section: dict[str, list[dict]] = {}
+    for chunk in chunks:
+        by_section.setdefault(chunk["section_id"], []).append(chunk)
+    for group in by_section.values():
+        group.sort(key=lambda c: c["chunk_index"])
+        for seq, chunk in enumerate(group):
+            chunk["section_chunk_seq"] = seq
+            chunk["section_chunk_total"] = len(group)
+
+
 def build_chunks(row: dict) -> list[dict]:
     """Partition cleaned HTML and emit payload dicts with rich metadata."""
     from unstructured.chunking.title import chunk_by_title
@@ -233,6 +298,7 @@ def build_chunks(row: dict) -> list[dict]:
 
     base = {
         "source": "wikipedia",
+        "source_kind": derive_source_kind(row),
         "lang": "en",
         "title": title,
         "wiki_title": row.get("wiki_title") or title,
@@ -270,24 +336,30 @@ def build_chunks(row: dict) -> list[dict]:
             if section_group is None:
                 continue
 
-        label = f"{display_name} / {section_path}" if display_name else section_path
         payload = {
             **base,
             "chunk_kind": "wiki_section",
             "chunk_index": i,
             "section_path": section_path,
             "section": section_path,
-            "text": f"[{label}]\n\n{text}",
+            "section_id": make_section_id(row["source_url"], section_path),
+            "chunk_id": make_chunk_id(row["source_url"], section_path, i),
+            # ``text`` stays the embedding input (the header carries city /
+            # section signal); ``body_text`` is what gets shown to the model.
+            "body_text": text,
+            "text": f"{section_prefix(display_name, section_path)}{text}",
         }
         if section_group:
             payload["section_group"] = section_group
         out.append(payload)
+
+    assign_section_sequence(out)
     return out
 
 
 def make_point_id(chunk: dict) -> str:
-    key = (
-        f"{chunk['source_url']}:wiki_section:{chunk['section_path']}:"
-        f"{chunk['chunk_index']}"
+    if chunk.get("chunk_id"):
+        return str(chunk["chunk_id"])
+    return make_chunk_id(
+        chunk["source_url"], chunk["section_path"], chunk["chunk_index"]
     )
-    return str(uuid.uuid5(uuid.NAMESPACE_URL, key))

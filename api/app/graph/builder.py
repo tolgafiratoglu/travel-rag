@@ -11,6 +11,7 @@ from app.graph.nodes import (
     out_of_scope_node,
     planner_json_node,
     safety_guard_node,
+    select_node,
     synthesize_node,
     vector_retrieval_node,
 )
@@ -25,9 +26,12 @@ def build_graph():
         ├── in_scope false → out_of_scope → format → END
         ├── needs_clarification → clarify → format → END
         ├── chitchat/meta → chitchat → format → END
-        ├── needs_graph → graph_retrieval → (deep?) → vector → synthesize
-        ├── deep_search → deep_retrieval → vector → synthesize
-        └── else → vector_retrieval → synthesize → format → END
+        ├── needs_graph → graph_retrieval → (deep?) → vector → select → synthesize
+        ├── deep_search → deep_retrieval → vector → select → synthesize
+        └── else → vector_retrieval → select → synthesize → format → END
+
+    Retrieval nodes only append to ``candidate_chunks``; ``select`` decides
+    what synthesis actually sees.
     """
     g = StateGraph(GraphState)
 
@@ -40,6 +44,7 @@ def build_graph():
     g.add_node("deep_retrieval", deep_retrieval_node)
     g.add_node("vector_retrieval", vector_retrieval_node)
     g.add_node("graph_retrieval", graph_retrieval_node)
+    g.add_node("select", select_node)
     g.add_node("synthesize", synthesize_node)
     g.add_node("format", format_node)
 
@@ -52,7 +57,8 @@ def build_graph():
     g.add_edge("chitchat", "format")
     g.add_conditional_edges("graph_retrieval", after_graph_router)
     g.add_edge("deep_retrieval", "vector_retrieval")
-    g.add_edge("vector_retrieval", "synthesize")
+    g.add_edge("vector_retrieval", "select")
+    g.add_edge("select", "synthesize")
     g.add_edge("synthesize", "format")
     g.add_edge("format", END)
 

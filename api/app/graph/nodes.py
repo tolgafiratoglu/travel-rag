@@ -14,6 +14,7 @@ from app.graph.history_context import (
 from app.models.planner import parse_planner_output, planner_state_update
 from app.services import graph_store
 from app.services import llm
+from app.services import reranker
 from app.services import vector_store
 from app.config import settings
 from app.services.guard import REJECT_MESSAGE, get_guard_client
@@ -594,58 +595,95 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start : end + 1])
 
 
+def _query_spec(item) -> tuple[str, str | None]:
+    """Normalise a planner query entry to (query, city|None)."""
+    if isinstance(item, str):
+        return item.strip(), None
+    if isinstance(item, dict):
+        q = (item.get("q") or item.get("query") or "").strip()
+        city = item.get("city")
+        if isinstance(city, str):
+            city = city.strip()
+            city = None if not city or city.upper() == "ANY" else city
+        else:
+            city = None
+        return q, city
+    q = getattr(item, "q", "") or ""
+    city = getattr(item, "city", None)
+    return (q.strip() if isinstance(q, str) else ""), city
+
+
 async def _collect_query_chunks(
     queries: list,
     *,
     collection: str | None = None,
-    top_k: int = 5,
-    limit: int = 10,
+    source_kind: str = "guide",
 ) -> list[dict]:
+    """Build the candidate pool for a list of planner queries.
+
+    Deliberately wide and unpruned: no per-section cap beyond what grouping
+    already enforces, and no global score sort. Comparing cosine scores across
+    different queries is not meaningful, and every cut made here is a cut the
+    selection stage can never undo.
+
+    Each candidate carries its origin — ``collection`` and ``source_kind`` for
+    identity and ordering, ``query_index`` so selection can round-robin across
+    queries, and ``query_origins`` when several queries surfaced the same
+    chunk.
+    """
+    collection_name = collection or settings.qdrant_collection
     all_chunks: list[dict] = []
-    seen: set[tuple] = set()
-    for item in queries:
-        if isinstance(item, str):
-            q, city = item.strip(), None
-        elif isinstance(item, dict):
-            q = (item.get("q") or item.get("query") or "").strip()
-            city = item.get("city")
-            if isinstance(city, str) and city.strip().upper() == "ANY":
-                city = None
-            elif isinstance(city, str):
-                city = city.strip() or None
-            else:
-                city = None
-        else:
-            q = getattr(item, "q", "") or ""
-            city = getattr(item, "city", None)
-            q = q.strip() if isinstance(q, str) else ""
+    by_identity: dict[tuple[str, str], dict] = {}
+
+    for query_index, item in enumerate(queries):
+        q, city = _query_spec(item)
         if not q:
             continue
         try:
-            results = await vector_store.search(
-                q, top_k=top_k, collection=collection, city=city
+            results = await vector_store.search_candidates(
+                q, collection=collection_name, city=city
             )
         except Exception as e:
             logger.warning(
-                "Vector search failed for %r city=%r (%s): %s",
+                "Candidate search failed for %r city=%r (%s): %s",
                 q,
                 city,
-                collection,
+                collection_name,
                 e,
             )
             continue
+
+        origin = {"query": q, "city": city or "", "query_index": query_index}
         for chunk in results:
-            section = (chunk.get("section") or "").strip()
-            leaf = section.split("/")[-1].strip().lower()
-            key = (
-                (chunk.get("source_url") or "").strip().lower(),
-                leaf,
-            )
-            if key not in seen:
-                seen.add(key)
-                all_chunks.append(chunk)
-    all_chunks.sort(key=lambda c: c.get("score", 0), reverse=True)
-    return all_chunks[:limit]
+            key = (collection_name, (chunk.get("chunk_id") or "").strip())
+            existing = by_identity.get(key)
+            if existing is not None:
+                # Same chunk found by another query: keep one candidate but
+                # remember that a second query corroborated it.
+                existing["query_origins"].append(origin)
+                if (chunk.get("score") or 0) > (existing.get("score") or 0):
+                    existing["score"] = chunk["score"]
+                continue
+
+            chunk["collection"] = collection_name
+            if not chunk.get("source_kind"):
+                chunk["source_kind"] = source_kind
+            chunk["query"] = q
+            chunk["query_city"] = city or ""
+            chunk["query_index"] = query_index
+            chunk["query_origins"] = [origin]
+            by_identity[key] = chunk
+            all_chunks.append(chunk)
+
+    logger.info(
+        "Candidates: %d from %d query/queries on %s",
+        len(all_chunks),
+        len(queries),
+        collection_name,
+    )
+    return all_chunks
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -738,36 +776,35 @@ async def planner_json_node(state: GraphState) -> GraphState:
 
 async def deep_retrieval_node(state: GraphState) -> GraphState:
     """Search museum / historical-site collections using planner query lists."""
-    museum_chunks: list[dict] = []
-    artifact_chunks: list[dict] = []
+    candidates: list[dict] = []
 
     if state.get("search_museums"):
-        museum_chunks = await _collect_query_chunks(
+        candidates += await _collect_query_chunks(
             state.get("museum_search_queries") or [],
             collection=settings.qdrant_collection_museums,
+            source_kind="museum",
         )
 
     if state.get("search_artifacts"):
-        artifact_chunks = await _collect_query_chunks(
+        candidates += await _collect_query_chunks(
             state.get("artifact_search_queries") or [],
             collection=settings.qdrant_collection_historical,
+            source_kind="historical_site",
         )
 
-    return {
-        "museum_chunks": museum_chunks,
-        "artifact_chunks": artifact_chunks,
-    }
+    return {"candidate_chunks": candidates}
 
 
 async def vector_retrieval_node(state: GraphState) -> GraphState:
     queries = state.get("search_queries") or []
     if not queries:
-        return {"vector_chunks": [], "sources": []}
+        # Must stay a non-empty update so the WS step event still fires.
+        return {"candidate_chunks": []}
 
-    all_chunks = await _collect_query_chunks(queries)
     return {
-        "vector_chunks": all_chunks,
-        "sources": all_chunks,
+        "candidate_chunks": await _collect_query_chunks(
+            queries, source_kind="guide"
+        )
     }
 
 
@@ -786,6 +823,181 @@ async def graph_retrieval_node(state: GraphState) -> GraphState:
         contexts = []
 
     return {"graph_contexts": contexts}
+
+
+# Presentation order for the unified source list.
+_SOURCE_KIND_ORDER = ("museum", "historical_site", "guide")
+
+
+def _source_kind_rank(chunk: dict) -> int:
+    kind = (chunk.get("source_kind") or "").strip()
+    try:
+        return _SOURCE_KIND_ORDER.index(kind)
+    except ValueError:
+        return len(_SOURCE_KIND_ORDER)
+
+
+def _chunk_identity(chunk: dict) -> tuple[str, str]:
+    """True chunk identity — the only reliable duplicate key."""
+    return (
+        (chunk.get("collection") or "").strip(),
+        (chunk.get("chunk_id") or "").strip(),
+    )
+
+
+def _bucket_ordered(chunks: list[dict], key) -> list[list[dict]]:
+    """Bucket chunks by key, preserving first-seen bucket and item order."""
+    buckets: dict = {}
+    for chunk in chunks:
+        buckets.setdefault(key(chunk), []).append(chunk)
+    return list(buckets.values())
+
+
+def estimate_tokens(chunk: dict) -> int:
+    """Rough context cost of one chunk (~4 chars per token)."""
+    text = chunk.get("body_text") or chunk.get("text") or ""
+    return max(1, len(text) // 4)
+
+
+def _round_robin(
+    buckets: list[list[dict]],
+    budget: int,
+    *,
+    token_budget: int | None = None,
+) -> list[dict]:
+    """Take one item per bucket per pass until a budget is spent.
+
+    With ``token_budget`` set, a bucket is closed as soon as its next item no
+    longer fits, rather than skipped — skipping would quietly bias the tail of
+    the selection towards whichever chunks happen to be shortest.
+    """
+    out: list[dict] = []
+    used = 0
+    cursors = [0] * len(buckets)
+    while len(out) < budget:
+        progressed = False
+        for i, bucket in enumerate(buckets):
+            if len(out) >= budget:
+                break
+            if cursors[i] >= len(bucket):
+                continue
+            chunk = bucket[cursors[i]]
+            if token_budget is not None:
+                cost = estimate_tokens(chunk)
+                if used + cost > token_budget:
+                    cursors[i] = len(bucket)
+                    continue
+                used += cost
+            out.append(chunk)
+            cursors[i] += 1
+            progressed = True
+        if not progressed:
+            break
+    return out
+
+
+def _lane_key(chunk: dict) -> tuple[int, int]:
+    """One retrieval lane = one planner query against one collection."""
+    return (_source_kind_rank(chunk), int(chunk.get("query_index") or 0))
+
+
+def _relevance_score(chunk: dict) -> float:
+    """Prefer BGE / cross-encoder rerank score when present."""
+    if chunk.get("rerank_score") is not None:
+        try:
+            return float(chunk["rerank_score"])
+        except (TypeError, ValueError):
+            pass
+    try:
+        return float(chunk.get("score") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _order_lane_for_selection(lane: list[dict]) -> list[dict]:
+    """Section-first spread, with relevance deciding order inside a section."""
+    by_section = _bucket_ordered(lane, lambda c: c.get("section_id") or "")
+    for section in by_section:
+        section.sort(key=_relevance_score, reverse=True)
+    # Prefer stronger sections first so round-robin across sections still
+    # surfaces the most relevant material early.
+    by_section.sort(
+        key=lambda sec: _relevance_score(sec[0]) if sec else 0.0, reverse=True
+    )
+    return _round_robin(by_section, len(lane))
+
+
+async def select_candidates(
+    candidates: list[dict],
+    *,
+    question: str = "",
+    rerank_mode: str | None = None,
+) -> tuple[list[dict], reranker.RerankOutcome]:
+    """Deterministic selection with optional conditional rerank.
+
+    Extracted from ``select_node`` so eval can run the same path under
+    off / always / conditional without going through the graph.
+    """
+    unique: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for chunk in candidates:
+        key = _chunk_identity(chunk)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(chunk)
+
+    outcome = await reranker.apply_rerank(
+        question or "", unique, mode=rerank_mode
+    )
+
+    lanes = _bucket_ordered(unique, _lane_key)
+    lanes.sort(key=lambda bucket: _lane_key(bucket[0]))
+    spread = [_order_lane_for_selection(lane) for lane in lanes]
+
+    selected = _round_robin(
+        spread,
+        settings.max_selected_chunks,
+        token_budget=settings.max_context_tokens,
+    )
+    selected.sort(key=_source_kind_rank)
+    return selected, outcome
+
+
+async def select_node(state: GraphState) -> GraphState:
+    """Choose which candidates become synthesis evidence.
+
+    The candidate pool is wider than the context budget, so a plain global cut
+    would starve later lanes. Budget is shared by round-robin at two levels:
+
+      lanes    one planner query on one collection
+      sections inside a lane, one chunk per section before any sibling
+
+    When elimination is needed (or ``rerank_mode=always``), a reranker may
+    reorder within lanes first. Normal skips and provider failures are
+    recorded separately — failure never blocks selection.
+    """
+    candidates = state.get("candidate_chunks") or []
+    selected, outcome = await select_candidates(
+        candidates, question=state.get("question") or ""
+    )
+
+    logger.info(
+        "Selection: %d candidate(s) → %d selected; "
+        "rerank=%s (%s); sections=%d; ~%d/%d tokens",
+        len(candidates),
+        len(selected),
+        outcome.status,
+        outcome.reason,
+        len({c.get("section_id") for c in selected}),
+        sum(estimate_tokens(c) for c in selected),
+        settings.max_context_tokens,
+    )
+    return {
+        "selected_chunks": selected,
+        "rerank_status": outcome.status,
+        "rerank_reason": outcome.reason,
+    }
 
 
 async def _stream_answer(prompt: str) -> str:
@@ -944,6 +1156,13 @@ def _build_intent_section(state: GraphState) -> str:
     return "\n\n".join(blocks) + "\n\n"
 
 
+_KIND_LABEL = {
+    "museum": "museum",
+    "historical_site": "historical",
+    "guide": "guide",
+}
+
+
 def _chunk_label(chunk: dict) -> str:
     title = chunk.get("title") or ""
     name = chunk.get("name") or title or ""
@@ -958,105 +1177,200 @@ def _chunk_label(chunk: dict) -> str:
     return city or section or "source"
 
 
-def _source_dedupe_key(source: dict) -> str:
-    """Same page URL + same section → one citation; different sections stay distinct."""
-    url = (source.get("source_url") or "").strip().rstrip("/")
-    section = (source.get("section") or "").strip().casefold()
+def _section_group_key(chunk: dict) -> str:
+    """One citation per section. Prefer the stable ingest id."""
+    sid = (chunk.get("section_id") or "").strip()
+    if sid:
+        return f"sid:{sid}"
+    url = (chunk.get("source_url") or "").strip().rstrip("/")
+    section = (chunk.get("section") or "").strip().casefold()
     if url:
         return f"{url}#{section}"
-    city = (source.get("city_name") or "").strip().casefold()
-    name = (source.get("name") or "").strip().casefold()
+    city = (chunk.get("city_name") or "").strip().casefold()
+    name = (chunk.get("name") or "").strip().casefold()
     return f"{city}:{section}:{name}"
 
 
-def _merge_deduped_source(
-    existing: tuple[str, str, dict],
-    label: str,
-    text: str,
-    source: dict,
-) -> tuple[str, str, dict]:
-    prev_label, prev_text, prev_source = existing
-    new_text = (text or "").strip()
-    merged_text = prev_text
-    if new_text and new_text not in prev_text:
-        merged_text = f"{prev_text}\n\n{new_text}" if prev_text else new_text
+def _chunk_body(chunk: dict) -> str:
+    """Header-free body for synthesis. Prefer ``body_text`` from ingest/backfill."""
+    body = chunk.get("body_text")
+    if isinstance(body, str) and body.strip():
+        return body.strip()
 
-    merged = dict(prev_source)
+    text = (chunk.get("text") or "").strip()
+    name = (chunk.get("name") or "").strip()
+    section = (chunk.get("section") or "").strip()
+    label = f"{name} / {section}" if name else section
+    prefix = f"[{label}]\n\n" if label else ""
+    if prefix and text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
+
+
+def _section_header(chunk: dict) -> str:
+    """Single ``[Name / Section]`` title written once above a merged body."""
+    name = (chunk.get("name") or "").strip()
+    section = (chunk.get("section") or "").strip()
+    if name and section:
+        return f"[{name} / {section}]"
+    if section:
+        return f"[{section}]"
+    if name:
+        return f"[{name}]"
+    return ""
+
+
+def _seq_of(chunk: dict) -> int | None:
+    raw = chunk.get("section_chunk_seq")
+    if raw is None or raw == "":
+        return None
     try:
-        prev_score = float(prev_source.get("score") or 0)
-        new_score = float(source.get("score") or 0)
+        return int(raw)
     except (TypeError, ValueError):
-        prev_score, new_score = 0.0, 0.0
-    if new_score > prev_score:
-        merged["score"] = new_score
-        for key in ("name", "title", "city_name", "section", "source_url", "source", "poi_type"):
-            if source.get(key):
-                merged[key] = source[key]
-    merged["text"] = merged_text
-    return prev_label or label, merged_text, merged
+        return None
+
+
+def _total_of(chunk: dict) -> int | None:
+    raw = chunk.get("section_chunk_total")
+    if raw is None or raw == "":
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _merge_section_bodies(chunks: list[dict]) -> str:
+    """Join sibling bodies in seq order; mark skipped siblings with ``[…]``.
+
+    Leading / trailing ellipses signal that the section was only partially
+    selected. Contiguous selected pieces are joined with a blank line — never
+    by substring dedupe, which is not a reliable identity check.
+    """
+    ordered = sorted(
+        chunks,
+        key=lambda c: (
+            _seq_of(c) if _seq_of(c) is not None else 10**9,
+            -float(c.get("score") or 0),
+        ),
+    )
+
+    parts: list[str] = []
+    prev_seq: int | None = None
+    for chunk in ordered:
+        body = _chunk_body(chunk)
+        if not body:
+            continue
+        seq = _seq_of(chunk)
+        if prev_seq is not None and seq is not None and seq > prev_seq + 1:
+            parts.append("[…]")
+        elif prev_seq is None and seq is not None and seq > 0:
+            parts.append("[…]")
+        parts.append(body)
+        if seq is not None:
+            prev_seq = seq
+
+    if ordered and prev_seq is not None:
+        total = _total_of(ordered[-1])
+        if total is not None and prev_seq < total - 1:
+            parts.append("[…]")
+
+    return "\n\n".join(parts)
+
+
+def _prompt_label(chunk: dict) -> str:
+    kind = (chunk.get("source_kind") or "").strip()
+    kind_label = _KIND_LABEL.get(kind, kind or "source")
+    if kind == "guide":
+        city = (chunk.get("city_name") or "").strip()
+        section = (chunk.get("section") or "").strip()
+        place = f"{city} / {section}".strip(" /") or _chunk_label(chunk)
+        return f"{kind_label} · {place}"
+    return f"{kind_label} · {_chunk_label(chunk)}"
+
+
+def _section_source(chunks: list[dict]) -> tuple[str, dict]:
+    """One citation for a section: header once + merged bodies."""
+    best = max(chunks, key=lambda c: float(c.get("score") or 0))
+    header = _section_header(best)
+    body = _merge_section_bodies(chunks)
+    text = f"{header}\n\n{body}" if header and body else (header or body)
+
+    source = {
+        "text": text,
+        "body_text": body,
+        "city_name": best.get("city_name") or "",
+        "section": best.get("section") or "",
+        "source_url": best.get("source_url") or "",
+        "source": best.get("source") or "",
+        "name": best.get("name") or "",
+        "title": best.get("title") or "",
+        "poi_type": best.get("poi_type") or "",
+        "source_kind": best.get("source_kind") or "",
+        "collection": best.get("collection") or "",
+        "section_id": best.get("section_id") or "",
+        "section_chunk_total": _total_of(best),
+        "selected_chunk_ids": [
+            c.get("chunk_id") for c in chunks if c.get("chunk_id")
+        ],
+        "score": max(float(c.get("score") or 0) for c in chunks),
+    }
+    return _prompt_label(best), source
+
+
+def _graph_as_source(ctx: dict) -> tuple[str, dict]:
+    label = (ctx.get("name") or ctx.get("city") or "").strip()
+    url = (ctx.get("source_url") or "").strip()
+    source_kind = (ctx.get("source") or "").strip()
+    if not source_kind and "wikipedia" in url.lower():
+        source_kind = "wikipedia"
+    text = (ctx.get("text") or "").strip()
+    source = {
+        "text": text,
+        "body_text": text,
+        "city_name": label,
+        "section": "",
+        "source_url": url,
+        "source": source_kind,
+        "name": label,
+        "title": label,
+        "poi_type": "",
+        "source_kind": "graph",
+        "score": 0.0,
+    }
+    return f"graph · {label or 'graph'}", source
 
 
 def _build_unified_sources(
-    museum_chunks: list[dict],
-    artifact_chunks: list[dict],
-    vector_chunks: list[dict],
+    selected_chunks: list[dict],
     graph_contexts: list[dict],
 ) -> tuple[str, list[dict]]:
-    """Dedupe by (url, section), then number as [1]…[n].
+    """Build numbered synthesis sources from selected evidence.
 
-    Order: museum → historical → guide → graph.
+    Selected chunks that share a ``section_id`` collapse into one citation:
+    the ``[Name / Section]`` header is written once, bodies are ordered by
+    ``section_chunk_seq``, and skipped siblings become ``[…]``. Graph contexts
+    append after vector evidence. Order: museum → historical → guide → graph.
     """
-    # key → (label, text, source); insertion order preserved.
-    merged: dict[str, tuple[str, str, dict]] = {}
+    # key → chunks; insertion order follows selected_chunks (already kind-sorted).
+    groups: dict[str, list[dict]] = {}
+    for chunk in selected_chunks:
+        groups.setdefault(_section_group_key(chunk), []).append(chunk)
 
-    def add(label: str, text: str, source: dict) -> None:
-        key = _source_dedupe_key(source)
-        if key in merged:
-            merged[key] = _merge_deduped_source(merged[key], label, text, source)
-        else:
-            payload = dict(source)
-            payload["text"] = text
-            merged[key] = (label, text, payload)
-
-    for chunk in museum_chunks:
-        add(f"museum · {_chunk_label(chunk)}", chunk.get("text") or "", chunk)
-
-    for chunk in artifact_chunks:
-        add(f"historical · {_chunk_label(chunk)}", chunk.get("text") or "", chunk)
-
-    for chunk in vector_chunks:
-        city = chunk.get("city_name") or ""
-        section = chunk.get("section") or ""
-        place = f"{city} / {section}".strip(" /") or _chunk_label(chunk)
-        add(f"guide · {place}", chunk.get("text") or "", chunk)
+    entries: list[tuple[str, dict]] = []
+    for chunks in groups.values():
+        entries.append(_section_source(chunks))
 
     for ctx in graph_contexts:
-        label = (ctx.get("name") or ctx.get("city") or "").strip()
-        url = (ctx.get("source_url") or "").strip()
-        source_kind = (ctx.get("source") or "").strip()
-        if not source_kind:
-            if "wikipedia" in url.lower():
-                source_kind = "wikipedia"
-        graph_as_source = {
-            "text": ctx.get("text") or "",
-            "city_name": label,
-            "section": "",
-            "source_url": url,
-            "source": source_kind,
-            "name": label,
-            "poi_type": "",
-            "score": 0.0,
-        }
-        display = label or "graph"
-        add(f"graph · {display}", ctx.get("text") or "", graph_as_source)
+        entries.append(_graph_as_source(ctx))
 
-    if not merged:
+    if not entries:
         return "", []
 
     lines: list[str] = []
     sources: list[dict] = []
-    for i, (label, text, source) in enumerate(merged.values(), start=1):
-        lines.append(f"[{i}] ({label}):\n{text}")
+    for i, (label, source) in enumerate(entries, start=1):
+        lines.append(f"[{i}] ({label}):\n{source['text']}")
         sources.append(source)
 
     section = SYNTHESIZE_SOURCES_SECTION.format(sources="\n\n".join(lines))
@@ -1099,26 +1413,12 @@ def _filter_and_renumber_citations(
 
 
 async def synthesize_node(state: GraphState) -> GraphState:
-    chunks = state.get("vector_chunks") or []
-    museum_chunks = state.get("museum_chunks") or []
-    artifact_chunks = state.get("artifact_chunks") or []
+    selected = state.get("selected_chunks") or []
     contexts = state.get("graph_contexts") or []
     external_section = _build_external_links_section(state)
-    has_external_only = (
-        bool(external_section)
-        and not chunks
-        and not museum_chunks
-        and not artifact_chunks
-        and not contexts
-    )
+    has_external_only = bool(external_section) and not selected and not contexts
 
-    if (
-        not chunks
-        and not museum_chunks
-        and not artifact_chunks
-        and not contexts
-        and not has_external_only
-    ):
+    if not selected and not contexts and not has_external_only:
         answer = (
             "I couldn't find relevant information in my sources. "
             "Try rephrasing your question or asking about a specific city."
@@ -1130,11 +1430,9 @@ async def synthesize_node(state: GraphState) -> GraphState:
                 f"### Question\n{_prompt_question(state)}"
             )
             answer = _append_debug_footer(answer, state, debug_prompt)
-        return {"answer": answer}
+        return {"answer": answer, "sources": []}
 
-    sources_section, sources = _build_unified_sources(
-        museum_chunks, artifact_chunks, chunks, contexts
-    )
+    sources_section, sources = _build_unified_sources(selected, contexts)
     intent_section = _build_intent_section(state)
     lang = _prompt_language_fields(state)
 

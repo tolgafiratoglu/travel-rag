@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "description": "Guide retrieval goldens aligned to sections present after allowlist ingest. Match source_url + section leaf. Prefer search_query for embedding.",
+  "version": 3,
+  "description": "Guide retrieval goldens. Match source_url + section leaf. Single-city cases use search_query+city; comparison/multi cases use search_queries + expected_cities for coverage scoring.",
   "cases": [
     {
       "id": "istanbul_airports_01",
@@ -224,6 +224,127 @@
         {
           "source_url": "https://en.wikipedia.org/wiki/Barcelona",
           "section": "Tram"
+        }
+      ]
+    },
+    {
+      "id": "compare_madrid_istanbul_sightseeing_01",
+      "kind": "comparison",
+      "query": "Compare Madrid and Istanbul for museums, historical sites, and overall sightseeing.",
+      "search_queries": [
+        {"q": "Madrid tourism sightseeing", "city": "Madrid"},
+        {"q": "Istanbul cityscape architecture parks leisure sightseeing", "city": "Istanbul"}
+      ],
+      "expected_cities": ["Madrid", "Istanbul"],
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Madrid",
+          "section": "Tourism"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Cityscape"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Architecture"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Parks"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Leisure and entertainment"
+        }
+      ],
+      "notes": "Madrid guide allowlist only keeps Tourism as a sightseeing section; Istanbul has Cityscape/Architecture/Parks/Leisure."
+    },
+    {
+      "id": "compare_antalya_bodrum_sights_01",
+      "kind": "comparison",
+      "query": "Compare Antalya and Bodrum for history and sightseeing.",
+      "search_queries": [
+        {"q": "Antalya main sights landmarks", "city": "Antalya"},
+        {"q": "Bodrum main sights landmarks", "city": "Bodrum"}
+      ],
+      "expected_cities": ["Antalya", "Bodrum"],
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Antalya",
+          "section": "Main sights"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Bodrum",
+          "section": "Main sights"
+        }
+      ]
+    },
+    {
+      "id": "compare_barcelona_rome_tourism_01",
+      "kind": "comparison",
+      "query": "Compare Barcelona and Rome for tourism and parks.",
+      "search_queries": [
+        {"q": "Barcelona tourism parks main sights", "city": "Barcelona"},
+        {"q": "Rome tourism parks gardens", "city": "Rome"}
+      ],
+      "expected_cities": ["Barcelona", "Rome"],
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Tourism"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Parks"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Rome",
+          "section": "Tourism"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Rome",
+          "section": "Parks and gardens"
+        }
+      ]
+    },
+    {
+      "id": "compare_paris_barcelona_museums_01",
+      "kind": "comparison",
+      "query": "Compare Paris and Barcelona for museums.",
+      "search_queries": [
+        {"q": "Paris museums galleries", "city": "Paris"},
+        {"q": "Barcelona museums galleries", "city": "Barcelona"}
+      ],
+      "expected_cities": ["Paris", "Barcelona"],
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Paris",
+          "section": "Museums"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Barcelona",
+          "section": "Museums"
+        }
+      ]
+    },
+    {
+      "id": "multi_istanbul_airports_transport_01",
+      "kind": "multi_section",
+      "query": "Which airports serve Istanbul, and what should I know about getting into the city?",
+      "search_queries": [
+        {"q": "Istanbul airports arrival by plane", "city": "Istanbul"},
+        {"q": "Istanbul transportation public transport into the city", "city": "Istanbul"}
+      ],
+      "expected_cities": ["Istanbul"],
+      "relevant": [
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Airports"
+        },
+        {
+          "source_url": "https://en.wikipedia.org/wiki/Istanbul",
+          "section": "Transportation"
         }
       ]
     }

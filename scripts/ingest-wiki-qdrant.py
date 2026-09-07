@@ -97,7 +97,7 @@ async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
 
 
 def ensure_payload_indexes(client: QdrantClient) -> None:
-    for field in ("city_name", "title", "page_kind"):
+    for field in ("city_name", "title", "page_kind", "section_id", "source_kind"):
         try:
             client.create_payload_index(
                 collection_name=QDRANT_COLLECTION,

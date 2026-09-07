@@ -34,6 +34,19 @@ def _status_message(kind: str, lang: str) -> str:
     return bucket.get(lang) or bucket["en"]
 
 
+def _count_kind(update: dict, source_kind: str) -> int:
+    """Count candidates of one kind in a node update.
+
+    Retrieval nodes append to a single ``candidate_chunks`` list, so the
+    per-stream step counters read back off ``source_kind``.
+    """
+    return sum(
+        1
+        for chunk in update.get("candidate_chunks") or []
+        if chunk.get("source_kind") == source_kind
+    )
+
+
 def _graph_detail(count: int, lang: str) -> str:
     if lang == "tr":
         return f"{count} graf sonucu"
@@ -184,8 +197,8 @@ async def ws_chat(ws: WebSocket):
                     )
 
                 elif node_name == "deep_retrieval":
-                    m_count = len(update.get("museum_chunks") or [])
-                    a_count = len(update.get("artifact_chunks") or [])
+                    m_count = _count_kind(update, "museum")
+                    a_count = _count_kind(update, "historical_site")
                     if result.get("search_museums"):
                         await _send(ws, {
                             "type": "step",
@@ -203,7 +216,7 @@ async def ws_chat(ws: WebSocket):
                     await _send(ws, {"type": "step", "kind": "vector", "status": "running"})
 
                 elif node_name == "vector_retrieval":
-                    count = len(update.get("vector_chunks") or [])
+                    count = len(update.get("candidate_chunks") or [])
                     await _send(ws, {
                         "type": "step",
                         "kind": "vector",

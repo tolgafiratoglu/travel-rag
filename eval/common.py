@@ -7,7 +7,6 @@ from collections import defaultdict
 from urllib.parse import unquote, urlparse, urlunparse
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import FieldCondition, Filter, MatchAny, MatchValue
 
 # Heading synonyms for soft match + validator suggestions.
 SECTION_SYNONYMS: dict[str, frozenset[str]] = {
@@ -17,13 +16,6 @@ SECTION_SYNONYMS: dict[str, frozenset[str]] = {
     "museum": frozenset({"museum", "museums", "museums and galleries"}),
     "sight": frozenset({"main sights", "landmarks"}),
 }
-
-_CITY_ALIASES: dict[str, list[str]] = {
-    "istanbul": ["Istanbul", "İstanbul"],
-    "i̇stanbul": ["Istanbul", "İstanbul"],
-    "antalya": ["Antalya"],
-}
-
 
 def norm_text(value: str | None) -> str:
     if not value:
@@ -63,31 +55,6 @@ def section_equiv(a: str, b: str) -> bool:
         if na in group and nb in group:
             return True
     return False
-
-
-def city_filter_values(city: str) -> list[str]:
-    name = city.strip()
-    if not name:
-        return []
-    aliases = _CITY_ALIASES.get(name.casefold())
-    if aliases:
-        return list(dict.fromkeys([*aliases, name]))
-    return [name]
-
-
-def build_city_filter(city: str | None) -> Filter | None:
-    if not city:
-        return None
-    values = city_filter_values(city)
-    if not values:
-        return None
-    if len(values) == 1:
-        return Filter(
-            must=[FieldCondition(key="city_name", match=MatchValue(value=values[0]))]
-        )
-    return Filter(
-        must=[FieldCondition(key="city_name", match=MatchAny(any=values))]
-    )
 
 
 def load_inventory(

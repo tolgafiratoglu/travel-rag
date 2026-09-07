@@ -172,6 +172,28 @@ LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbu
 .venv/bin/python scripts/ingest-neo4j-places.py
 ```
 
+### 6d. Chunk kimlik metadata backfill (tek seferlik)
+
+Yeni ingest'ler `chunk_id`, `section_id`, `section_chunk_seq`,
+`section_chunk_total`, `source_kind` ve `body_text` alanlarını kendisi yazar.
+Bu alanlar eklenmeden önce ingest edilmiş koleksiyonlar için bir kez çalıştır —
+section bazlı gruplu retrieval `section_id` index'i olmadan boş döner.
+
+Vektörlere ve embed girdisi olan `text` alanına dokunmaz.
+
+```bash
+# Önce rapor: kaç nokta, kaç section, prefix eşleşmeyen var mı
+QDRANT_URL=http://localhost:6333 \
+  .venv/bin/python scripts/backfill-chunk-metadata.py --dry-run
+
+# Yaz (payload index'lerini de oluşturur)
+QDRANT_URL=http://localhost:6333 \
+  .venv/bin/python scripts/backfill-chunk-metadata.py
+```
+
+`prefix_miss` > 0 ise o noktalar mevcut `[Ad / Section]` başlık biçimine
+uymuyor demektir; metinleri değiştirilmez, `body_text == text` bırakılır.
+
 ---
 
 ## 7. Frontend (opsiyonel)
@@ -305,6 +327,42 @@ QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
 # .venv/bin/python eval/run_retrieval_eval.py --k 10 --limit 3
 # .venv/bin/python eval/validate_golden.py
 ```
+
+Eval, API'nin kendi retrieval/selection kodunu çağırır (`app.services.vector_store`
++ `app.graph.nodes`), kopya bir uygulama değil. `--mode` ile hangi yolun
+ölçüleceği seçilir:
+
+| mode | ölçtüğü |
+|---|---|
+| `flat` | düz top-k, section başına tek parça (gruplama öncesi baseline) |
+| `flat-nodedupe` | düz top-k, section mükerrerleri korunur |
+| `grouped` | `search_candidates` — section bazlı gruplu aday havuzu |
+| `pipeline` | gruplu adaylar + `select_node` (synthesis'in gördüğü; reranker'siz baseline) |
+
+Karşılaştırma / çok şehirli golden'lar `search_queries` + `expected_cities`
+kullanır. `city_coverage` / `section_coverage` yayılmayı ölçer (Hit/MRR'nin
+tek-section vakalarda kaçırdığı sinyal). `pipeline` modunda Hit@k seçimin
+başına, coverage ise tam `selected_chunks` setine bakılır.
+
+```bash
+for m in flat flat-nodedupe grouped pipeline; do
+  .venv/bin/python eval/run_retrieval_eval.py --mode $m --k 10
+done
+# Özet: eval/results/baseline_step6_summary.json
+
+# Rerank karşılaştırması (pipeline; BGE cross-encoder):
+# RERANK_PROVIDER=bge  # varsayılan; llm yalnızca debug
+# İlk çalıştırmada model HuggingFace'den iner (~1–2 GB).
+for r in off conditional always; do
+  .venv/bin/python eval/run_retrieval_eval.py --mode pipeline --rerank $r --k 10
+done
+# Özet: eval/results/rerank_step7_comparison.json
+```
+
+`RERANK_MODE=conditional` yalnızca aday sayısı / token tahmini bütçeyi aşınca
+skorlar; uyan havuzda `skipped(fits_budget)` olur. Üretim yolu
+`RERANK_PROVIDER=bge` (`FlagEmbedding` + `BAAI/bge-reranker-v2-m3`). Sağlayıcı
+hatası `fallback` olarak ayrı kaydedilir — selection her zaman tamamlanır.
 
 Golden: `eval/golden/retrieval.json` (`source_url` + `section`).  
 Çıktı: `eval/results/<timestamp>_<model>_kN.json` (gitignored).  

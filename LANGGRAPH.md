@@ -75,11 +75,10 @@ is_flight_search         bool
 flight_search_query      str   # Kayak URL
 needs_graph              bool
 graph_queries            list[{template, params}]  # neo4j.md templates
-museum_chunks            list[dict]
-artifact_chunks          list[dict]
-vector_chunks            list[dict]
+candidate_chunks         list[dict]            # retrieval adayları (reducer: her node ekler)
+selected_chunks          list[dict]            # synthesis'e verilen kanıtlar
 graph_contexts           list[{city, name?, text, source_url?, source?}]  # neo4j template sonuçları
-sources                  list[dict]            # synthesize sonrası, [1]…[n] sırası
+sources                  list[dict]            # cevapta atıf yapılan nihai kaynaklar, [1]…[n] sırası
 answer                   str
 error                    str | None
 guard_label / guard_raw  …
@@ -178,20 +177,59 @@ Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` /
 
 - Koleksiyonlar: `travel_museums`, `travel_historical_sites` (env).
 - `museum_search_queries` / `artifact_search_queries` + city filter.
-- Sonuçlar: `museum_chunks`, `artifact_chunks`.
+- Sonuç: `candidate_chunks` (`source_kind` = `museum` / `historical_site`).
 
 ### `vector_retrieval_node`
 
 - Koleksiyon: `travel_chunks` (Wikipedia guide).
 - `search_queries` + city filter.
-- Sonuç: `vector_chunks`.
+- Sonuç: `candidate_chunks` (`source_kind` = `guide`).
+
+Her iki retrieval node'u da aday havuzunu `vector_store.search_candidates`
+üzerinden kurar: Qdrant `section_id` ile **sunucu tarafında** gruplar,
+sorgu başına `candidate_sections` farklı section ve her section'dan
+`candidates_per_section` parça döner. Section başına tek parça kısıtı yok;
+düz bir top-k listesini sonradan kırpmak, o listede hiç yer almamış bir
+section'ı bulduramaz.
+
+Aday havuzunda global score sıralaması **yapılmaz** — farklı sorguların cosine
+skorlarını karşılaştırmak anlamlı değil.
+
+### `select_node`
+
+Aday havuzu ile synthesis arasındaki tek seçim aşaması.
+
+- Gerçek mükerrerleri `(collection, chunk_id)` ile atar.
+- Bütçeyi (`max_selected_chunks`) iki düzeyli round-robin ile paylaştırır:
+  - **lane** = bir planner sorgusu × bir koleksiyon → museum/historical/guide
+    ve her şehir temsil edilir, tek akış bütçeyi yemez.
+  - **section** = lane içinde, aynı section'ın ikinci parçasına geçmeden önce
+    her section'dan birer parça.
+- Koşullu reranker (`RERANK_MODE` + `RERANK_PROVIDER=bge`):
+  - Üretim: BGE cross-encoder (`BAAI/bge-reranker-v2-m3` via FlagEmbedding).
+  - `off` — skorlama yok
+  - `always` — her zaman skorla
+  - `conditional` — yalnızca aday havuzu bütçeyi aşınca skorla
+  - Sağlayıcı hatası selection'ı durdurmaz (`rerank_status=fallback`);
+    normal skip (`skipped`) ile ayrı kaydedilir.
+  - `llm` sağlayıcısı yalnızca debug; production'da kullanılmaz.
+- Sunum sırasını verir: **museum → historical → guide** (stabil sort).
+- Sonuç: `selected_chunks` (+ `rerank_status` / `rerank_reason`).
+
+Her adayda kökeni taşıyan alanlar bulunur: `collection`, `source_kind`,
+`chunk_id`, `section_id`, `section_chunk_seq`, `section_chunk_total`,
+`query`, `query_city`, `query_index`.
 
 ---
 
 ## `synthesize_node`
 
-1. Kaynakları birleştirir: **museum → historical → guide → graph**.
-2. Aynı `source_url` + aynı `section` → tek kaynak (metin birleşir).
+0. Girdi `selected_chunks` (aday havuzu değil) + `graph_contexts`.
+1. Aynı `section_id` altındaki parçaları tek atıfta birleştirir:
+   - `[Name / Section]` başlığı bir kez yazılır
+   - gövdeler `section_chunk_seq` sırasıyla birleşir
+   - atlanan kardeş parçalar `[…]` ile işaretlenir
+2. Sunum sırası: **museum → historical → guide → graph**.
 3. Numaralandırma: `[1]`, `[2]`, … (artık `[S1]` yok).
 4. Intent’e göre ek talimat (factoid / recommendation / planning / comparison / logistics). Comparison → markdown tablo (≤5 satır).
 5. Grounding: yalnızca verilen kaynaklar; kısmi cevap politikası.

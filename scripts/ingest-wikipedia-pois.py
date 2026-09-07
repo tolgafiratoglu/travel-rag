@@ -71,16 +71,17 @@ async def embed_text(client: httpx.AsyncClient, text: str) -> list[float]:
     return resp.json()["embeddings"][0]
 
 
-def ensure_city_name_index(client: QdrantClient, name: str) -> None:
-    try:
-        client.create_payload_index(
-            collection_name=name,
-            field_name="city_name",
-            field_schema=PayloadSchemaType.KEYWORD,
-        )
-        print(f"  payload index city_name on {name!r}")
-    except Exception as exc:
-        print(f"  payload index city_name ({name}): {exc}")
+def ensure_payload_indexes(client: QdrantClient, name: str) -> None:
+    for field in ("city_name", "section_id", "source_kind"):
+        try:
+            client.create_payload_index(
+                collection_name=name,
+                field_name=field,
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
+            print(f"  payload index {field} on {name!r}")
+        except Exception as exc:
+            print(f"  payload index {field} ({name}): {exc}")
 
 
 def recreate_collection(client: QdrantClient, name: str, dim: int) -> None:
@@ -93,7 +94,7 @@ def recreate_collection(client: QdrantClient, name: str, dim: int) -> None:
         vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
     )
     print(f"  created {name!r} dim={dim}")
-    ensure_city_name_index(client, name)
+    ensure_payload_indexes(client, name)
 
 
 def ensure_collection(client: QdrantClient, name: str, dim: int) -> None:
@@ -103,7 +104,7 @@ def ensure_collection(client: QdrantClient, name: str, dim: int) -> None:
             collection_name=name,
             vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
         )
-    ensure_city_name_index(client, name)
+    ensure_payload_indexes(client, name)
 
 
 def delete_poi_points(client: QdrantClient, collection: str, source_url: str) -> None:

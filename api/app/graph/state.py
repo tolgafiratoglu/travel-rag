@@ -1,4 +1,5 @@
-from typing import Any, TypedDict
+import operator
+from typing import Annotated, Any, TypedDict
 
 
 class GraphState(TypedDict, total=False):
@@ -29,9 +30,16 @@ class GraphState(TypedDict, total=False):
     planner_raw: str
     guard_label: str | None
     guard_raw: str
-    museum_chunks: list[dict[str, Any]]
-    artifact_chunks: list[dict[str, Any]]
-    vector_chunks: list[dict[str, Any]]
+    # Retrieval / synthesis contract — three distinct responsibilities:
+    #   candidate_chunks  everything retrieval found (appended by each
+    #                     retrieval node; never pruned for presentation)
+    #   selected_chunks   the evidence handed to synthesis
+    #   sources           the sources actually cited in the final answer
+    candidate_chunks: Annotated[list[dict[str, Any]], operator.add]
+    selected_chunks: list[dict[str, Any]]
+    # Rerank telemetry — skipped vs applied vs fallback stay distinct.
+    rerank_status: str
+    rerank_reason: str
     graph_contexts: list[dict[str, str]]
     sources: list[dict[str, Any]]
     answer: str

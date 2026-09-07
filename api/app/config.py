@@ -37,6 +37,34 @@ class Settings(BaseSettings):
     qdrant_collection_museums: str = "travel_museums"
     qdrant_collection_historical: str = "travel_historical_sites"
 
+    # --- Candidate retrieval (per search query) ---
+    # Grouping is done by Qdrant on section_id, so section diversity is
+    # guaranteed during the search. Capping a flat result list afterwards
+    # cannot surface a section the flat list never returned.
+    candidate_sections: int = 6
+    candidates_per_section: int = 3
+    # --- Selection (candidate pool → synthesis evidence) ---
+    # Whichever binds first. The count reflects how many distinct sources are
+    # useful to cite; the token estimate (~4 chars/token) guards against a
+    # handful of oversized chunks swallowing the context.
+    max_selected_chunks: int = 30
+    max_context_tokens: int = 9000
+
+    # --- Reranker (optional, applied inside select_node) ---
+    # off | always | conditional — conditional only scores when the pool
+    # exceeds the synthesis budget (the only case where order changes who
+    # makes the cut).
+    rerank_mode: Literal["off", "always", "conditional"] = "conditional"
+    # none | bge | http | llm — bge is the intended production path
+    # (FlagEmbedding + BAAI/bge-reranker-v2-m3). llm is debug-only.
+    # Default none so containers without FlagEmbedding still boot; set bge when installed.
+    rerank_provider: Literal["none", "bge", "http", "llm"] = "none"
+    rerank_url: str = ""
+    rerank_api_key: str = ""
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    # Truncate each passage before scoring to keep the batch manageable.
+    rerank_max_chars: int = 600
+
     neo4j_uri: str = "bolt://neo4j:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "changeme"

@@ -58,8 +58,14 @@ services:
       - RATE_LIMIT_BURST=${RATE_LIMIT_BURST:-5}
       - RATE_LIMIT_BURST_WINDOW_SECONDS=${RATE_LIMIT_BURST_WINDOW_SECONDS:-60}
       - RATE_LIMIT_HOURLY=${RATE_LIMIT_HOURLY:-30}
+      - RERANK_MODE=${RERANK_MODE:-conditional}
+      # none until FlagEmbedding/torch is in the image; set bge when ready.
+      - RERANK_PROVIDER=${RERANK_PROVIDER:-none}
+      - RERANK_MODEL=${RERANK_MODEL:-BAAI/bge-reranker-v2-m3}
+      - HF_HOME=/cache/huggingface
     volumes:
       - ${HOME}/.config/rag:/config/rag:ro
+      - hf_cache:/cache/huggingface
     networks:
       - llm_internal
     depends_on:
@@ -149,6 +155,7 @@ volumes:
   qdrant_data:
   neo4j_data:
   postgres_data:
+  hf_cache:
 
 networks:
   llm_internal:
