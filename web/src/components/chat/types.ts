@@ -32,10 +32,10 @@ export type Message = {
 };
 
 export const SUGGESTIONS = [
-  "Plan a 3-day trip to Istanbul focused on history, museums, and walkable areas.",
-  "Compare Madrid and Istanbul for museums, historical sites, and overall sightseeing.",
+  "Plan a 5-day trip to Istanbul focused on history, museums, and walkable districts.",
+  "Compare Paris and Rome for museums, historical sites, and overall sightseeing.",
   "What historical day trips can I take from Antalya within 90 minutes?",
-  "Plan 4 days in Antalya and compare it with Bodrum for history and sightseeing.",
-  "Which airports serve Istanbul, and what should I know about getting into the city?",
+  "Plan 4 days in Porto and compare it with Seville for history and sightseeing.",
+  "Which airports serve Lyon, and what should I know about getting into the city?",
   "I want to visit Barcelona.",
 ];

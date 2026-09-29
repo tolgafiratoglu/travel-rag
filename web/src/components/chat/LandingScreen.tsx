@@ -67,7 +67,7 @@ export function LandingScreen({
               </span>
             </label>
             <p className="hidden shrink-0 text-right text-xs text-gray-400 sm:block">
-              Powered by Qdrant, Neo4J, Qwen and Gemini
+              Powered by Qdrant, Neo4J, Qwen and BGE
             </p>
           </div>
         </div>

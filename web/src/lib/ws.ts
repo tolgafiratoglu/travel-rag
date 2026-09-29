@@ -1,7 +1,7 @@
 export type WsEvent =
   | { type: "status"; message: string }
   | { type: "plan"; summary: string; steps: { id: string; label: string; kind: string; status: string }[]; prompt_language?: string }
-  | { type: "step"; kind: string; status: string; detail?: string; status_message?: string }
+  | { type: "step"; kind: string; status: string; detail?: string; status_message?: string; step_id?: string }
   | { type: "token"; delta: string }
   | {
       type: "done";

@@ -77,18 +77,20 @@ export function useChatStream() {
             if (!plan) break;
             plan = {
               ...plan,
-              steps: plan.steps.map((s) =>
-                s.kind === event.kind
-                  ? {
-                      ...s,
-                      status: event.status as Plan["steps"][number]["status"],
-                      detail:
-                        event.status === "done" && event.detail
-                          ? event.detail
-                          : s.detail,
-                    }
-                  : s,
-              ),
+              steps: plan.steps.map((s) => {
+                const matches = event.step_id
+                  ? s.id === event.step_id
+                  : s.kind === event.kind;
+                if (!matches) return s;
+                return {
+                  ...s,
+                  status: event.status as Plan["steps"][number]["status"],
+                  detail:
+                    event.status === "done" && event.detail
+                      ? event.detail
+                      : s.detail,
+                };
+              }),
             };
             setMessages((prev) => {
               const updated = [...prev];

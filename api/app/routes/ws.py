@@ -34,17 +34,106 @@ def _status_message(kind: str, lang: str) -> str:
     return bucket.get(lang) or bucket["en"]
 
 
-def _count_kind(update: dict, source_kind: str) -> int:
-    """Count candidates of one kind in a node update.
+def _chunk_city(chunk: dict) -> str:
+    """City used for per-step counters (query pin, else payload)."""
+    return (chunk.get("query_city") or chunk.get("city_name") or "").strip()
 
-    Retrieval nodes append to a single ``candidate_chunks`` list, so the
-    per-stream step counters read back off ``source_kind``.
+
+def _counts_by_city(
+    chunks: list[dict],
+    source_kind: str | None = None,
+) -> dict[str, int]:
+    """Count candidates per city, optionally filtered by ``source_kind``."""
+    out: dict[str, int] = {}
+    for chunk in chunks:
+        if source_kind and chunk.get("source_kind") != source_kind:
+            continue
+        city = _chunk_city(chunk)
+        out[city] = out.get(city, 0) + 1
+    return out
+
+
+def _cities_from_queries(queries: list | None) -> list[str]:
+    """Preserve planner city order for assigning leftover step counts."""
+    seen: list[str] = []
+    for item in queries or []:
+        if isinstance(item, dict):
+            city = (item.get("city") or "").strip()
+        else:
+            city = (getattr(item, "city", None) or "").strip()
+        if not city or city.upper() == "ANY":
+            continue
+        if all(city.casefold() != s.casefold() for s in seen):
+            seen.append(city)
+    return seen
+
+
+def _plan_steps(result: dict) -> list[dict]:
+    plan = result.get("plan") or {}
+    steps = plan.get("steps") or []
+    return [s for s in steps if isinstance(s, dict)]
+
+
+def _assign_counts_to_steps(
+    steps: list[dict],
+    kind: str,
+    by_city: dict[str, int],
+    preferred_cities: list[str] | None = None,
+) -> list[tuple[str, int]]:
+    """Map retrieval counts onto plan steps of ``kind``.
+
+    One step → total. Several steps → match city names in labels, then assign
+    leftover cities in planner query order so comparison UIs stay honest.
     """
-    return sum(
-        1
-        for chunk in update.get("candidate_chunks") or []
-        if chunk.get("source_kind") == source_kind
-    )
+    kind_steps = [s for s in steps if s.get("kind") == kind and s.get("id")]
+    if not kind_steps:
+        return []
+
+    total = sum(by_city.values())
+    if len(kind_steps) == 1:
+        return [(str(kind_steps[0]["id"]), total)]
+
+    remaining = dict(by_city)
+    assigned: dict[str, int] = {}
+    unmatched: list[dict] = []
+
+    for step in kind_steps:
+        label = (step.get("label") or "").casefold()
+        step_id = str(step["id"])
+        matched: str | None = None
+        for city in sorted(remaining.keys(), key=len, reverse=True):
+            if city and city.casefold() in label:
+                matched = city
+                break
+        if matched is not None:
+            assigned[step_id] = remaining.pop(matched)
+        else:
+            unmatched.append(step)
+
+    leftover: list[str] = []
+    if preferred_cities:
+        for pref in preferred_cities:
+            key = next(
+                (k for k in remaining if k.casefold() == pref.casefold()),
+                None,
+            )
+            if key is not None and key not in leftover:
+                leftover.append(key)
+        for key in remaining:
+            if key not in leftover:
+                leftover.append(key)
+    else:
+        leftover = list(remaining.keys())
+
+    for i, step in enumerate(unmatched):
+        step_id = str(step["id"])
+        if i < len(leftover):
+            city = leftover[i]
+            assigned[step_id] = remaining.pop(city, 0)
+        else:
+            assigned[step_id] = 0
+
+    return [(str(s["id"]), assigned.get(str(s["id"]), 0)) for s in kind_steps]
 
 
 def _graph_detail(count: int, lang: str) -> str:
@@ -73,6 +162,45 @@ def _artifacts_detail(count: int, lang: str) -> str:
 
 async def _send(ws: WebSocket, event: dict) -> None:
     await ws.send_text(json.dumps(event, ensure_ascii=False))
+
+
+async def _send_step_details(
+    ws: WebSocket,
+    *,
+    result: dict,
+    kind: str,
+    by_city: dict[str, int],
+    preferred_cities: list[str] | None,
+    detail_fn,
+    lang: str,
+) -> None:
+    """Emit done events with per-step counts when the plan has multiple rows."""
+    assignments = _assign_counts_to_steps(
+        _plan_steps(result), kind, by_city, preferred_cities
+    )
+    if not assignments:
+        await _send(
+            ws,
+            {
+                "type": "step",
+                "kind": kind,
+                "status": "done",
+                "detail": detail_fn(sum(by_city.values()), lang),
+            },
+        )
+        return
+
+    for step_id, count in assignments:
+        await _send(
+            ws,
+            {
+                "type": "step",
+                "kind": kind,
+                "step_id": step_id,
+                "status": "done",
+                "detail": detail_fn(count, lang),
+            },
+        )
 
 
 def _client_key(ws: WebSocket) -> str:
@@ -197,32 +325,46 @@ async def ws_chat(ws: WebSocket):
                     )
 
                 elif node_name == "deep_retrieval":
-                    m_count = _count_kind(update, "museum")
-                    a_count = _count_kind(update, "historical_site")
+                    chunks = update.get("candidate_chunks") or []
                     if result.get("search_museums"):
-                        await _send(ws, {
-                            "type": "step",
-                            "kind": "museums",
-                            "status": "done",
-                            "detail": _museums_detail(m_count, lang),
-                        })
+                        await _send_step_details(
+                            ws,
+                            result=result,
+                            kind="museums",
+                            by_city=_counts_by_city(chunks, "museum"),
+                            preferred_cities=_cities_from_queries(
+                                result.get("museum_search_queries")
+                            ),
+                            detail_fn=_museums_detail,
+                            lang=lang,
+                        )
                     if result.get("search_artifacts"):
-                        await _send(ws, {
-                            "type": "step",
-                            "kind": "artifacts",
-                            "status": "done",
-                            "detail": _artifacts_detail(a_count, lang),
-                        })
+                        await _send_step_details(
+                            ws,
+                            result=result,
+                            kind="artifacts",
+                            by_city=_counts_by_city(chunks, "historical_site"),
+                            preferred_cities=_cities_from_queries(
+                                result.get("artifact_search_queries")
+                            ),
+                            detail_fn=_artifacts_detail,
+                            lang=lang,
+                        )
                     await _send(ws, {"type": "step", "kind": "vector", "status": "running"})
 
                 elif node_name == "vector_retrieval":
-                    count = len(update.get("candidate_chunks") or [])
-                    await _send(ws, {
-                        "type": "step",
-                        "kind": "vector",
-                        "status": "done",
-                        "detail": _vector_detail(count, lang),
-                    })
+                    chunks = update.get("candidate_chunks") or []
+                    await _send_step_details(
+                        ws,
+                        result=result,
+                        kind="vector",
+                        by_city=_counts_by_city(chunks),
+                        preferred_cities=_cities_from_queries(
+                            result.get("search_queries")
+                        ),
+                        detail_fn=_vector_detail,
+                        lang=lang,
+                    )
                     await _send(
                         ws,
                         {
