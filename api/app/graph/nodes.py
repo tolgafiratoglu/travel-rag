@@ -71,7 +71,8 @@ Rules:
 - summary and step labels: write in the user's language (prompt_language). Keep summary under 15 words.
 - in_scope: true when the user's request (resolving references via Recent conversation if present) is about travel, tourism, cities, places, destinations, attractions, museums, itineraries, lodging, or trip flights. Questions about a specific city or place count as in-scope.
 - in_scope: false for weather-only forecasts, coding, medical advice, crime, unrelated trivia, gibberish, or anything not about travel/places — even if history mentioned a city. Then set primary_intent to "meta", intents to [], needs_clarification to false, clarification to {{ "prompt": "", "suggestions": [] }}, all query lists to [], and needs_graph/deep_search/search_museums/search_artifacts/is_hotel_search/is_flight_search to false. Do NOT classify off-topic refusals as chitchat.
-- needs_clarification: true when in_scope is true, a city/place is clear, but the ask is too broad to retrieve well (e.g. "I want to visit Antalya", "Antalya'yı gezmek istiyorum", "tell me about Istanbul", bare city name). Then YOU write clarification.prompt (short question in the user's language) and 3-5 clarification.suggestions — each suggestion must be a full ready-to-send follow-up question including the city name. Clear all search/query lists and search flags. Do NOT retrieve yet.
+- needs_clarification: true when in_scope is true, a city/place is clear, but the ask is too broad to retrieve well (e.g. "I want to visit Antalya", "Antalya'yı gezmek istiyorum", "tell me about Istanbul", bare city name). Then YOU write clarification.prompt (short question) and 3-5 clarification.suggestions — each suggestion must be a full ready-to-send follow-up question including the city name. Clear all search/query lists and search flags. Do NOT retrieve yet.
+  Language (mandatory): clarification.prompt AND every clarification.suggestions item MUST be written in prompt_language (same language as the user's message). Match prompt_language for summary and step labels too. Never copy the language of a few-shot example when it differs from prompt_language (e.g. English user → English clarification; Turkish user → Turkish clarification).
 - needs_clarification: false when the question is already specific (museums, N-day plan, hotels, compare, logistics, named POI, etc.). Then set clarification to {{ "prompt": "", "suggestions": [] }}.
 - primary_intent: the single main goal of the question. Use chitchat only for greetings or questions about this assistant's capabilities (those stay in_scope true).
 - intents: zero or more task slots. Order does not matter. Each item is {{ "intent": "...", "cities": [...] }}.
@@ -158,6 +159,44 @@ Example — question: "Antalya'yı gezmek istiyorum"
     "summary": "Antalya için net seçenekler sunuyorum.",
     "steps": [
       {{ "id": "s1", "label": "Seçenekleri sun", "kind": "synthesize", "status": "idle" }}
+    ]
+  }},
+  "search_queries": [],
+  "deep_search": false,
+  "search_museums": false,
+  "search_artifacts": false,
+  "museum_search_queries": [],
+  "artifact_search_queries": [],
+  "is_hotel_search": false,
+  "hotel_search_query": "",
+  "is_flight_search": false,
+  "flight_search_query": "",
+  "needs_graph": false,
+  "graph_queries": []
+}}
+
+Example — question: "I want to visit Barcelona."
+{{
+  "primary_intent": "recommendation",
+  "in_scope": true,
+  "needs_clarification": true,
+  "clarification": {{
+    "prompt": "What would you like to know about Barcelona?",
+    "suggestions": [
+      "List Barcelona's popular museums",
+      "What historical places can I visit in Barcelona?",
+      "Suggest a 3-day itinerary for Barcelona",
+      "Best family-friendly places in Barcelona"
+    ]
+  }},
+  "intents": [
+    {{ "intent": "recommendation", "cities": ["Barcelona"] }}
+  ],
+  "prompt_language": "en",
+  "plan": {{
+    "summary": "Offering options to tailor your Barcelona trip.",
+    "steps": [
+      {{ "id": "s1", "label": "Offer focus options", "kind": "synthesize", "status": "idle" }}
     ]
   }},
   "search_queries": [],
