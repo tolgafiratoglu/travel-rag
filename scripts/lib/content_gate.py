@@ -18,7 +18,7 @@ The goal is NOT to preserve every valid encyclopedic fact.
 The goal is to build a deliberately conservative tourism corpus.
 
 If information is unnecessary for answering normal tourism questions and
-introduces political, legal, reputational, gambling, extremist, criminal,
+introduces political, legal, reputational, extremist, criminal,
 or similar controversy, reject it.
 
 Answer these questions (JSON booleans):
@@ -27,7 +27,7 @@ Answer these questions (JSON booleans):
    OR does it contain personal accusations against named individuals,
    OR brand/reputation-damaging claims,
    OR content likely to spark social/political controversy,
-   OR gambling/extremist/criminal/reputational risk beyond ordinary tourism needs?
+   OR extremist/criminal/reputational risk beyond ordinary tourism needs?
 
 Return ONLY valid JSON (no markdown fences):
 {{

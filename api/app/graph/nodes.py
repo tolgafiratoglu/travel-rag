@@ -437,17 +437,18 @@ First identify the user's core request and any modifiers or constraints.
 If the provided sources are irrelevant to the core request, say that the answer is not available in the provided sources.
 
 If the sources support a material part of the core request but do not fully answer the question, give a partial answer:
-- state what the sources do support,
+- lead with the useful answer from the sources (do not open with a meta disclaimer),
 - cite the supporting sources,
-- clearly state what is missing or not explicitly covered,
+- state what is missing or not explicitly covered briefly near the end,
 - do not fill missing details with assumptions.
 
 If the sources support related information but not the exact requested attribute, present it as limited context, not as a direct answer.
 
-Write hedging and gap phrases in {language_name} (prompt_language={prompt_language}), for example in English:
-"Sources do not fully answer this question, but they support the following..."
+When a gap phrase is needed, write it in {language_name} (prompt_language={prompt_language}) and place it near the end, for example in English:
+"Visiting hours, transit times, and ticketing details are not stated in the sources."
 or
-"X is not explicitly stated in the sources, but Y is available..."
+"X is not explicitly stated in the sources."
+Do not open with "Sources do not fully answer this question..." when the sources already support a solid partial answer.
 (Adapt these examples to {language_name}.)
 
 Do not infer labels such as family-friendly, cheap, safe, romantic, accessible, best, or suitable unless the sources explicitly support them.
@@ -457,7 +458,7 @@ Reject completely only when no source supports any material part of the user's c
 Safety constraints (apply even when sources contain the information):
 - Do not name or discuss celebrities, public figures, or commercial brands/products unless the user asked for that specifically and it is essential to a tourism answer; when in doubt, omit. Place names (museums, districts, landmarks) are fine.
 - Do not give advice, instructions, or framing that could constitute or encourage illegal activity under Turkish law.
-- Do not recommend or highlight topics likely to be socially controversial or poorly received in Turkish society (e.g. casinos, gambling, LGBT venues/events, or similar). Prefer mainstream tourism alternatives or omit.
+- Do not recommend or highlight topics likely to be socially controversial or poorly received in Turkish society. Prefer mainstream tourism alternatives or omit.
 - If the only source-backed content would violate these rules, refuse that part and say you cannot include it."""
 
 COMPARISON_GROUNDING_ADDENDUM = """
@@ -474,13 +475,27 @@ Comparison tasks (when ### Task focus: comparison is present):
 - If a specific dimension lacks evidence for one or both subjects, mention that briefly
   near the end — not in the opening sentences."""
 
+PLANNING_GROUNDING_ADDENDUM = """
+Planning / itinerary tasks (when ### Task focus: planning is present):
+- An itinerary does not require a source that already contains a day-by-day plan.
+  You may synthesize a sequenced plan from separately sourced sights, districts, and POIs,
+  as long as each factual claim is cited.
+- Do not treat the absence of ready-made day splits, clock times, or transit durations as
+  "sources do not fully answer"; open directly with the itinerary.
+- Still apply all grounding rules: no invented opening hours, travel times, ticket prices,
+  or unverified logistics.
+- Mention missing operational details (hours, transit, tickets) briefly near the end —
+  not in the opening sentences."""
+
 INTENT_INSTRUCTIONS: dict[str, str] = {
     "factoid": """### Task focus: factoid
 Answer with concrete facts from the sources. Prefer short, cited statements.""",
     "recommendation": """### Task focus: recommendation
 Suggest options only when the sources support them. Explain brief tradeoffs with citations.""",
     "planning": """### Task focus: planning
-Structure the answer as a sequenced plan (e.g. day-by-day). Note gaps instead of inventing times or logistics.""",
+Structure the answer as a sequenced plan (e.g. day-by-day). Open with the plan itself —
+do not lead with a sources-disclaimer. Note gaps (hours, transit, tickets) briefly at the end
+instead of inventing times or logistics.""",
     "comparison": """### Task focus: comparison
 
 Produce a comparative synthesis, not two separate summaries.
@@ -1135,19 +1150,29 @@ def _build_external_links_section(state: GraphState) -> str:
     )
 
 
-def _has_comparison_intent(state: GraphState) -> bool:
-    if state.get("primary_intent") == "comparison":
+def _has_intent(state: GraphState, intent: str) -> bool:
+    if state.get("primary_intent") == intent:
         return True
     for slot in state.get("intents") or []:
-        if isinstance(slot, dict) and slot.get("intent") == "comparison":
+        if isinstance(slot, dict) and slot.get("intent") == intent:
             return True
     return False
+
+
+def _has_comparison_intent(state: GraphState) -> bool:
+    return _has_intent(state, "comparison")
+
+
+def _has_planning_intent(state: GraphState) -> bool:
+    return _has_intent(state, "planning")
 
 
 def _build_grounding_policy(state: GraphState, lang: dict[str, str]) -> str:
     policy = GROUNDING_POLICY.format(**lang)
     if _has_comparison_intent(state):
         policy += COMPARISON_GROUNDING_ADDENDUM
+    if _has_planning_intent(state):
+        policy += PLANNING_GROUNDING_ADDENDUM
     return policy
 
 
