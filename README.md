@@ -1,28 +1,28 @@
 # Travel RAG
 
-Seyahat soruları için çok adımlı Retrieval-Augmented Generation sistemi.  
-**LangGraph** ile orkestrasyon, **Qdrant** ile vektör arama, **Neo4j** ile yapılandırılmış aday/kısıt (şema: [`neo4j.md`](./neo4j.md)), **Next.js** sohbet arayüzü.
+A multi-step Retrieval-Augmented Generation system for travel questions.  
+Orchestrated with **LangGraph**, vector search with **Qdrant**, structured candidates/constraints with **Neo4j** (schema: [`neo4j.md`](./neo4j.md)), and a **Next.js** chat UI.
 
-| Rol | Teknoloji |
-|-----|-----------|
+| Role | Technology |
+|------|------------|
 | Generation (default) | Gemini `gemini-2.5-flash-lite` |
 | Generation (local) | Qwen via Ollama (`LLM_PROVIDER=qwen`) |
 | Embeddings | Ollama **`bge-m3`** |
 | Safety guard | Ollama `sileader/qwen3guard:0.6b` |
 | Vector DB | Qdrant (`travel_chunks`, `travel_museums`, `travel_historical_sites`) |
-| Graph DB | Neo4j 5 — `IN_*` / `CONNECTED_BY` / `DAY_TRIP_FROM` (bkz. `neo4j.md`) |
+| Graph DB | Neo4j 5 — `IN_*` / `CONNECTED_BY` / `DAY_TRIP_FROM` (see `neo4j.md`) |
 | API | FastAPI + WebSocket |
 | UI | Next.js App Router + React + Tailwind |
 
-Pipeline: **[`LANGGRAPH.md`](./LANGGRAPH.md)**. Graph şema: **[`neo4j.md`](./neo4j.md)**.
+Pipeline: **[`LANGGRAPH.md`](./LANGGRAPH.md)**. Graph schema: **[`neo4j.md`](./neo4j.md)**.
 
 ---
 
-## Mimari (özet)
+## Architecture (overview)
 
 ```
 Browser (Next.js :3000)
-    │  WS /ws/chat  (tek soru = tek bağlantı)
+    │  WS /ws/chat  (one question = one connection)
     ▼
 FastAPI (:8000)
     │
@@ -36,35 +36,35 @@ LangGraph
               └─ else → Wikipedia guide → synthesize
     │
     ├── Qdrant (guide + optional POI collections)
-    ├── Neo4j (aday / kısıt — neo4j.md)
-    ├── Gemini veya Ollama/Qwen (generation)
+    ├── Neo4j (candidates / constraints — neo4j.md)
+    ├── Gemini or Ollama/Qwen (generation)
     └── Ollama (embeddings + guard)
 ```
 
-İki aşamalı UX: önce plan özeti (WS `plan`), sonra retrieval adımları (`step`), sonra kaynaklı cevap (`done`). Citation formatı `[1]`, `[2]`, …; FE kaynakçayı Chicago tarzında listeler.
+Two-phase UX: plan summary first (WS `plan`), then retrieval steps (`step`), then a cited answer (`done`). Citation format `[1]`, `[2]`, …; the frontend lists references in Chicago style.
 
 ---
 
-## Neden bu şekil?
+## Why this design?
 
-- **LangGraph** — tek zincir yerine plan → route → retrieve → synthesize; chitchat ve deep POI ayrı path.
-- **Plan-first WS** — kullanıcı boş ekranda beklemez; sistem ne yapacağını erken gösterir.
-- **City-aware Qdrant filter** — planner `SearchQuery { q, city }` ile şehir metadata’sına pinler (`ANY` = filtresiz).
-- **Neo4j templates** — günübirlik / bağlantı / havalimanı gibi kısıtlar; LLM Cypher yok (`needs_graph` + allowlist).
-- **Deep search** — müze / tarihi alan koleksiyonları; `deep_search` bunları açar.
-- **Section allowlist (ingest)** — See / Do / Get in vb.; Sleep / Eat gibi ticari gürültü yok.
-- **Ollama Semaphore(1)** — yalnızca local Qwen generation için GPU sırası; Gemini HTTP.
+- **LangGraph** — plan → route → retrieve → synthesize instead of a single chain; separate paths for chitchat and deep POI.
+- **Plan-first WS** — users are not left on a blank screen; the system shows what it will do early.
+- **City-aware Qdrant filter** — the planner pins searches with `SearchQuery { q, city }` on city metadata (`ANY` = no filter).
+- **Neo4j templates** — constraints such as day trips / connections / airports; no LLM-generated Cypher (`needs_graph` + allowlist).
+- **Deep search** — museum / historical-site collections; `deep_search` turns them on.
+- **Section allowlist (ingest)** — See / Do / Get in, etc.; skips commercial noise like Sleep / Eat.
+- **Ollama Semaphore(1)** — GPU queue for local Qwen generation only; Gemini uses HTTP.
 
 ---
 
-## Veri akışı
+## Data flow
 
 ### Ingest (offline)
 
 ```
 data/wiki/sources.json ──▶ scripts/parse-wiki-pages.py ──▶ PostgreSQL wp_pages (+ wp_gov_links *.gov.*)
                               ├─▶ scripts/ingest-wiki-qdrant.py ──▶ Qdrant travel_chunks
-                              └─▶ scripts/ingest-wiki-neo4j.py  ──▶ Neo4j City/Country + ilişkiler
+                              └─▶ scripts/ingest-wiki-neo4j.py  ──▶ Neo4j City/Country + relationships
 
 data/wiki/museums.json + historical_sites.json
   ──▶ parse-wikipedia-pois.py ──▶ wp_pois
@@ -72,25 +72,32 @@ data/wiki/museums.json + historical_sites.json
   ──▶ ingest-neo4j-places.py   ──▶ Neo4j Place + IN_CITY
 ```
 
-Guide chunk’lar: Wikipedia HTML → `chunk_by_title`. Wipe varsayılan; ek sayfa için `--no-wipe`.
+Guide chunks: Wikipedia HTML → `chunk_by_title`. Wipe is the default; use `--no-wipe` to add pages.
+
+**Wikipedia / data license:** Source lists and POI metadata under `data/wiki/` are based on
+[Wikipedia](https://www.wikipedia.org/) content. Wikipedia text is available under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) (and compatible earlier
+versions); reuse requires attribution and share-alike. Application code in this repository
+is separately covered by [`LICENSE`](./LICENSE) (All rights reserved) — the Wikipedia
+content license does not change the code license.
 
 ### Query (online)
 
 1. Guard → planner JSON (`needs_graph` / `graph_queries` / deep / vector)  
-2. İsteğe bağlı Neo4j template’ler (aday + kısıt)  
-3. İsteğe bağlı müze/tarihi Qdrant  
+2. Optional Neo4j templates (candidates + constraints)  
+3. Optional museum/historical Qdrant  
 4. Wikipedia guide Qdrant (`travel_chunks`)  
-5. Synthesize: kaynak dedupe, `[n]` citation  
+5. Synthesize: source dedupe, `[n]` citations  
 
-Detay: `LANGGRAPH.md`, `neo4j.md`.
+Details: `LANGGRAPH.md`, `neo4j.md`.
 
 ---
 
 ## Tech stack
 
-| Katman | Seçim |
-|--------|--------|
-| LLM | `gemini` (default) veya `qwen` (Ollama) |
+| Layer | Choice |
+|-------|--------|
+| LLM | `gemini` (default) or `qwen` (Ollama) |
 | Embed | `bge-m3` @ Ollama |
 | Vector | Qdrant |
 | Graph | Neo4j Community 5.x |
@@ -102,13 +109,13 @@ Detay: `LANGGRAPH.md`, `neo4j.md`.
 
 ---
 
-## Proje yapısı
+## Project layout
 
 ```
 travel-rag/
 ├── docker-compose.yml       # ollama, api, qdrant, neo4j, postgres
 ├── .env.example
-├── LANGGRAPH.md             # pipeline referansı
+├── LANGGRAPH.md             # pipeline reference
 ├── README.md
 │
 ├── api/
@@ -122,7 +129,7 @@ travel-rag/
 │       ├── graph/           # state, nodes, edges, builder
 │       └── models/          # schemas, planner, …
 │
-├── web/                     # Next.js chat UI (lokal npm run dev)
+├── web/                     # Next.js chat UI (local npm run dev)
 │   └── src/
 │       ├── components/chat/
 │       ├── hooks/useChatStream.ts
@@ -139,11 +146,11 @@ travel-rag/
 
 ---
 
-## Docker ağı
+## Docker network
 
 ```
 Host
-  ├── :3000  web (npm run dev — compose’da değil)
+  ├── :3000  web (npm run dev — not in compose)
   ├── :8000  api
   ├── :6333  qdrant
   ├── :7474/:7687  neo4j
@@ -155,23 +162,23 @@ llm_internal network: api ↔ ollama, qdrant, neo4j, postgres
 
 ---
 
-## Çalıştırma
+## Running
 
 ### Backend
 
 ```bash
 cp .env.example .env
 mkdir -p ~/.config/rag
-# Gemini kullanacaksan:
+# If you use Gemini:
 echo 'GEMINI_API_KEY=...' >> ~/.config/rag/.env
 
 docker compose up -d
-./scripts/init-ollama.sh    # bge-m3, guard, isteğe bağlı qwen
+./scripts/init-ollama.sh    # bge-m3, guard, optional qwen
 ```
 
-API: `http://127.0.0.1:8000` (host portları yalnızca localhost).  
-VPS: `docker compose -f docker-compose.prod.yml up -d` — bkz. [`deploy.md`](./deploy.md) §4.  
-Kod değişince: `docker compose up -d --build api`.
+API: `http://127.0.0.1:8000` (host ports are localhost-only).  
+VPS: `docker compose -f docker-compose.prod.yml up -d` — see [`deploy.md`](./deploy.md) §4.  
+After code changes: `docker compose up -d --build api`.
 
 ### Frontend
 
@@ -183,12 +190,12 @@ npm run dev
 # http://localhost:3000
 ```
 
-Sohbet **WS `/ws/chat`** üzerinden gider.
+Chat goes over **WS `/ws/chat`**.
 
-### Ingest (örnek)
+### Ingest (examples)
 
 ```bash
-# venv + host’tan servislere erişim
+# venv + access services from the host
 ./scripts/setup-venv.sh
 export POSTGRES_HOST=localhost QDRANT_URL=http://localhost:6333 \
   OLLAMA_BASE_URL=http://localhost:11434 OLLAMA_EMBED_MODEL=bge-m3
@@ -198,7 +205,7 @@ export POSTGRES_HOST=localhost QDRANT_URL=http://localhost:6333 \
 .venv/bin/python scripts/ingest-wiki-qdrant.py --city Istanbul --dry-run
 .venv/bin/python scripts/ingest-wiki-qdrant.py --country Turkey
 
-# Wikipedia → Neo4j (anchors; + Gemini ilişkileri)
+# Wikipedia → Neo4j (anchors; + Gemini relations)
 .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbul --anchors-only
 LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbul
 
@@ -215,21 +222,21 @@ QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
   .venv/bin/python eval/run_retrieval_eval.py
 ```
 
-Detay: [`deploy.md`](./deploy.md) §10.
+Details: [`deploy.md`](./deploy.md) §10.
 
 ---
 
-## Ortam değişkenleri
+## Environment variables
 
-İki dosya:
+Two files:
 
-1. **Proje `.env`** (`.env.example`’dan) — provider, model, URL’ler  
-2. **Secrets** `~/.config/rag/.env` — `GEMINI_API_KEY` (commit etme)
+1. **Project `.env`** (from `.env.example`) — provider, models, URLs  
+2. **Secrets** `~/.config/rag/.env` — `GEMINI_API_KEY` (do not commit)
 
-Önemli anahtarlar (özet):
+Important keys (summary):
 
 ```env
-LLM_PROVIDER=gemini          # veya qwen
+LLM_PROVIDER=gemini          # or qwen
 GEMINI_MODEL=gemini-2.5-flash-lite
 SECRETS_ENV_PATH=~/.config/rag/.env
 
@@ -249,33 +256,33 @@ NEO4J_URI=bolt://neo4j:7687
 
 ---
 
-## API / istemci
+## API / client
 
-| Endpoint | Rol |
-|----------|-----|
-| `WS /ws/chat` | Sohbet (plan, step, done, sources) |
-| `GET /health/*` | Canlılık |
+| Endpoint | Role |
+|----------|------|
+| `WS /ws/chat` | Chat (plan, step, done, sources) |
+| `GET /health/*` | Liveness |
 
-`done` payload özeti: `answer`, `sources`, `plan`, intent / search flag’leri, hotel/flight query URL’leri.
+`done` payload summary: `answer`, `sources`, `plan`, intent / search flags, hotel/flight query URLs.
 
-FE: markdown cevap, `[n]` → kaynak linki, References listesi.
+Frontend: markdown answers, `[n]` → source links, References list.
 
 ---
 
-## Mevcut durum (dürüst özet)
+## Current status (honest summary)
 
-**Var**
+**In place**
 
 - Guard + planner + deep/guide retrieval + synthesize  
-- Neo4j v1: şema + ingest + `needs_graph` / template Cypher (`neo4j.md`)  
-- City filter, kaynak dedupe, `[n]` citation + FE References  
+- Neo4j v1: schema + ingest + `needs_graph` / template Cypher (`neo4j.md`)  
+- City filter, source dedupe, `[n]` citations + FE References  
 - Wikipedia city/guide ingest + POI → Qdrant + Place nodes  
 - Rate limit, Docker Compose stack  
 
-**Sonraki / zayıf halkalar**
+**Next / weak spots**
 
-- Graph aday → Qdrant name/QID enrich (`neo4j.md` Runtime §4; ROADMAP **2.A**) — şu an graph yalnızca kısıt/metin bağlamı  
-- Rerank, groundedness loop, multi-turn bellek yok  
-- Web henüz compose servisi değil  
+- Graph candidates → Qdrant name/QID enrich (`neo4j.md` Runtime §4; ROADMAP **2.A**) — graph is currently constraint/text context only  
+- No rerank, groundedness loop, or multi-turn memory yet  
+- Web is not a compose service yet  
 
-LangGraph → **`LANGGRAPH.md`**. Neo4j şema (tek kaynak) → **`neo4j.md`**.
+LangGraph → **`LANGGRAPH.md`**. Neo4j schema (source of truth) → **`neo4j.md`**.

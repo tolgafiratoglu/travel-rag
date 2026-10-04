@@ -1,12 +1,12 @@
-# Neo4j — v1 şema (tasarım)
+# Neo4j — v1 schema (design)
 
-Hedef: Graph **aday + kısıt** üretir; Qdrant **anlatır**. Uzun prose burada tutulmaz.
+Goal: the graph produces **candidates + constraints**; Qdrant **explains**. Long prose is not stored here.
 
-LLM Cypher yazmaz. Planner template + param seçer; kod güvenli Cypher çalıştırır.
+The LLM does not write Cypher. The planner picks a template + params; code runs safe Cypher.
 
 ---
 
-## İlişki key’leri
+## Relationship keys
 
 ```
 IN_COUNTRY
@@ -18,36 +18,36 @@ DAY_TRIP_FROM
 
 ---
 
-## Node’lar
+## Nodes
 
-| Label | Kimlik / önemli alanlar |
-|-------|-------------------------|
+| Label | Identity / important fields |
+|-------|-----------------------------|
 | `Country` | `slug`, `name` |
 | `City` | `slug`, `name`, `aliases[]`, `wikidata_qid`, `lat`, `lon`, `source_url` |
 | `Place` | `slug`, `name`, `type`, `wikidata_qid`, `lat`, `lon`, `unesco`, `source_url` |
 | `Airport` | `slug`, `name`, `iata`, `source_url` |
 
-`Place.type` örnekleri: `museum` · `historical_site` · `attraction` · `natural_site` · `religious_site` · `archaeological_site`
+Example `Place.type` values: `museum` · `historical_site` · `attraction` · `natural_site` · `religious_site` · `archaeological_site`
 
 ---
 
-## İlişkiler
+## Relationships
 
-| Key | Yön | Edge property (v1) |
-|-----|-----|-------------------|
+| Key | Direction | Edge property (v1) |
+|-----|-----------|-------------------|
 | `IN_COUNTRY` | `(:City)-[:IN_COUNTRY]->(:Country)` | — |
 | `IN_CITY` | `(:Place)-[:IN_CITY]->(:City)` | — |
 | `SERVED_BY_AIRPORT` | `(:City)-[:SERVED_BY_AIRPORT]->(:Airport)` | — |
 | `CONNECTED_BY` | `(:City)-[:CONNECTED_BY]->(:City)` | `mode`, `duration_min`, `duration_max`, `direct`, `source_url`, `evidence_text`, `confidence` |
 | `DAY_TRIP_FROM` | `(:Place)-[:DAY_TRIP_FROM]->(:City)` | `one_way_minutes`, `mode`, `source_url`, `evidence_text`, `confidence` |
 
-Süreler **dakika**. Metinde yoksa `null` — uydurma yok.
+Durations are in **minutes**. If the text has none, use `null` — do not invent values.
 
 ---
 
-## Bilerek v1 dışı
+## Intentionally out of v1
 
-- `NEAR` edge (koordinat patlaması)
+- `NEAR` edges (coordinate explosion)
 - `Season` / `Activity` / `GOOD_FOR`
 - `Region` / `District`
 - Place→Place `PART_OF`
@@ -55,7 +55,7 @@ Süreler **dakika**. Metinde yoksa `null` — uydurma yok.
 
 ---
 
-## Küçük örnek (Antalya)
+## Small example (Antalya)
 
 ```
 (:Country {slug: "turkey", name: "Turkey"})
@@ -90,7 +90,7 @@ Süreler **dakika**. Metinde yoksa `null` — uydurma yok.
 (Antalya)-[:IN_COUNTRY]->(Turkey)
 (Antalya)-[:SERVED_BY_AIRPORT]->(AYT)
 
-(Perge)-[:IN_CITY]->(Antalya)          # coğrafi aidiyet (il/şehir bağlamı)
+(Perge)-[:IN_CITY]->(Antalya)          # geographic membership (province/city context)
 (AntalyaMuseum)-[:IN_CITY]->(Antalya)
 
 (Perge)-[:DAY_TRIP_FROM {
@@ -109,42 +109,42 @@ Süreler **dakika**. Metinde yoksa `null` — uydurma yok.
 }]->(Antalya)
 ```
 
-Okuma: *Perge is a day trip from Antalya.*
+Reading: *Perge is a day trip from Antalya.*
 
 ---
 
-## Runtime (özet)
+## Runtime (summary)
 
 1. Planner: `needs_graph` + `graph_queries[{ template, params }]`
-2. Kod: sabit template Cypher
-3. Çıktan: Place/City id veya isim listesi
-4. Qdrant: o adayların metin chunk’ları
-5. Synthesize: süre/kısıt (graph) + anlatım (vector)
+2. Code: fixed template Cypher
+3. Output: Place/City id or name lists
+4. Qdrant: text chunks for those candidates
+5. Synthesize: duration/constraints (graph) + narrative (vector)
 
-### İlk template’ler
+### Initial templates
 
-| Template | Ne döner |
-|----------|----------|
-| `places_in_city` | Şehirdeki Place’ler (`type` filtre opsiyonel) |
-| `day_trips_from_city` | `DAY_TRIP_FROM` + `one_way_minutes` üst sınır |
-| `connection_between_cities` | İki city arası `CONNECTED_BY` |
+| Template | Returns |
+|----------|---------|
+| `places_in_city` | Places in a city (optional `type` filter) |
+| `day_trips_from_city` | `DAY_TRIP_FROM` with an upper bound on `one_way_minutes` |
+| `connection_between_cities` | `CONNECTED_BY` between two cities |
 | `airports_serving_city` | `SERVED_BY_AIRPORT` |
 
 ---
 
-## Ingest ilkesi
+## Ingest principle
 
-1. Deterministik: Country, City, Place (QID), Airport  
-2. LLM (az): Wikipedia şehir sayfasından **aday** `CONNECTED_BY` / `DAY_TRIP_FROM` / `SERVED_BY_AIRPORT`  
-3. Validate → evidence + confidence; süre yoksa null  
+1. Deterministic: Country, City, Place (QID), Airport  
+2. LLM (sparingly): **candidate** `CONNECTED_BY` / `DAY_TRIP_FROM` / `SERVED_BY_AIRPORT` from the Wikipedia city page  
+3. Validate → evidence + confidence; duration `null` if missing  
 
-Graph aday kümesini daraltır; Qdrant açıklar.
+The graph narrows the candidate set; Qdrant explains.
 
-### Script’ler (import)
+### Scripts (import)
 
-| Script | Ne yazar |
-|--------|----------|
-| `scripts/ingest-wiki-neo4j.py` | City, Country, `IN_COUNTRY`; opsiyonel Gemini ilişkileri (`wp_pages`) |
+| Script | Writes |
+|--------|--------|
+| `scripts/ingest-wiki-neo4j.py` | City, Country, `IN_COUNTRY`; optional Gemini relations (`wp_pages`) |
 | `scripts/ingest-neo4j-places.py` | `Place` + `IN_CITY` (`wp_pois`) |
 
 Flags: `--anchors-only`, `--wipe`, `--dry-run`, `--city`, `--country`.

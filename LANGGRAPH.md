@@ -1,12 +1,12 @@
 # Travel RAG — LangGraph Design
 
-Bu dosya **şu an çalışan** LangGraph pipeline’ını tanımlar. Kod: `api/app/graph/` (`state.py`, `nodes.py`, `edges.py`, `builder.py`).
+This file documents the **currently running** LangGraph pipeline. Code: `api/app/graph/` (`state.py`, `nodes.py`, `edges.py`, `builder.py`).
 
-Neo4j şema + template’ler: **[`neo4j.md`](./neo4j.md)** (graph = aday/kısıt; Qdrant = anlatım).
+Neo4j schema + templates: **[`neo4j.md`](./neo4j.md)** (graph = candidates/constraints; Qdrant = narrative).
 
 ---
 
-## Graph (mevcut)
+## Graph (current)
 
 ```
 START
@@ -21,19 +21,19 @@ START
                  └─ else → vector_retrieval → synthesize → format → END
 ```
 
-| Node | LLM? | Rol |
-|------|------|-----|
-| `intake` | Hayır | Soruyu normalize eder |
+| Node | LLM? | Role |
+|------|------|------|
+| `intake` | No | Normalizes the question |
 | `safety_guard` | Guard model (Ollama) | Prompt injection / unsafe input |
-| `planner_json` | **Evet (#1)** | Intent, plan, arama + opsiyonel `graph_queries` |
-| `chitchat` | **Evet** | Retrieval’sız kısa cevap |
-| `graph_retrieval` | Hayır | Neo4j allowlist template Cypher (`needs_graph`) |
-| `deep_retrieval` | Hayır (embed) | Müze + tarihi alan Qdrant koleksiyonları |
-| `vector_retrieval` | Hayır (embed) | Wikipedia guide chunk’ları |
-| `synthesize` | **Evet (#2)** | Kaynaklara dayalı cevap + citation |
-| `format` | Hayır | Pass-through (ileride post-process) |
+| `planner_json` | **Yes (#1)** | Intent, plan, search + optional `graph_queries` |
+| `chitchat` | **Yes** | Short answer without retrieval |
+| `graph_retrieval` | No | Neo4j allowlist template Cypher (`needs_graph`) |
+| `deep_retrieval` | No (embed) | Museum + historical-site Qdrant collections |
+| `vector_retrieval` | No (embed) | Wikipedia guide chunks |
+| `synthesize` | **Yes (#2)** | Source-grounded answer + citations |
+| `format` | No | Pass-through (future post-process) |
 
-**LLM çağrıları (tipik travel sorusu):** planner + synthesize (= 2). Chitchat’te 1. Guard ayrı küçük model.
+**LLM calls (typical travel question):** planner + synthesize (= 2). Chitchat uses 1. Guard is a separate small model.
 
 ---
 
@@ -42,15 +42,15 @@ START
 ```
 planner_json / chitchat / synthesize ──▶ llm.generate(prompt)
                                               ├─ gemini → Gemini API (default: gemini-2.5-flash-lite)
-                                              └─ qwen   → Ollama (qwen3:1.7b veya qwen3:8b)
+                                              └─ qwen   → Ollama (qwen3:1.7b or qwen3:8b)
 
-embeddings (her retrieval) ──▶ Ollama bge-m3
+embeddings (every retrieval) ──▶ Ollama bge-m3
 safety_guard               ──▶ Ollama sileader/qwen3guard:0.6b
 ```
 
-- **Seçim:** `.env` → `LLM_PROVIDER=gemini|qwen`
+- **Selection:** `.env` → `LLM_PROVIDER=gemini|qwen`
 - **Secrets:** `~/.config/rag/.env` → `GEMINI_API_KEY` (`SECRETS_ENV_PATH`)
-- **Ollama generation:** `asyncio.Semaphore(1)` (yerel GPU sırası). Gemini HTTP API; semaphore yalnızca Ollama yolunda.
+- **Ollama generation:** `asyncio.Semaphore(1)` (local GPU queue). Gemini is HTTP API; the semaphore applies only on the Ollama path.
 
 ---
 
@@ -75,10 +75,10 @@ is_flight_search         bool
 flight_search_query      str   # Kayak URL
 needs_graph              bool
 graph_queries            list[{template, params}]  # neo4j.md templates
-candidate_chunks         list[dict]            # retrieval adayları (reducer: her node ekler)
-selected_chunks          list[dict]            # synthesis'e verilen kanıtlar
-graph_contexts           list[{city, name?, text, source_url?, source?}]  # neo4j template sonuçları
-sources                  list[dict]            # cevapta atıf yapılan nihai kaynaklar, [1]…[n] sırası
+candidate_chunks         list[dict]            # retrieval candidates (reducer: each node appends)
+selected_chunks          list[dict]            # evidence passed to synthesis
+graph_contexts           list[{city, name?, text, source_url?, source?}]  # neo4j template results
+sources                  list[dict]            # final cited sources in answer order [1]…[n]
 answer                   str
 error                    str | None
 guard_label / guard_raw  …
@@ -91,21 +91,21 @@ planner_raw              str                   # debug
 
 `retrieval_router` (`edges.py`):
 
-| Koşul | Hedef |
-|--------|--------|
+| Condition | Target |
+|-----------|--------|
 | `error` set | `format` |
 | `primary_intent ∈ {chitchat, meta}` | `chitchat` |
-| `needs_graph == true` | `graph_retrieval` → sonra `deep` veya `vector` |
+| `needs_graph == true` | `graph_retrieval` → then `deep` or `vector` |
 | `deep_search == true` | `deep_retrieval` → `vector_retrieval` |
-| aksi | `vector_retrieval` |
+| else | `vector_retrieval` |
 
-`deep_search` yalnızca müze / tarihi Qdrant aramasını açar. Neo4j yalnızca `needs_graph` + allowlist `graph_queries` ile çalışır (LLM Cypher yok).
+`deep_search` only enables museum / historical Qdrant search. Neo4j runs only with `needs_graph` + allowlisted `graph_queries` (no LLM Cypher).
 
 ---
 
-## `planner_json` — tek LLM, çoklu çıktı
+## `planner_json` — one LLM, multiple outputs
 
-Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
+No separate intent / entity / rewrite nodes. A single call returns JSON:
 
 ```jsonc
 {
@@ -115,11 +115,11 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
   ],
   "prompt_language": "tr",
   "plan": {
-    "summary": "Antalya için 3 günlük müze odaklı bir plan çıkaracağım.",
+    "summary": "I'll build a 3-day museum-focused plan for Antalya.",
     "steps": [
-      { "id": "s1", "label": "Müzeleri ara", "kind": "museums", "status": "idle" },
-      { "id": "s2", "label": "Rehber metinlerini ara", "kind": "vector", "status": "idle" },
-      { "id": "s3", "label": "Cevabı yaz", "kind": "synthesize", "status": "idle" }
+      { "id": "s1", "label": "Search museums", "kind": "museums", "status": "idle" },
+      { "id": "s2", "label": "Search guide text", "kind": "vector", "status": "idle" },
+      { "id": "s3", "label": "Write the answer", "kind": "synthesize", "status": "idle" }
     ]
   },
   "search_queries": [
@@ -141,26 +141,26 @@ Ayrı intent / entity / rewrite node’ları yok. Tek çağrı JSON döner:
 }
 ```
 
-### Arama sorguları
+### Search queries
 
-- Her sorgu `{ "q": "...", "city": "CityName" | "ANY" }`.
-- `city` bilinen şehirde Qdrant `city_name` filtresi; `ANY` / omit → filtresiz.
-- Guide sorguları İngilizce; corpus temalarına uyumlu (landmarks, museums, transport, districts, cuisine…).
-- Rota süresi (“2 gün”, “5 day itinerary”) synthesis kısıtı — genelde `q` içine koyma; “top attractions” / “things to do” kaçın.
-- Rota / “ne görülür” / müze-tarih sorularında planner `deep_search` + ilgili POI sorgularını açmaya yönlendirilir.
+- Each query is `{ "q": "...", "city": "CityName" | "ANY" }`.
+- Known `city` applies a Qdrant `city_name` filter; `ANY` / omit → unfiltered.
+- Guide queries are English and aligned with corpus themes (landmarks, museums, transport, districts, cuisine…).
+- Trip duration (“2 days”, “5 day itinerary”) is a synthesis constraint — usually do not put it in `q`; avoid “top attractions” / “things to do”.
+- For itineraries / “what to see” / museum-history asks, the planner is steered to turn on `deep_search` and related POI queries.
 
-### Graph sorguları (`neo4j.md`)
+### Graph queries (`neo4j.md`)
 
-- Şema + ilişki + template listesi: **[`neo4j.md`](./neo4j.md)** (tek referans).
+- Schema + relationships + template list: **[`neo4j.md`](./neo4j.md)** (single reference).
 - `needs_graph` + `graph_queries: [{ template, params }]`.
 - Template allowlist: `places_in_city`, `day_trips_from_city`, `connection_between_cities`, `airports_serving_city`.
-- LLM Cypher yazmaz; kod `graph_store.GRAPH_TEMPLATES` çalıştırır.
-- **Hedef hibrit** (`neo4j.md` Runtime §4): graph aday → Qdrant name/QID enrich. **Şu an yok** — graph metin bağlamı + ayrı vector sorguları; köprü için ROADMAP **2.A**.
+- The LLM does not write Cypher; code runs `graph_store.GRAPH_TEMPLATES`.
+- **Target hybrid** (`neo4j.md` Runtime §4): graph candidates → Qdrant name/QID enrich. **Not implemented yet** — graph text context + separate vector queries; bridge is ROADMAP **2.A**.
 
 ### Plan `steps[].kind`
 
 `vector | museums | artifacts | graph | external | synthesize`  
-Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` / `primary_intent`.
+The last step is always `synthesize`. Real routing uses `needs_graph` / `deep_search` / `primary_intent`.
 
 ---
 
@@ -168,55 +168,55 @@ Son adım her zaman `synthesize`. Asıl routing: `needs_graph` / `deep_search` /
 
 ### `graph_retrieval_node`
 
-- Yalnızca `needs_graph` ve dolu `graph_queries` iken.
-- Allowlist template Cypher → satırları metne çevirir → `graph_contexts` (`source_url` edge/node’dan; citation için).
-- Graph adaylarıyla Qdrant’ı filtrelemez (bkz. yukarı — `neo4j.md` §4 / 2.A).
-- Sonra `after_graph_router`: deep varsa `deep_retrieval`, değilse `vector_retrieval`.
+- Only when `needs_graph` and `graph_queries` are non-empty.
+- Allowlist template Cypher → rows to text → `graph_contexts` (`source_url` from edge/node; for citations).
+- Does not filter Qdrant by graph candidates (see above — `neo4j.md` §4 / 2.A).
+- Then `after_graph_router`: `deep_retrieval` if deep, else `vector_retrieval`.
 
 ### `deep_retrieval_node`
 
-- Koleksiyonlar: `travel_museums`, `travel_historical_sites` (env).
+- Collections: `travel_museums`, `travel_historical_sites` (env).
 - `museum_search_queries` / `artifact_search_queries` + city filter.
-- Sonuç: `candidate_chunks` (`source_kind` = `museum` / `historical_site`).
+- Result: `candidate_chunks` (`source_kind` = `museum` / `historical_site`).
 
 ### `vector_retrieval_node`
 
-- Koleksiyon: `travel_chunks` (Wikipedia guide).
+- Collection: `travel_chunks` (Wikipedia guide).
 - `search_queries` + city filter.
-- Sonuç: `candidate_chunks` (`source_kind` = `guide`).
+- Result: `candidate_chunks` (`source_kind` = `guide`).
 
-Her iki retrieval node'u da aday havuzunu `vector_store.search_candidates`
-üzerinden kurar: Qdrant `section_id` ile **sunucu tarafında** gruplar,
-sorgu başına `candidate_sections` farklı section ve her section'dan
-`candidates_per_section` parça döner. Section başına tek parça kısıtı yok;
-düz bir top-k listesini sonradan kırpmak, o listede hiç yer almamış bir
-section'ı bulduramaz.
+Both retrieval nodes build the candidate pool via `vector_store.search_candidates`:
+Qdrant groups **server-side** by `section_id`, returning
+`candidate_sections` distinct sections per query and
+`candidates_per_section` chunks from each. There is no “one chunk per section”
+hard cap; truncating a flat top-k list later cannot recover a section that never
+appeared in that list.
 
-Aday havuzunda global score sıralaması **yapılmaz** — farklı sorguların cosine
-skorlarını karşılaştırmak anlamlı değil.
+There is **no** global score sort across the candidate pool — comparing cosine
+scores from different queries is not meaningful.
 
 ### `select_node`
 
-Aday havuzu ile synthesis arasındaki tek seçim aşaması.
+The only selection stage between the candidate pool and synthesis.
 
-- Gerçek mükerrerleri `(collection, chunk_id)` ile atar.
-- Bütçeyi (`max_selected_chunks`) iki düzeyli round-robin ile paylaştırır:
-  - **lane** = bir planner sorgusu × bir koleksiyon → museum/historical/guide
-    ve her şehir temsil edilir, tek akış bütçeyi yemez.
-  - **section** = lane içinde, aynı section'ın ikinci parçasına geçmeden önce
-    her section'dan birer parça.
-- Koşullu reranker (`RERANK_MODE` + `RERANK_PROVIDER=bge`):
-  - Üretim: BGE cross-encoder (`BAAI/bge-reranker-v2-m3` via FlagEmbedding).
-  - `off` — skorlama yok
-  - `always` — her zaman skorla
-  - `conditional` — yalnızca aday havuzu bütçeyi aşınca skorla
-  - Sağlayıcı hatası selection'ı durdurmaz (`rerank_status=fallback`);
-    normal skip (`skipped`) ile ayrı kaydedilir.
-  - `llm` sağlayıcısı yalnızca debug; production'da kullanılmaz.
-- Sunum sırasını verir: **museum → historical → guide** (stabil sort).
-- Sonuç: `selected_chunks` (+ `rerank_status` / `rerank_reason`).
+- Drops true duplicates by `(collection, chunk_id)`.
+- Allocates the budget (`max_selected_chunks`) with two-level round-robin:
+  - **lane** = one planner query × one collection → museum/historical/guide
+    and each city are represented; one stream cannot consume the whole budget.
+  - **section** = within a lane, take one chunk from each section before a
+    second chunk from the same section.
+- Conditional reranker (`RERANK_MODE` + `RERANK_PROVIDER=bge`):
+  - Production: BGE cross-encoder (`BAAI/bge-reranker-v2-m3` via FlagEmbedding).
+  - `off` — no scoring
+  - `always` — score every time
+  - `conditional` — score only when the candidate pool exceeds the budget
+  - Provider failure does not stop selection (`rerank_status=fallback`);
+    normal skip is recorded separately (`skipped`).
+  - The `llm` provider is debug-only; not used in production.
+- Presentation order: **museum → historical → guide** (stable sort).
+- Result: `selected_chunks` (+ `rerank_status` / `rerank_reason`).
 
-Her adayda kökeni taşıyan alanlar bulunur: `collection`, `source_kind`,
+Each candidate carries provenance fields: `collection`, `source_kind`,
 `chunk_id`, `section_id`, `section_chunk_seq`, `section_chunk_total`,
 `query`, `query_city`, `query_index`.
 
@@ -224,25 +224,25 @@ Her adayda kökeni taşıyan alanlar bulunur: `collection`, `source_kind`,
 
 ## `synthesize_node`
 
-0. Girdi `selected_chunks` (aday havuzu değil) + `graph_contexts`.
-1. Aynı `section_id` altındaki parçaları tek atıfta birleştirir:
-   - `[Name / Section]` başlığı bir kez yazılır
-   - gövdeler `section_chunk_seq` sırasıyla birleşir
-   - atlanan kardeş parçalar `[…]` ile işaretlenir
-2. Sunum sırası: **museum → historical → guide → graph**.
-3. Numaralandırma: `[1]`, `[2]`, … (artık `[S1]` yok).
-4. Intent’e göre ek talimat (factoid / recommendation / planning / comparison / logistics). Comparison → markdown tablo (≤5 satır).
-5. Grounding: yalnızca verilen kaynaklar; kısmi cevap politikası.
-6. Hotel/flight URL’leri varsa prompt’a harici link bölümü eklenir.
-7. Çıktı: `answer` + `sources` (citation sırasıyla aynı liste).
+0. Input is `selected_chunks` (not the full candidate pool) + `graph_contexts`.
+1. Merges chunks under the same `section_id` into one citation:
+   - `[Name / Section]` heading written once
+   - bodies joined in `section_chunk_seq` order
+   - skipped sibling chunks marked with `[…]`
+2. Presentation order: **museum → historical → guide → graph**.
+3. Numbering: `[1]`, `[2]`, … (`[S1]` is gone).
+4. Extra instructions by intent (factoid / recommendation / planning / comparison / logistics). Comparison → markdown table (≤5 rows).
+5. Grounding: only provided sources; partial-answer policy.
+6. If hotel/flight URLs exist, an external-links section is added to the prompt.
+7. Output: `answer` + `sources` (same order as citations).
 
-FE: metindeki `[n]` → `sources[n-1].source_url` linki; altta Chicago tarzı **References**.
+FE: `[n]` in text → link to `sources[n-1].source_url`; Chicago-style **References** below.
 
 ---
 
 ## WebSocket (`WS /ws/chat`)
 
-**Single-shot:** bir soru = bir bağlantı; `done` / `error` sonrası server kapatır.
+**Single-shot:** one question = one connection; server closes after `done` / `error`.
 
 ### Client → server
 
@@ -252,37 +252,37 @@ FE: metindeki `[n]` → `sources[n-1].source_url` linki; altta Chicago tarzı **
 
 ### Server → client
 
-| Event | Ne zaman |
-|--------|----------|
-| `status` | Bağlantı sonrası hemen |
-| `plan` | `planner_json` sonrası (`summary`, `steps`) |
-| `step` | Retrieval / synthesize ilerleme (`kind`, `status`, `detail`) |
-| `done` | Cevap + `sources` + planner alanları; WS kapanır |
-| `error` | Guard / planner / runtime; WS kapanır |
+| Event | When |
+|-------|------|
+| `status` | Immediately after connect |
+| `plan` | After `planner_json` (`summary`, `steps`) |
+| `step` | Retrieval / synthesize progress (`kind`, `status`, `detail`) |
+| `done` | Answer + `sources` + planner fields; WS closes |
+| `error` | Guard / planner / runtime; WS closes |
 
-Token-by-token stream şu an `astream(updates)` üzerinden node güncellemeleri ile ilerler; UI plan + step + final answer gösterir. Markdown (GFM) `MessageBubble` içinde render edilir.
+Token-by-token stream currently progresses via node updates on `astream(updates)`; the UI shows plan + step + final answer. Markdown (GFM) is rendered in `MessageBubble`.
 
 Rate limit: in-memory per IP (`RATE_LIMIT_*` env).
 
 ---
 
-## Bilinçli olarak henüz yok
+## Intentionally not present yet
 
-- Ayrı intent / entity / slot / clarify node’ları
+- Separate intent / entity / slot / clarify nodes
 - Rerank / cross-encoder
 - Groundedness / completeness loop
 - LLM-generated Cypher
-- Multi-turn bellek / anaphora resolver
+- Multi-turn memory / anaphora resolver
 
-Bunlar hedef genişletmeler; mevcut ürün yukarıdaki graph’tır.
+Those are target extensions; the current product is the graph above.
 
 ---
 
-## Tasarım notları
+## Design notes
 
-- **2 LLM** (planner + synthesize) — maliyet/gecikme dengesi.
-- **Plan UX** boş ekranı keser; routing flag’lerden gelir.
-- **City-aware vector filter** gürültüyü azaltır.
-- **Section allowlist** (ingest) sleep/eat vb. ticari gürültüyü keser — bkz. README ingest.
-- **Citation index = sources list index** — FE remap’siz.
-- Node’lar: state in → partial state out; yan etki = dış servis + WS emit.
+- **2 LLM** (planner + synthesize) — cost/latency balance.
+- **Plan UX** cuts the blank-screen wait; routing comes from flags.
+- **City-aware vector filter** reduces noise.
+- **Section allowlist** (ingest) drops commercial noise such as sleep/eat — see README ingest.
+- **Citation index = sources list index** — no FE remap.
+- Nodes: state in → partial state out; side effects = external services + WS emit.
