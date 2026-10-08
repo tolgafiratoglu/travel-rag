@@ -266,15 +266,15 @@ Rate limit: in-memory per IP (`RATE_LIMIT_*` env).
 
 ---
 
-## Intentionally not present yet
+## Intentionally thin / still open
 
-- Separate intent / entity / slot / clarify nodes
-- Rerank / cross-encoder
-- Groundedness / completeness loop
-- LLM-generated Cypher
-- Multi-turn memory / anaphora resolver
+- Separate intent / entity / slot nodes (clarify + out_of_scope exist as routes)
+- Groundedness / completeness **loop** (prompt grounding + citation filter exist; no judge loop)
+- LLM-generated Cypher (templates only — by design)
+- Durable multi-turn memory / anaphora resolver (optional history attach exists)
+- Rerank in the default Docker image (`RERANK_PROVIDER=none` until packaging FlagEmbedding/torch); code path exists in `select_node`
 
-Those are target extensions; the current product is the graph above.
+Those are the main gaps; the current product is the graph above.
 
 ---
 
