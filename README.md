@@ -217,9 +217,18 @@ LLM_PROVIDER=gemini .venv/bin/python scripts/ingest-wiki-neo4j.py --city Istanbu
 
 ### Retrieval eval
 
+Measures Hit@k / Recall@k / Precision@k / MRR plus `city_coverage` /
+`section_coverage` against `eval/golden/retrieval.json`. Uses the API’s own
+retrieval + `select_node` (not a fork).
+
 ```bash
 QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
-  .venv/bin/python eval/run_retrieval_eval.py
+  .venv/bin/python eval/validate_golden.py
+QDRANT_URL=http://localhost:6333 OLLAMA_BASE_URL=http://localhost:11434 \
+  .venv/bin/python eval/run_retrieval_eval.py --mode pipeline --k 10
+
+# Modes: flat | flat-nodedupe | grouped | pipeline
+# Rerank (needs RERANK_PROVIDER=bge): --rerank off|conditional|always
 ```
 
 Details: [`deploy.md`](./deploy.md) §10.
@@ -279,7 +288,7 @@ Frontend: markdown answers, `[n]` → source links, References list.
 - Conditional reranker plumbing (BGE/http; Docker default provider `none` until FlagEmbedding is packaged)  
 - Optional chat history attach (`include_history`); clarify / out-of-scope routes  
 - Wikipedia city/guide ingest + POI → Qdrant + Place nodes  
-- Rate limit, Docker Compose stack, retrieval eval (Hit@K / Recall@K / MRR)
+- Rate limit, Docker Compose stack, retrieval eval (Hit@K / Recall@K / Precision@K / MRR + coverage; modes + optional `--rerank`)
 
 **Next / weak spots**
 
