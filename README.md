@@ -273,16 +273,19 @@ Frontend: markdown answers, `[n]` → source links, References list.
 
 **In place**
 
-- Guard + planner + deep/guide retrieval + synthesize  
+- Guard + planner + deep/guide retrieval + select + synthesize  
 - Neo4j v1: schema + ingest + `needs_graph` / template Cypher (`neo4j.md`)  
-- City filter, source dedupe, `[n]` citations + FE References  
+- City filter, section-aware candidate pool, `[n]` citations + FE References  
+- Conditional reranker plumbing (BGE/http; Docker default provider `none` until FlagEmbedding is packaged)  
+- Optional chat history attach (`include_history`); clarify / out-of-scope routes  
 - Wikipedia city/guide ingest + POI → Qdrant + Place nodes  
-- Rate limit, Docker Compose stack  
+- Rate limit, Docker Compose stack, retrieval eval (Hit@K / Recall@K / MRR)
 
 **Next / weak spots**
 
 - Graph candidates → Qdrant name/QID enrich (`neo4j.md` Runtime §4; ROADMAP **2.A**) — graph is currently constraint/text context only  
-- No rerank, groundedness loop, or multi-turn memory yet  
-- Web is not a compose service yet  
+- No groundedness / completeness **loop** (prompt grounding only)  
+- No durable multi-turn memory / anaphora resolver  
+- Web is not a compose service yet; enable `RERANK_PROVIDER=bge` in the API image when ready  
 
 LangGraph → **`LANGGRAPH.md`**. Neo4j schema (source of truth) → **`neo4j.md`**.
