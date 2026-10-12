@@ -9,6 +9,15 @@ _client: genai.Client | None = None
 _MAX_OUTPUT_TOKENS = 4096
 
 
+def _generation_config() -> types.GenerateContentConfig:
+    # Gemini 3.x: do not set temperature/top_p/top_k (deprecated → future 400).
+    # Flash-Lite: thinking_level=minimal keeps latency low for travel RAG.
+    return types.GenerateContentConfig(
+        max_output_tokens=_MAX_OUTPUT_TOKENS,
+        thinking_config=types.ThinkingConfig(thinking_level="minimal"),
+    )
+
+
 def _get_client() -> genai.Client:
     global _client
     if _client is None:
@@ -45,15 +54,10 @@ class GeminiProvider:
             return "".join(parts)
 
         client = _get_client()
-        config = types.GenerateContentConfig(
-            temperature=0.3,
-            top_p=0.9,
-            max_output_tokens=_MAX_OUTPUT_TOKENS,
-        )
         response = await client.aio.models.generate_content(
             model=model or settings.gemini_model,
             contents=prompt,
-            config=config,
+            config=_generation_config(),
         )
         return _extract_text(response)
 
@@ -64,15 +68,10 @@ class GeminiProvider:
         model: str | None = None,
     ) -> AsyncIterator[str]:
         client = _get_client()
-        config = types.GenerateContentConfig(
-            temperature=0.3,
-            top_p=0.9,
-            max_output_tokens=_MAX_OUTPUT_TOKENS,
-        )
         async for chunk in await client.aio.models.generate_content_stream(
             model=model or settings.gemini_model,
             contents=prompt,
-            config=config,
+            config=_generation_config(),
         ):
             text = getattr(chunk, "text", None)
             if text:
